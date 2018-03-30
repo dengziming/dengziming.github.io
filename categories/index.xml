@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Categories on Jane - A super concise theme for Hugo</title>
-    <link>http://localhost:1313/categories/</link>
-    <description>Recent content in Categories on Jane - A super concise theme for Hugo</description>
+    <title>Categories on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/categories/</link>
+    <description>Recent content in Categories on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en</language>
+    <language>zh-cn</language>
     
-        <atom:link href="http://localhost:1313/categories/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="https://dengziming.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Development</title>
-      <link>http://localhost:1313/categories/development/</link>
+      <link>https://dengziming.github.io/categories/development/</link>
       <pubDate>Sun, 28 Sep 2014 00:00:00 +0000</pubDate>
       
-      <guid>http://localhost:1313/categories/development/</guid>
+      <guid>https://dengziming.github.io/categories/development/</guid>
       
         <description></description>
       
@@ -23,10 +23,10 @@
     
     <item>
       <title>English</title>
-      <link>http://localhost:1313/categories/english/</link>
+      <link>https://dengziming.github.io/categories/english/</link>
       <pubDate>Thu, 31 Aug 2017 15:43:48 +0800</pubDate>
       
-      <guid>http://localhost:1313/categories/english/</guid>
+      <guid>https://dengziming.github.io/categories/english/</guid>
       
         <description></description>
       
@@ -34,10 +34,10 @@
     
     <item>
       <title>Github</title>
-      <link>http://localhost:1313/categories/github/</link>
+      <link>https://dengziming.github.io/categories/github/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>http://localhost:1313/categories/github/</guid>
+      <guid>https://dengziming.github.io/categories/github/</guid>
       
         <description></description>
       
@@ -45,10 +45,10 @@
     
     <item>
       <title>Golang</title>
-      <link>http://localhost:1313/categories/golang/</link>
+      <link>https://dengziming.github.io/categories/golang/</link>
       <pubDate>Sun, 28 Sep 2014 00:00:00 +0000</pubDate>
       
-      <guid>http://localhost:1313/categories/golang/</guid>
+      <guid>https://dengziming.github.io/categories/golang/</guid>
       
         <description></description>
       
@@ -56,10 +56,10 @@
     
     <item>
       <title>Index</title>
-      <link>http://localhost:1313/categories/index/</link>
+      <link>https://dengziming.github.io/categories/index/</link>
       <pubDate>Tue, 06 Mar 2018 16:01:23 +0800</pubDate>
       
-      <guid>http://localhost:1313/categories/index/</guid>
+      <guid>https://dengziming.github.io/categories/index/</guid>
       
         <description></description>
       
@@ -67,10 +67,10 @@
     
     <item>
       <title>Shortcodes</title>
-      <link>http://localhost:1313/categories/shortcodes/</link>
+      <link>https://dengziming.github.io/categories/shortcodes/</link>
       <pubDate>Tue, 06 Mar 2018 16:01:23 +0800</pubDate>
       
-      <guid>http://localhost:1313/categories/shortcodes/</guid>
+      <guid>https://dengziming.github.io/categories/shortcodes/</guid>
       
         <description></description>
       
@@ -78,10 +78,10 @@
     
     <item>
       <title>Syntax Highlighting</title>
-      <link>http://localhost:1313/categories/syntax-highlighting/</link>
+      <link>https://dengziming.github.io/categories/syntax-highlighting/</link>
       <pubDate>Tue, 30 Aug 2011 16:01:23 +0800</pubDate>
       
-      <guid>http://localhost:1313/categories/syntax-highlighting/</guid>
+      <guid>https://dengziming.github.io/categories/syntax-highlighting/</guid>
       
         <description></description>
       
@@ -89,10 +89,10 @@
     
     <item>
       <title>Test</title>
-      <link>http://localhost:1313/categories/test/</link>
+      <link>https://dengziming.github.io/categories/test/</link>
       <pubDate>Wed, 30 Aug 2017 15:43:48 +0800</pubDate>
       
-      <guid>http://localhost:1313/categories/test/</guid>
+      <guid>https://dengziming.github.io/categories/test/</guid>
       
         <description></description>
       
