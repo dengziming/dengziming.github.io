@@ -17,6 +17,12 @@
   </url>
   
   <url>
+    <loc>https://dengziming.github.io/post/project/hadoop/hadoop/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
     <loc>https://dengziming.github.io/categories/</loc>
     <changefreq>weekly</changefreq>
     <priority>0</priority>
