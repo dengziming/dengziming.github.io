@@ -30,13 +30,6 @@
   </url>
   
   <url>
-    <loc>https://dengziming.github.io/tags/github/</loc>
-    <lastmod>2018-03-22T00:00:00+00:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0</priority>
-  </url>
-  
-  <url>
     <loc>https://dengziming.github.io/categories/github/</loc>
     <lastmod>2018-03-22T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
@@ -44,14 +37,21 @@
   </url>
   
   <url>
-    <loc>https://dengziming.github.io/tags/hadoop/</loc>
-    <lastmod>2018-03-30T00:00:00+00:00</lastmod>
+    <loc>https://dengziming.github.io/tags/github/</loc>
+    <lastmod>2018-03-22T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://dengziming.github.io/categories/hadoop/</loc>
+    <lastmod>2018-03-30T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://dengziming.github.io/tags/hadoop/</loc>
     <lastmod>2018-03-30T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0</priority>
