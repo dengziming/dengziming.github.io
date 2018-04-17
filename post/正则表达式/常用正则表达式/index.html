@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>如何在github.io搭建Hugo博客 - 数据分析师之旅</title>
+  <title>常用正则表达式 - 数据分析师之旅</title>
   <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
 
 <meta name="renderer" content="webkit" />
@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="" />
+  <meta name="description" content="正则语法 每个语言的语法不一样，大致类似。 1. 常用正则 1.nginx匹配 ([^\s]&#43;) - ([.&#43;]) select &#39;([^\\s]&#43;) - (\\[.&#43;\\])&#39; 注释： \转义，这里加上sql转义是两个转义。 括号括起来是一" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -31,7 +31,7 @@
 <meta name="generator" content="Hugo 0.26" />
 
 
-<link rel="canonical" href="https://dengziming.github.io/post/java/first/" />
+<link rel="canonical" href="https://dengziming.github.io/post/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" />
 
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -49,10 +49,10 @@
 
 
 
-<meta property="og:title" content="如何在github.io搭建Hugo博客" />
-<meta property="og:description" content="" />
+<meta property="og:title" content="常用正则表达式" />
+<meta property="og:description" content="正则语法 每个语言的语法不一样，大致类似。 1. 常用正则 1.nginx匹配 ([^\s]&#43;) - ([.&#43;]) select &#39;([^\\s]&#43;) - (\\[.&#43;\\])&#39; 注释： \转义，这里加上sql转义是两个转义。 括号括起来是一" />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://dengziming.github.io/post/java/first/" />
+<meta property="og:url" content="https://dengziming.github.io/post/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" />
 
 
 
@@ -69,18 +69,18 @@
 
 
 
-<meta itemprop="name" content="如何在github.io搭建Hugo博客">
-<meta itemprop="description" content="">
+<meta itemprop="name" content="常用正则表达式">
+<meta itemprop="description" content="正则语法 每个语言的语法不一样，大致类似。 1. 常用正则 1.nginx匹配 ([^\s]&#43;) - ([.&#43;]) select &#39;([^\\s]&#43;) - (\\[.&#43;\\])&#39; 注释： \转义，这里加上sql转义是两个转义。 括号括起来是一">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="0">
+<meta itemprop="wordCount" content="296">
 
 
 
-<meta itemprop="keywords" content="教程,github," />
-<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="如何在github.io搭建Hugo博客"/>
-<meta name="twitter:description" content=""/>
+<meta itemprop="keywords" content="正则表达式,github," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="常用正则表达式"/>
+<meta name="twitter:description" content="正则语法 每个语言的语法不一样，大致类似。 1. 常用正则 1.nginx匹配 ([^\s]&#43;) - ([.&#43;]) select &#39;([^\\s]&#43;) - (\\[.&#43;\\])&#39; 注释： \转义，这里加上sql转义是两个转义。 括号括起来是一"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -170,17 +170,17 @@
           <article class="post bg-white">
     
     <header class="post-header">
-      <h1 class="post-title">如何在github.io搭建Hugo博客</h1>
+      <h1 class="post-title">常用正则表达式</h1>
 
       <div class="post-meta">
         <span class="post-time"> 2018-03-22 </span>
         <div class="post-category">
             
-              <a href="/categories/github/"> github </a>
+              <a href="/categories/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/"> 正则表达式 </a>
             
           </div>
-        <span class="more-meta"> 0 words </span>
-        <span class="more-meta"> 0 min read </span>
+        <span class="more-meta"> 296 words </span>
+        <span class="more-meta"> 1 min read </span>
       </div>
     </header>
 
@@ -190,13 +190,65 @@
   <h2 class="post-toc-title">Table of Contents</h2>
   
   <div class="post-toc-content">
-    
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#正则语法">正则语法</a>
+<ul>
+<li><a href="#1">1.</a></li>
+</ul></li>
+<li><a href="#常用正则">常用正则</a>
+<ul>
+<li><a href="#1-nginx匹配">1.nginx匹配</a></li>
+<li><a href="#2-字符串分割">2.字符串分割</a></li>
+<li><a href="#3-特殊字符替换">3.特殊字符替换</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
   </div>
 </div>
 
     
     <div class="post-content">
       
+
+<h2 id="正则语法">正则语法</h2>
+
+<p>每个语言的语法不一样，大致类似。</p>
+
+<h3 id="1">1.</h3>
+
+<h2 id="常用正则">常用正则</h2>
+
+<h3 id="1-nginx匹配">1.nginx匹配</h3>
+
+<p>([^\s]+) - ([.+])</p>
+
+<pre><code class="language-sql">select 
+'([^\\s]+) - (\\[.+\\])'
+</code></pre>
+
+<p>注释：
+\转义，这里加上sql转义是两个转义。
+括号括起来是一个字符集
+. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）</p>
+
+<h3 id="2-字符串分割">2.字符串分割</h3>
+
+<pre><code class="language-sql">SELECT split('%180%霖易%|%180%商城%|%霖易商城%','\\|');
+</code></pre>
+
+<p>|代表或，如果分割需要转义。</p>
+
+<h3 id="3-特殊字符替换">3.特殊字符替换</h3>
+
+<pre><code class="language-sql">SELECT   regexp_replace('(名字)。|得到的sssa》《？','\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&quot;|\'','') as contact_name
+
+-- 得到的sssa
+</code></pre>
+
     </div>
 
     
@@ -240,7 +292,7 @@
     <footer class="post-footer">
       <div class="post-tags">
           
-          <a href="/tags/%E6%95%99%E7%A8%8B/">教程</a>
+          <a href="/tags/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/">正则表达式</a>
           
           <a href="/tags/github/">github</a>
           
@@ -249,17 +301,12 @@
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/project/hadoop/hadoop/">
+          <a class="prev" href="/post/java/first/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">hadoop网站日志分析项目架构</span>
+            <span class="prev-text nav-default">如何在github.io搭建Hugo博客</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/">
-            <span class="next-text nav-default">常用正则表达式</span>
-            <span class="prev-text nav-mobile">Next</span>
-            <i class="iconfont icon-right"></i>
-          </a>
       </nav>
     </footer>
     
@@ -274,9 +321,9 @@
   <script type="text/javascript">
   const gitment = new Gitment({
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
-    title: '如何在github.io搭建Hugo博客',
+    title: '常用正则表达式',
     link: decodeURI(location.href),
-    desc: '',
+    desc: '正则语法 每个语言的语法不一样，大致类似。 1. 常用正则 1.nginx匹配 ([^\\s]\x2b) - ([.\x2b]) select \x27([^\\\\s]\x2b) - (\\\\[.\x2b\\\\])\x27 注释： \\转义，这里加上sql转义是两个转义。 括号括起来是一',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

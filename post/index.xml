@@ -6,10 +6,97 @@
     <description>Recent content in Posts on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sun, 15 Apr 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 20 Apr 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Java内存区域与内存溢出异常</title>
+      <link>https://dengziming.github.io/post/java/%E8%87%AA%E5%8A%A8%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/</link>
+      <pubDate>Fri, 20 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/java/%E8%87%AA%E5%8A%A8%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;概述&#34;&gt;概述&lt;/h2&gt;
+
+&lt;p&gt;我们的代码运行过程中的，虚拟机管理着内存的分配和使用。我们今天先了解内存区域，使我们深入了解JVM的第一步。&lt;/p&gt;
+
+&lt;h2 id=&#34;运行时数据区域&#34;&gt;运行时数据区域&lt;/h2&gt;
+
+&lt;p&gt;根据java虚拟机规范，虚拟机内存区域结构大概如图，我们详细介绍每个区域：
+&lt;img src=&#34;./_image/2018-04-16-22-37-47.jpg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;1-程序计数器&#34;&gt;1.程序计数器&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;我们简单想象有个helloworld程序运行。代码最终是一步一步解释为机器码，所以有一个程序计数器，记录当前的代码执行位置，也就是行号。&lt;/li&gt;
+&lt;li&gt;假如有两个线程执行helloworld，那每个线程执行到第几行都需要各自保存，每个线程都有独立的计数器。&lt;/li&gt;
+&lt;li&gt;如果是循环打印，字节码需要改变程序计数器的值取到下一条指令。&lt;/li&gt;
+&lt;li&gt;如果是java方法，计数器指向的是代码位置，如果是native方法，计数器为空。&lt;/li&gt;
+&lt;li&gt;程序计数器是唯一一个没有 outofmermoryError情况的区域。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;2-java虚拟机栈&#34;&gt;2. java虚拟机栈&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;和程序计数器一样，java虚拟机栈也是线程私有。&lt;/li&gt;
+&lt;li&gt;我们debug代码的时候，debugger会显示某个正在运行的线程，然后自上而下一次为每个方法对应的栈帧，每个栈帧保存局部变量等，每个方法执行结束，就有一个栈帧入栈到出栈：
+&lt;img src=&#34;./_image/2018-04-16-22-48-02.jpg&#34; alt=&#34;&#34; /&gt;&lt;/li&gt;
+&lt;li&gt;局部变量表存储的是各自基本数据类型（8种）和引用。64位的long和double占用两个变量空间，其余的是一个，一般来说，局部变量表的大小是固定的。&lt;/li&gt;
+&lt;li&gt;栈有两种异常，Stack OverflowError 和 outofmermoryError，前者是方法调用栈太多，例如递归，后者是内存不够。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;3-本地方法栈&#34;&gt;3.本地方法栈&lt;/h3&gt;
+
+&lt;p&gt;和栈类似，主要负责本地方法，实现上很自由，有的直接和栈合二为一。也有两种异常。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-java-堆&#34;&gt;4.java 堆&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;内存最大，线程共享，作用就是存放实例（几乎所有的实例，但是技术发展导致没这么绝对）。&lt;/li&gt;
+&lt;li&gt;垃圾回收采用分带收集，所以堆包括了新生代、老年代。还可以细分为：eden、from survivor、to survivor。&lt;/li&gt;
+&lt;li&gt;可能也有线程私有的内存缓冲区，只是为了更好分配和回收。&lt;/li&gt;
+&lt;li&gt;只要逻辑上连续即可，无需物理连续。大小可以调节（-Xmx和-Xms）&lt;/li&gt;
+&lt;li&gt;无法扩展并且没有内存分配示例，会有OutOfmermoryError。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;5-方法区&#34;&gt;5.方法区&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;我们运行了一个helloworld方法，对应的主类和常量、静态变量、编译后的代码都需要放在方法去，逻辑上和堆的一个部分。&lt;/li&gt;
+&lt;li&gt;基本上不需要垃圾回收，所以有人叫他永久带，实际上只是将它放在了永久代的而已。&lt;/li&gt;
+&lt;li&gt;方法去无法满足内训分配需求，也会有OutOfmermoryError。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;6-运行时常量池&#34;&gt;6. 运行时常量池&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;是方法区的一部分，.class 文件中除了有类的版本、字段、方法等信息，还有常量池，用于存放编译器的自变量和符号引用。这部分在加载后会进入方法去的运行时常量池。&lt;/li&gt;
+&lt;li&gt;.class文件的每一部分格式都很严格。但是常量池很宽松。&lt;/li&gt;
+&lt;li&gt;java语言并不要求一定要常量只能在编译时候产生，运行期间也可以将新的常量放入常量池。这种特性用的最多的是String的intern()方法。&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;也会有OutOfmermoryError。&lt;/p&gt;
+
+&lt;h3 id=&#34;7-直接内存&#34;&gt;7. 直接内存&lt;/h3&gt;
+
+&lt;p&gt;这部分是由于java的NIO引起的&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;二-hotspot对象探秘&#34;&gt;二、Hotspot对象探秘&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-对象的创建&#34;&gt;1.对象的创建&lt;/h3&gt;
+
+&lt;h3 id=&#34;2-对象的内存布局&#34;&gt;2.对象的内存布局&lt;/h3&gt;
+
+&lt;h3 id=&#34;3-对象的访问&#34;&gt;3.对象的访问&lt;/h3&gt;
+
+&lt;p&gt;待续&lt;/p&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>spark-天池o2o竞赛</title>
@@ -1607,6 +1694,53 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
       <guid>https://dengziming.github.io/post/java/first/</guid>
       
         <description></description>
+      
+    </item>
+    
+    <item>
+      <title>常用正则表达式</title>
+      <link>https://dengziming.github.io/post/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;正则语法&#34;&gt;正则语法&lt;/h2&gt;
+
+&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
+
+&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
+
+&lt;h2 id=&#34;常用正则&#34;&gt;常用正则&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-nginx匹配&#34;&gt;1.nginx匹配&lt;/h3&gt;
+
+&lt;p&gt;([^\s]+) - ([.+])&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;select 
+&#39;([^\\s]+) - (\\[.+\\])&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;注释：
+\转义，这里加上sql转义是两个转义。
+括号括起来是一个字符集
+. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）&lt;/p&gt;
+
+&lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT split(&#39;%180%霖易%|%180%商城%|%霖易商城%&#39;,&#39;\\|&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;|代表或，如果分割需要转义。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT   regexp_replace(&#39;(名字)。|得到的sssa》《？&#39;,&#39;\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&amp;quot;|\&#39;&#39;,&#39;&#39;) as contact_name
+
+-- 得到的sssa
+&lt;/code&gt;&lt;/pre&gt;
+</description>
       
     </item>
     
