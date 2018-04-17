@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Sql on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/categories/sql/</link>
+    <description>Recent content in Sql on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/categories/sql/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>常用sql写法</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;sql语法&#34;&gt;sql语法&lt;/h2&gt;
+
+&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-调优经验&#34;&gt;1. 调优经验&lt;/h3&gt;
+
+&lt;p&gt;可以先explain，分析一下。然后再运行。&lt;/p&gt;
+
+&lt;p&gt;join可能会导致数据倾斜的情况：&lt;/p&gt;
+
+&lt;p&gt;join的key是不均匀的，
+join的key有很多事空值，这时候可以分为两部分进行union&lt;/p&gt;
+
+&lt;p&gt;多表join：
+一般是前面的stage一起执行，最后有一个stage。
+如果发现很慢，数据也没有倾斜，可能是某些表的key重复，导致join会有笛卡尔积操作，得到很多数据所以慢，可以根据业务进行过滤。&lt;/p&gt;
+
+&lt;h2 id=&#34;常用sql&#34;&gt;常用sql&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-不等值join&#34;&gt;1.不等值join&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;
+cache table b as select * from location ;
+
+select
+    a.ip,
+    b.city
+from
+    b
+RIGHT JOIN
+    fin_kg.kg_v2_v_ip a
+ON
+    a.ip &amp;gt;= b.ip_start
+AND
+    a.ip &amp;lt;= b.ip_end
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;和&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;CACHE TABLE chuanxiao AS SELECT id,name,regs FROM vdm_fin.chuanxiao_20180417;
+
+insert overwrite table kg_v2_e_userid_gang
+select
+    b.id,
+    b.name,
+    a.phone,
+    a.contact_phone,
+    a.contact_name
+from
+     a
+right join
+    chuanxiao b
+on
+    a.contact_name regexp regexp_replace(b.regs,&amp;quot;%&amp;quot;,&amp;quot;.*&amp;quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;2-分位点&#34;&gt;2.分位点&lt;/h3&gt;
+
+&lt;p&gt;percentile
+percentile_approx
+percentile_rank&lt;/p&gt;
+
+&lt;h3 id=&#34;3-保留小数&#34;&gt;3.保留小数&lt;/h3&gt;
+
+&lt;p&gt;printf&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>
