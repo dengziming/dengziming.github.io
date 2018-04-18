@@ -20,11 +20,11 @@
       
         <description>
 
-&lt;h2 id=&#34;概述&#34;&gt;概述&lt;/h2&gt;
+&lt;h2 id=&#34;一-概述&#34;&gt;一、概述&lt;/h2&gt;
 
 &lt;p&gt;我们的代码运行过程中的，虚拟机管理着内存的分配和使用。我们今天先了解内存区域，使我们深入了解JVM的第一步。&lt;/p&gt;
 
-&lt;h2 id=&#34;运行时数据区域&#34;&gt;运行时数据区域&lt;/h2&gt;
+&lt;h2 id=&#34;二-运行时数据区域&#34;&gt;二、运行时数据区域&lt;/h2&gt;
 
 &lt;p&gt;根据java虚拟机规范，虚拟机内存区域结构大概如图，我们详细介绍每个区域：
 &lt;img src=&#34;./_image/2018-04-16-22-37-47.jpg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
@@ -77,21 +77,139 @@
 &lt;li&gt;是方法区的一部分，.class 文件中除了有类的版本、字段、方法等信息，还有常量池，用于存放编译器的自变量和符号引用。这部分在加载后会进入方法去的运行时常量池。&lt;/li&gt;
 &lt;li&gt;.class文件的每一部分格式都很严格。但是常量池很宽松。&lt;/li&gt;
 &lt;li&gt;java语言并不要求一定要常量只能在编译时候产生，运行期间也可以将新的常量放入常量池。这种特性用的最多的是String的intern()方法。&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;也会有OutOfmermoryError。&lt;/p&gt;
+&lt;li&gt;也会有OutOfmermoryError。&lt;/li&gt;
+&lt;/ol&gt;
 
 &lt;h3 id=&#34;7-直接内存&#34;&gt;7. 直接内存&lt;/h3&gt;
 
-&lt;p&gt;这部分是由于java的NIO引起的&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
+&lt;p&gt;这部分是由于java的NIO引起的&lt;/p&gt;
 
-&lt;h2 id=&#34;二-hotspot对象探秘&#34;&gt;二、Hotspot对象探秘&lt;/h2&gt;
+&lt;h2 id=&#34;三-hotspot对象探秘&#34;&gt;三、Hotspot对象探秘&lt;/h2&gt;
 
 &lt;h3 id=&#34;1-对象的创建&#34;&gt;1.对象的创建&lt;/h3&gt;
 
+&lt;ol&gt;
+&lt;li&gt;从写代码看，对象的创建（例如克隆，反序列化）只是一个new关键字，然后我们调试可以看到其实还执行了 初始化的&lt;init&gt;方法。&lt;/li&gt;
+&lt;li&gt;从虚拟机角度看，首先是检查对应的引用能否在常量池中定位到一个类的符号引用，并检查是否已经加载解析和初始化过，如果没有，就要开始加载。&lt;/li&gt;
+&lt;li&gt;类的加载我们以后讨论，加载完后需要分配内存。对象大小在加载完成后就已经完全确定了，如果java堆内存是绝对规整的，那么需要维护一个指针指向当前分配到的位置。如果不连续需要维护一个空闲列表。&lt;/li&gt;
+&lt;li&gt;分配内存可能是多线程的，有安全问题。要么加锁，要么给每个内存一个预先分配的小内存，成为本地分配缓存。&lt;/li&gt;
+&lt;li&gt;内存分配完成后需要初始化为0值，然后进行元数据设置，例如是那个类的实例，GC代等。&lt;/li&gt;
+&lt;li&gt;这时候对象创建才刚刚开始，执行 &lt;init&gt;方法。&lt;/li&gt;
+&lt;/ol&gt;
+
 &lt;h3 id=&#34;2-对象的内存布局&#34;&gt;2.对象的内存布局&lt;/h3&gt;
 
+&lt;ol&gt;
+&lt;li&gt;对象在内存中的存储布局可以分为3部分，对象头，实例数据、对象填充。对象头第一部分存储运行时数据，第二部分是类型指针。运行时数据hash码、分带年龄等。类型指针指向类元数据，数组还要记录数组长度。&lt;/li&gt;
+&lt;li&gt;第二部分为实例数据，就是代码里面定义的数据内容&lt;/li&gt;
+&lt;li&gt;第三部分没什么含义，仅仅是占位符。&lt;/li&gt;
+&lt;/ol&gt;
+
 &lt;h3 id=&#34;3-对象的访问&#34;&gt;3.对象的访问&lt;/h3&gt;
+
+&lt;p&gt;1.对象的访问有两种方式，第一种是句柄。java堆会有一块专门的内存作为句柄池，栈存储的是句柄地址，句柄包含了对象示例数据（堆）和类型数据（方法区）各自的指针。
+2. 第二中方法是指针访问，栈存储的直接是对象地址，堆的对象布局必须考虑如何放置访问类型数据。
+3. 句柄最大的好处是对象改变时不需要改变栈的地址，使用直接内存好处是访问速度快，节省时间。&lt;/p&gt;
+
+&lt;h2 id=&#34;四-实战-outofmermoryerror&#34;&gt;四、实战 OutOfmermoryError&lt;/h2&gt;
+
+&lt;p&gt;除了程序计数器，都会有OutOfMermoryError异常，我们实战一下，在IDEA编写代码，并学习几个参数。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-堆溢出&#34;&gt;1.堆溢出&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
+ * Created by dengziming on 17/04/2018.
+ * VM ARGS: -Xms20m -Xmx20m -XX:+HeapDumpOnOutOfMemoryError
+ */
+public class HeapOOM {
+    static class OOMObject{}
+    public static void main(String[] args) {
+        List&amp;lt;OOMObject&amp;gt; list = new ArrayList&amp;lt;&amp;gt;();
+        while (true){list.add(new OOMObject());}
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;VM ARGS:  -Xms20m -Xmx20m -XX:+HeapDumpOnOutOfMemoryError
+马上报错：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;java.lang.OutOfMemoryError: Java heap space
+Dumping heap to java_pid98722.hprof ...
+Heap dump file created [27798040 bytes in 0.363 secs]
+Exception in thread &amp;quot;main&amp;quot; java.lang.OutOfMemoryError: Java heap space
+	at java.util.Arrays.copyOf(Arrays.java:3210)
+	at java.util.Arrays.copyOf(Arrays.java:3181)
+	at java.util.ArrayList.grow(ArrayList.java:261)
+	at java.util.ArrayList.ensureExplicitCapacity(ArrayList.java:235)
+	at java.util.ArrayList.ensureCapacityInternal(ArrayList.java:227)
+	at java.util.ArrayList.add(ArrayList.java:458)
+	at io.github.dengziming.session2.HeapOOM.main(HeapOOM.java:21)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;如何查看对文件和分析，我们后续有内容。简单分析两点：
+1. 如果是内存泄露，通过GC工具查看泄露对象的GC引用链，定位代码位置
+2. 如果内存溢出，可以考虑调大参数。 -Xmx -Xms&lt;/p&gt;
+
+&lt;h3 id=&#34;2-虚拟机栈和本地方法溢出&#34;&gt;2.虚拟机栈和本地方法溢出&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
+ * Created by dengziming on 18/04/2018.
+ * VM ARGS -Xss128k
+ */
+public class JavaVMStackSOF {
+
+    private int stackLenth = 1;
+    public void stackLeak(){
+        stackLenth ++;
+        stackLeak();
+    }
+
+    public static void main(String[] args) {
+        JavaVMStackSOF oom = new JavaVMStackSOF();
+        try{
+            oom.stackLeak();
+        }catch (Exception e){
+            System.out.println(&amp;quot;stackLenth: &amp;quot; + oom.stackLenth);
+            throw e;
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Exception in thread &amp;ldquo;main&amp;rdquo; java.lang.StackOverflowError
+结果表明，单线程下，无论是栈帧太大还是栈容量太小，内存无法分配的时候，都是Stack Overflow，如果多线程到不太一样。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
+ * Created by dengziming on 18/04/2018.
+ * VM ARGS: -Xss20M
+ */
+public class JavaVMStackOOM {
+    private void dontStop(){
+        while (true){}
+    }
+    public void stackLeakByStack(){
+        while (true){
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    dontStop();
+                }
+            };
+            thread.start();
+        }
+    }
+
+    public static void main(String[] args) {
+        JavaVMStackOOM oom = new JavaVMStackOOM();
+        oom.stackLeakByStack();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;运行完电脑卡死了，算了。这个内存越大反而容易耗尽资源，因为机器内存是固定的，减少容量可以获得更多的线程数。
+注意：这时候通过减少内存解决内存溢出的方法，没有经验是不知道的。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-方法区和运行时常量池&#34;&gt;3. 方法区和运行时常量池&lt;/h3&gt;
 
 &lt;p&gt;待续&lt;/p&gt;
 </description>
@@ -1698,6 +1816,53 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
     </item>
     
     <item>
+      <title>常用maven命令</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;正则语法&#34;&gt;正则语法&lt;/h2&gt;
+
+&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
+
+&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
+
+&lt;h2 id=&#34;常用正则&#34;&gt;常用正则&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-nginx匹配&#34;&gt;1.nginx匹配&lt;/h3&gt;
+
+&lt;p&gt;([^\s]+) - ([.+])&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;select 
+&#39;([^\\s]+) - (\\[.+\\])&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;注释：
+\转义，这里加上sql转义是两个转义。
+括号括起来是一个字符集
+. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）&lt;/p&gt;
+
+&lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT split(&#39;%180%霖易%|%180%商城%|%霖易商城%&#39;,&#39;\\|&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;|代表或，如果分割需要转义。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT   regexp_replace(&#39;(名字)。|得到的sssa》《？&#39;,&#39;\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&amp;quot;|\&#39;&#39;,&#39;&#39;) as contact_name
+
+-- 得到的sssa
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
       <title>常用sql写法</title>
       <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
@@ -1772,53 +1937,6 @@ percentile_rank&lt;/p&gt;
 &lt;h3 id=&#34;3-保留小数&#34;&gt;3.保留小数&lt;/h3&gt;
 
 &lt;p&gt;printf&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>常用正则表达式</title>
-      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</guid>
-      
-        <description>
-
-&lt;h2 id=&#34;正则语法&#34;&gt;正则语法&lt;/h2&gt;
-
-&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
-
-&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
-
-&lt;h2 id=&#34;常用正则&#34;&gt;常用正则&lt;/h2&gt;
-
-&lt;h3 id=&#34;1-nginx匹配&#34;&gt;1.nginx匹配&lt;/h3&gt;
-
-&lt;p&gt;([^\s]+) - ([.+])&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;select 
-&#39;([^\\s]+) - (\\[.+\\])&#39;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;注释：
-\转义，这里加上sql转义是两个转义。
-括号括起来是一个字符集
-. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）&lt;/p&gt;
-
-&lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT split(&#39;%180%霖易%|%180%商城%|%霖易商城%&#39;,&#39;\\|&#39;);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;|代表或，如果分割需要转义。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT   regexp_replace(&#39;(名字)。|得到的sssa》《？&#39;,&#39;\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&amp;quot;|\&#39;&#39;,&#39;&#39;) as contact_name
-
--- 得到的sssa
-&lt;/code&gt;&lt;/pre&gt;
 </description>
       
     </item>
