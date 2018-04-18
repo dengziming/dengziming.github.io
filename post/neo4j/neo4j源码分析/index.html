@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>常用maven命令 - 数据分析师之旅</title>
+  <title>neo4j编译打包启动服务端 - 数据分析师之旅</title>
   <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
 
 <meta name="renderer" content="webkit" />
@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="插件 1. 版本兼容检查 &amp;lt;plugin&amp;gt; &amp;lt;groupId&amp;gt;org.revapi&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;revapi-maven-plugin&amp;lt;/artifactId&amp;gt; &amp;lt;/plugin&amp;gt; 代码风格检查 maven-checkstyle-plugin 2.字符串分割 3.特殊字符替换" />
+  <meta name="description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &amp;lt;plugin&amp;gt; &amp;lt;groupId&amp;gt;org.revapi&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;revapi-maven-plugin&amp;lt;/artifactId&amp;gt; &amp;lt;/plugin&amp;gt; 里面好像涉及到了" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -31,7 +31,7 @@
 <meta name="generator" content="Hugo 0.26" />
 
 
-<link rel="canonical" href="https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/" />
+<link rel="canonical" href="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" />
 
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -49,10 +49,10 @@
 
 
 
-<meta property="og:title" content="常用maven命令" />
-<meta property="og:description" content="插件 1. 版本兼容检查 &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 代码风格检查 maven-checkstyle-plugin 2.字符串分割 3.特殊字符替换" />
+<meta property="og:title" content="neo4j编译打包启动服务端" />
+<meta property="og:description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了" />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/" />
+<meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" />
 
 
 
@@ -69,18 +69,18 @@
 
 
 
-<meta itemprop="name" content="常用maven命令">
-<meta itemprop="description" content="插件 1. 版本兼容检查 &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 代码风格检查 maven-checkstyle-plugin 2.字符串分割 3.特殊字符替换">
+<meta itemprop="name" content="neo4j编译打包启动服务端">
+<meta itemprop="description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="35">
+<meta itemprop="wordCount" content="904">
 
 
 
-<meta itemprop="keywords" content="maven," />
-<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="常用maven命令"/>
-<meta name="twitter:description" content="插件 1. 版本兼容检查 &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 代码风格检查 maven-checkstyle-plugin 2.字符串分割 3.特殊字符替换"/>
+<meta itemprop="keywords" content="源码,图数据库,大数据," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j编译打包启动服务端"/>
+<meta name="twitter:description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -170,17 +170,17 @@
           <article class="post bg-white">
     
     <header class="post-header">
-      <h1 class="post-title">常用maven命令</h1>
+      <h1 class="post-title">neo4j编译打包启动服务端</h1>
 
       <div class="post-meta">
         <span class="post-time"> 2018-03-22 </span>
         <div class="post-category">
             
-              <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 35 words </span>
-        <span class="more-meta"> 1 min read </span>
+        <span class="more-meta"> 904 words </span>
+        <span class="more-meta"> 2 min read </span>
       </div>
     </header>
 
@@ -194,11 +194,17 @@
 <ul>
 <li>
 <ul>
-<li><a href="#插件">插件</a>
+<li><a href="#1-打包">1.打包</a>
 <ul>
-<li><a href="#1">1.</a></li>
-<li><a href="#2-字符串分割">2.字符串分割</a></li>
-<li><a href="#3-特殊字符替换">3.特殊字符替换</a></li>
+<li><a href="#1-打包community">1.打包community</a></li>
+<li><a href="#2-打包企业版">2.打包企业版</a></li>
+<li><a href="#3-打包完整的tar包">3. 打包完整的tar包</a></li>
+</ul></li>
+<li><a href="#二-运行">二、运行</a>
+<ul>
+<li><a href="#1-启动">1.启动</a></li>
+<li><a href="#2-打断点调试">2.打断点调试</a></li>
+<li><a href="#3">3.</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -210,11 +216,12 @@
     <div class="post-content">
       
 
-<h2 id="插件">插件</h2>
+<h2 id="1-打包">1.打包</h2>
 
-<h3 id="1">1.</h3>
+<h3 id="1-打包community">1.打包community</h3>
 
-<p>版本兼容检查</p>
+<p>进入community,neo4j-graphdb-api，
+注释掉common的：</p>
 
 <pre><code class="language-xml">&lt;plugin&gt;
   &lt;groupId&gt;org.revapi&lt;/groupId&gt;
@@ -222,14 +229,57 @@
 &lt;/plugin&gt;
 </code></pre>
 
-<p>代码风格检查</p>
+<p>里面好像涉及到了版本检查，如果某个类的最新发布版本已经没有这个方法，打包会失败，反正对打包有影响，不删除可能会失败。</p>
 
-<pre><code class="language-xml">maven-checkstyle-plugin
+<p>还可能要在主项目的pom里面注释掉：<code>maven-checkstyle-plugin</code>，代码风格检查可能会通不过。
+然后用maven命令：</p>
+
+<pre><code class="language-bash">mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
 </code></pre>
 
-<h3 id="2-字符串分割">2.字符串分割</h3>
+<h3 id="2-打包企业版">2.打包企业版</h3>
 
-<h3 id="3-特殊字符替换">3.特殊字符替换</h3>
+<p>进入enterprise,ha目录
+进入management,注释掉 <groupId>org.revapi</groupId>
+还有其他问题，比如java文件没有license，这里不一一列举。</p>
+
+<pre><code class="language-bash">mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+</code></pre>
+
+<h3 id="3-打包完整的tar包">3. 打包完整的tar包</h3>
+
+<p>进入项目路径</p>
+
+<pre><code class="language-bash">mvn clean install -Dmaven.test.skip=true
+</code></pre>
+
+<p>要注意两个参数的异同点：</p>
+
+<pre><code>
+-DskipTests，不执行测试用例，但编译测试用例类生成相应的class文件至target/test-classes下。
+
+-Dmaven.test.skip=true，不执行测试用例，也不编译测试用例类。
+</code></pre>
+
+<p>打包的输出文件：packaging/standalone/target/neo4j-community-3.4.0-SNAPSHOT-unix.tar.gz，这个就是我们的neo4j包。解压后，放到一个目录。一方面你可以选择执行 bin/neo4j start 启动neo4j，我们要分析源码，自然会是在本地启动。</p>
+
+<h2 id="二-运行">二、运行</h2>
+
+<h3 id="1-启动">1.启动</h3>
+
+<p>我们在IDEA中，找到入口类：org.neo4j.server.CommunityEntryPoint，点击运行，然后会报错，我们需要添加运行参数：</p>
+
+<p>-server &ndash;home-dir=~/neo4j-community-3.2.6 &ndash;config-dir=~/neo4j-community-3.2.6/conf</p>
+
+<p>这里的参数是刚刚解压的neo4j目录和配置文件。然后运行成功，访问 <a href="http://localhost:7474/browser/，会发现有问题。">http://localhost:7474/browser/，会发现有问题。</a>
+通过调试前端的js代码，我们发现版本有问题，这里我们稍作修改，找到 org.neo4j.kernel.internal.Version。最后的代码注释掉，换成我们的版本，也就是将Version.class.getPackage().getImplementationVersion() 换成 3.4，然后就可以运行成功了。
+打开7474端口，写cypher语言，查看。</p>
+
+<h3 id="2-打断点调试">2.打断点调试</h3>
+
+<p>既然是源码分析，我们的办法就是打断点，调试。查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，我们慢慢来吧。</p>
+
+<h3 id="3">3.</h3>
 
     </div>
 
@@ -274,21 +324,25 @@
     <footer class="post-footer">
       <div class="post-tags">
           
-          <a href="/tags/maven/">maven</a>
+          <a href="/tags/%E6%BA%90%E7%A0%81/">源码</a>
+          
+          <a href="/tags/%E5%9B%BE%E6%95%B0%E6%8D%AE%E5%BA%93/">图数据库</a>
+          
+          <a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/">大数据</a>
           
         </div>
 
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/java/first/">
+          <a class="prev" href="/post/project/hadoop/hadoop/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">如何在github.io搭建Hugo博客</span>
+            <span class="prev-text nav-default">hadoop网站日志分析项目架构</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/">
-            <span class="next-text nav-default">常用sql写法</span>
+          <a class="next" href="/post/java/first/">
+            <span class="next-text nav-default">如何在github.io搭建Hugo博客</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>
           </a>
@@ -306,9 +360,9 @@
   <script type="text/javascript">
   const gitment = new Gitment({
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
-    title: '常用maven命令',
+    title: 'neo4j编译打包启动服务端',
     link: decodeURI(location.href),
-    desc: '插件 1. 版本兼容检查 \x26lt;plugin\x26gt; \x26lt;groupId\x26gt;org.revapi\x26lt;\/groupId\x26gt; \x26lt;artifactId\x26gt;revapi-maven-plugin\x26lt;\/artifactId\x26gt; \x26lt;\/plugin\x26gt; 代码风格检查 maven-checkstyle-plugin 2.字符串分割 3.特殊字符替换',
+    desc: '1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： \x26lt;plugin\x26gt; \x26lt;groupId\x26gt;org.revapi\x26lt;\/groupId\x26gt; \x26lt;artifactId\x26gt;revapi-maven-plugin\x26lt;\/artifactId\x26gt; \x26lt;\/plugin\x26gt; 里面好像涉及到了',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="284">
+<meta itemprop="wordCount" content="314">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
             
           </div>
-        <span class="more-meta"> 284 words </span>
+        <span class="more-meta"> 314 words </span>
         <span class="more-meta"> 1 min read </span>
       </div>
     </header>
@@ -203,6 +203,8 @@
 <li><a href="#1-不等值join">1.不等值join</a></li>
 <li><a href="#2-分位点">2.分位点</a></li>
 <li><a href="#3-保留小数">3.保留小数</a></li>
+<li><a href="#4-手动刷新impala元数据">4. 手动刷新impala元数据</a></li>
+<li><a href="#5-键值对">5.键值对</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -280,6 +282,14 @@ percentile_rank</p>
 <h3 id="3-保留小数">3.保留小数</h3>
 
 <p>printf</p>
+
+<h3 id="4-手动刷新impala元数据">4. 手动刷新impala元数据</h3>
+
+<p>invalidate metadata [tablename]</p>
+
+<h3 id="5-键值对">5.键值对</h3>
+
+<p>str_to_map(concat_ws(&lsquo;,&rsquo;,collect_set(concat_ws(&rsquo;:&lsquo;, ctime_month, cast(final_score as string) )))) as time2score</p>
 
     </div>
 
@@ -378,10 +388,10 @@ percentile_rank</p>
       <div class="social-links">
       <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
       <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-twitter" title="twitter"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-facebook" title="facebook"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
       <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
       <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
       <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>

@@ -86,6 +86,14 @@ percentile_rank&lt;/p&gt;
 &lt;h3 id=&#34;3-保留小数&#34;&gt;3.保留小数&lt;/h3&gt;
 
 &lt;p&gt;printf&lt;/p&gt;
+
+&lt;h3 id=&#34;4-手动刷新impala元数据&#34;&gt;4. 手动刷新impala元数据&lt;/h3&gt;
+
+&lt;p&gt;invalidate metadata [tablename]&lt;/p&gt;
+
+&lt;h3 id=&#34;5-键值对&#34;&gt;5.键值对&lt;/h3&gt;
+
+&lt;p&gt;str_to_map(concat_ws(&amp;lsquo;,&amp;rsquo;,collect_set(concat_ws(&amp;rsquo;:&amp;lsquo;, ctime_month, cast(final_score as string) )))) as time2score&lt;/p&gt;
 </description>
       
     </item>

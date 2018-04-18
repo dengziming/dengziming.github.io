@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-04-20T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="2353">
+<meta itemprop="wordCount" content="2845">
 
 
 
@@ -179,8 +179,8 @@
               <a href="/categories/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3java%E8%99%9A%E6%8B%9F%E6%9C%BA/"> 深入理解java虚拟机 </a>
             
           </div>
-        <span class="more-meta"> 2353 words </span>
-        <span class="more-meta"> 5 min read </span>
+        <span class="more-meta"> 2845 words </span>
+        <span class="more-meta"> 6 min read </span>
       </div>
     </header>
 
@@ -215,7 +215,8 @@
 <ul>
 <li><a href="#1-堆溢出">1.堆溢出</a></li>
 <li><a href="#2-虚拟机栈和本地方法溢出">2.虚拟机栈和本地方法溢出</a></li>
-<li><a href="#3-方法区和运行时常量池">3. 方法区和运行时常量池</a></li>
+<li><a href="#3-方法区和运行时常量池溢出">3. 方法区和运行时常量池溢出</a></li>
+<li><a href="#4">4.</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -274,8 +275,9 @@
 
 <ol>
 <li>我们运行了一个helloworld方法，对应的主类和常量、静态变量、编译后的代码都需要放在方法去，逻辑上和堆的一个部分。</li>
-<li>基本上不需要垃圾回收，所以有人叫他永久带，实际上只是将它放在了永久代的而已。</li>
-<li>方法去无法满足内训分配需求，也会有OutOfmermoryError。</li>
+<li>基本上不需要垃圾回收，所以有人叫他永久带，实际上只是一开始的JVM将它放在了永久代的而已。但是从1.7开始，已经把原本放在永久代的字符串常量池移出, 放在堆中。</li>
+<li>方法去无法满足内训分配需求，也会有OutOfmermoryError，但是从1.7开始，不在这样。</li>
+<li>类的元数据, 字符串池, 类的静态变量将会从永久代移除, 放入Java heap或者native memory.其中建议JVM的实现中将类的元数据放入 native memory, 将字符串池和类的静态变量放入java堆中. 这样可以加载多少类的元数据就不在由MaxPermSize控制, 而由系统的实际可用空间来控制.</li>
 </ol>
 
 <h3 id="6-运行时常量池">6. 运行时常量池</h3>
@@ -416,7 +418,55 @@ public class JavaVMStackOOM {
 <p>运行完电脑卡死了，算了。这个内存越大反而容易耗尽资源，因为机器内存是固定的，减少容量可以获得更多的线程数。
 注意：这时候通过减少内存解决内存溢出的方法，没有经验是不知道的。</p>
 
-<h3 id="3-方法区和运行时常量池">3. 方法区和运行时常量池</h3>
+<h3 id="3-方法区和运行时常量池溢出">3. 方法区和运行时常量池溢出</h3>
+
+<p>String.intern() 的含义是返回在代表常量池中这个字符串的对象。如果没有，就将这个字符串放进常量池，并返回引用。</p>
+
+<pre><code class="language-java">/**
+ * Created by dengziming on 18/04/2018.
+ * 
+ * vm args: -XX:PermSize=10M -XX:MaxPermSize=10M
+ */
+public class RuntimeConstantPoolOOM {
+
+    public static void main(String[] args) {
+
+        List&lt;String&gt; list = new ArrayList&lt;&gt;();
+        int i=0;
+        while(true){
+            list.add(String.valueOf(i++).intern());
+        }
+    }
+}
+</code></pre>
+
+<p>不好意思这个方法没有达到效果：
+Java HotSpot&trade; 64-Bit Server VM warning: ignoring option PermSize=10M; support was removed in 8.0
+Java HotSpot&trade; 64-Bit Server VM warning: ignoring option MaxPermSize=10M; support was removed in 8.0
+jdk1.7 已经把原本放在永久代的字符串常量池移出, 放在堆中。</p>
+
+<pre><code class="language-java">    public static void main(String[] args) {
+
+        while(true){
+            Enhancer enhancer = new Enhancer();
+            enhancer.setSupperClass(OOMObject.class);
+            enhancer.setUserCache(false);
+            enhancer.setCallBack(new MethodInterceptor(){
+                public Object intercept(Object obj , Method method , Object []args , MethodProxy proxy)throw Throwable{
+                    return proxy.invokeSuper(obj , args);
+                }
+            });
+            enhancer.create();
+        }
+    }
+    static class OOMObject{
+
+    }
+</code></pre>
+
+<p>这个也是一样。因为类的元数据, 字符串池, 类的静态变量从永久代移除, 放入Java heap或者native memory.其中建议JVM的实现中将类的元数据放入 native memory, 将字符串池和类的静态变量放入java堆中.</p>
+
+<h3 id="4">4.</h3>
 
 <p>待续</p>
 
@@ -514,10 +564,10 @@ public class JavaVMStackOOM {
       <div class="social-links">
       <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
       <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-twitter" title="twitter"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-facebook" title="facebook"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
-      <a href="http://localhost:1313" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
       <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
       <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
       <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>

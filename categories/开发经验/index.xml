@@ -20,40 +20,26 @@
       
         <description>
 
-&lt;h2 id=&#34;正则语法&#34;&gt;正则语法&lt;/h2&gt;
-
-&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
+&lt;h2 id=&#34;插件&#34;&gt;插件&lt;/h2&gt;
 
 &lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
 
-&lt;h2 id=&#34;常用正则&#34;&gt;常用正则&lt;/h2&gt;
+&lt;p&gt;版本兼容检查&lt;/p&gt;
 
-&lt;h3 id=&#34;1-nginx匹配&#34;&gt;1.nginx匹配&lt;/h3&gt;
-
-&lt;p&gt;([^\s]+) - ([.+])&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;select 
-&#39;([^\\s]+) - (\\[.+\\])&#39;
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;plugin&amp;gt;
+  &amp;lt;groupId&amp;gt;org.revapi&amp;lt;/groupId&amp;gt;
+  &amp;lt;artifactId&amp;gt;revapi-maven-plugin&amp;lt;/artifactId&amp;gt;
+&amp;lt;/plugin&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;注释：
-\转义，这里加上sql转义是两个转义。
-括号括起来是一个字符集
-. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）&lt;/p&gt;
+&lt;p&gt;代码风格检查&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;maven-checkstyle-plugin
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT split(&#39;%180%霖易%|%180%商城%|%霖易商城%&#39;,&#39;\\|&#39;);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;|代表或，如果分割需要转义。&lt;/p&gt;
-
 &lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT   regexp_replace(&#39;(名字)。|得到的sssa》《？&#39;,&#39;\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&amp;quot;|\&#39;&#39;,&#39;&#39;) as contact_name
-
--- 得到的sssa
-&lt;/code&gt;&lt;/pre&gt;
 </description>
       
     </item>
@@ -133,6 +119,14 @@ percentile_rank&lt;/p&gt;
 &lt;h3 id=&#34;3-保留小数&#34;&gt;3.保留小数&lt;/h3&gt;
 
 &lt;p&gt;printf&lt;/p&gt;
+
+&lt;h3 id=&#34;4-手动刷新impala元数据&#34;&gt;4. 手动刷新impala元数据&lt;/h3&gt;
+
+&lt;p&gt;invalidate metadata [tablename]&lt;/p&gt;
+
+&lt;h3 id=&#34;5-键值对&#34;&gt;5.键值对&lt;/h3&gt;
+
+&lt;p&gt;str_to_map(concat_ws(&amp;lsquo;,&amp;rsquo;,collect_set(concat_ws(&amp;rsquo;:&amp;lsquo;, ctime_month, cast(final_score as string) )))) as time2score&lt;/p&gt;
 </description>
       
     </item>
