@@ -166,7 +166,7 @@
     
       <article class="post bg-white">
   <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/java/%E8%87%AA%E5%8A%A8%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/">Java内存区域与内存溢出异常</a></h1>
+    <h1 class="post-title"><a class="post-link" href="/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/">Java内存区域与内存溢出异常</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-04-20 </span>
       <div class="post-category">
@@ -174,8 +174,8 @@
             <a href="/categories/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3java%E8%99%9A%E6%8B%9F%E6%9C%BA/"> 深入理解java虚拟机 </a>
           
         </div>
-      <span class="more-meta"> 2845 words </span>
-      <span class="more-meta"> 6 min read </span>
+      <span class="more-meta"> 3111 words </span>
+      <span class="more-meta"> 7 min read </span>
     </div>
   </header>
   
@@ -185,7 +185,35 @@
       一、概述 我们的代码运行过程中的，虚拟机管理着内存的分配和使用。我们今天先了解内存区域，使我们深入了解JVM的第一步。 二、运行时数据区域 根据j
     </div>
     <div class="read-more">
-      <a href="/post/java/%E8%87%AA%E5%8A%A8%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/" class="read-more-link">Read more</a>
+      <a href="/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/java/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E4%B9%9F%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5/">垃圾收集器和内存分配策略</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-20 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3java%E8%99%9A%E6%8B%9F%E6%9C%BA/"> 深入理解java虚拟机 </a>
+          
+        </div>
+      <span class="more-meta"> 2081 words </span>
+      <span class="more-meta"> 5 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、概述 前面我们已经知道，栈的内存是固定的，栈帧多大都是已知。而堆就不一样了。 二、判断对象存活状态 垃圾回收的第一件事就是判断对象是否还活着，
+    </div>
+    <div class="read-more">
+      <a href="/post/java/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E4%B9%9F%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5/" class="read-more-link">Read more</a>
     </div>
     
   </div>
@@ -250,6 +278,34 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/">neo4j导数据</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+          
+        </div>
+      <span class="more-meta"> 320 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      1.修改配置 dbms.security.allow_csv_import_from_file_urls=true &ndash; load csv 命令 dbms.directories.import=import restart neo4j 2.导入数据方法1 load csv with headers from &ldquo;file:///path/to/file&rdquo; as row create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title }); 3. 导入数据方法2 dbms.directories.import=/var/lib/neo4j/import/ 注释： dbms.security.allow_csv_import_from_file_urls=true 将文件放入 ：/var/lib/neo4j/
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">neo4j编译打包启动服务端</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
@@ -258,7 +314,7 @@
             <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
           
         </div>
-      <span class="more-meta"> 904 words </span>
+      <span class="more-meta"> 908 words </span>
       <span class="more-meta"> 2 min read </span>
     </div>
   </header>
@@ -342,7 +398,7 @@
             <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
           
         </div>
-      <span class="more-meta"> 314 words </span>
+      <span class="more-meta"> 355 words </span>
       <span class="more-meta"> 1 min read </span>
     </div>
   </header>

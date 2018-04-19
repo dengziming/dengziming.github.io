@@ -77,6 +77,17 @@ on
     a.contact_name regexp regexp_replace(b.regs,&amp;quot;%&amp;quot;,&amp;quot;.*&amp;quot;);
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;p&gt;修改null存储为&amp;rdquo;,&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;ROW FORMAT DELIMITED
+      FIELDS TERMINATED BY &#39;,&#39;
+      LINES TERMINATED BY &#39;\n&#39;
+      NULL DEFINED AS &#39;&#39;
+     stored as textfile;
+     
+alter table fin_kg.kg_v2_e_phone_gang_bak SET SERDEPROPERTIES (&#39;serialization.null.format&#39;=&#39;&#39;); 
+&lt;/code&gt;&lt;/pre&gt;
+
 &lt;h3 id=&#34;2-分位点&#34;&gt;2.分位点&lt;/h3&gt;
 
 &lt;p&gt;percentile

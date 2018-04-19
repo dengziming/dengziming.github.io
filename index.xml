@@ -36,10 +36,10 @@
     
     <item>
       <title>Java内存区域与内存溢出异常</title>
-      <link>https://dengziming.github.io/post/java/%E8%87%AA%E5%8A%A8%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/</link>
+      <link>https://dengziming.github.io/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/</link>
       <pubDate>Fri, 20 Apr 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/java/%E8%87%AA%E5%8A%A8%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/</guid>
+      <guid>https://dengziming.github.io/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/</guid>
       
         <description>
 
@@ -281,9 +281,232 @@ jdk1.7 已经把原本放在永久代的字符串常量池移出, 放在堆中�
 
 &lt;p&gt;这个也是一样。因为类的元数据, 字符串池, 类的静态变量从永久代移除, 放入Java heap或者native memory.其中建议JVM的实现中将类的元数据放入 native memory, 将字符串池和类的静态变量放入java堆中.&lt;/p&gt;
 
-&lt;h3 id=&#34;4&#34;&gt;4.&lt;/h3&gt;
+&lt;p&gt;String.intern() 在1.6和1.7有不同的实现。&lt;/p&gt;
 
-&lt;p&gt;待续&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class RuntimeConstantPoolOOM2 {
+
+    public static void main(String[] args) {
+
+        String str1 = new StringBuilder().append(&amp;quot;计算机&amp;quot;).append(&amp;quot;软件&amp;quot;).toString();
+        System.out.println(str1.intern() == str1);
+
+        String str2 = new StringBuilder().append(&amp;quot;ja&amp;quot;).append(&amp;quot;va&amp;quot;).toString();
+        System.out.println(str2.intern() == str2);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;1.6输出为false和false
+1.7输出为true和false
+原因是：1.6 的 intern返回在永久代的实例，如果是第一次遇到，会先复制到永久代。1.7不会复制到永久代，只是记录首次出现的实例的引用。
+所以1.6的时候两个intern返回的是永久代的引用而不是字符串，1.7的时候 java 这个串已经出现过了。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>垃圾收集器和内存分配策略</title>
+      <link>https://dengziming.github.io/post/java/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E4%B9%9F%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5/</link>
+      <pubDate>Fri, 20 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/java/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E4%B9%9F%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-概述&#34;&gt;一、概述&lt;/h2&gt;
+
+&lt;p&gt;前面我们已经知道，栈的内存是固定的，栈帧多大都是已知。而堆就不一样了。&lt;/p&gt;
+
+&lt;h2 id=&#34;二-判断对象存活状态&#34;&gt;二、判断对象存活状态&lt;/h2&gt;
+
+&lt;p&gt;垃圾回收的第一件事就是判断对象是否还活着，是否可以回收。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-引用计数法&#34;&gt;1.引用计数法&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;给对象添加一个引用计数器，被引用时加一，失效时减一，计数器为0就不能被使用了。这种方法无法解决相互引用问题。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public class ReferenceCountingGC {
+    public Object instance = null;
+    private static final int _1M = 1024 * 1024;
+    //很大的内存
+    private byte[] bigSize = new byte[2 * _1M];
+
+    public static void main(String[] args) {
+        testGC();
+    }
+
+    public static void testGC() {
+
+        ReferenceCountingGC obj1 = new ReferenceCountingGC();
+        ReferenceCountingGC obj2 = new ReferenceCountingGC();
+        obj1.instance = obj2;
+        obj2.instance = obj1;
+
+        obj1 = null;
+        obj2 = null;
+
+        System.gc();
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的日志信息：
+TODO 日志分析，gc文件查看&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;
+4603k -&amp;gt; 210k
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;意味着并没有因为相互引用就不回收，说明虚拟机并不是通过引用计数实现的。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-可达性分析算法&#34;&gt;2. 可达性分析算法&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;主流语言都是通过可达性分析实现垃圾回收。就是通过一系列GCRoots作为七点，判断有没有被引用。如果一个对象到GCRoots没有引用链，用图论的语言就是不可达，那么可以回收。&lt;/li&gt;
+&lt;li&gt;java的GCRoots包括 虚拟机栈（栈帧的本地变量表）引用的对象。、方法区中类静态属性引用的对象、方法区中常量引用的对象，本地方法（native方法）引用的对象。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;3-理解引用&#34;&gt;3.理解引用&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;引用实际上很重要，上面的两张方法都是通过引用来判断。如果reference类型的数据中存储的数值代表另一个内存的起始地址，就称这块内存代表一个引用。&lt;/li&gt;
+&lt;li&gt;一个对象在这种定义下只有引用和被引用两种关系。所以这个定义太过狭隘。&lt;/li&gt;
+&lt;li&gt;jdk1.2后java对引用的概念进行了扩充。分为强引用、软引用、弱引用、虚引用。&lt;/li&gt;
+&lt;li&gt;四种引用相关的只是可以查询资料。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;4-最后的判断&#34;&gt;4.最后的判断&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;即使判断为不可达对象，也只是处于“缓刑”阶段。要彻底宣告死亡还得经过两次判断。第一次标记后进行筛选，筛选条件是该对象是否有必要执行finalize方法，当对象没有覆盖finalize方法或者已经被调用过，将会被标记为没必要执行。&lt;/li&gt;
+&lt;li&gt;如果被标记为有必要执行，会被放在一个F-Queue中，稍后放在一个虚拟机级别的线程中执行这个finalize，但是不会等待它执行。&lt;/li&gt;
+&lt;li&gt;finalize是对象拯救自己最后的机会，只要把自己引用到某个对象即可。但是每个对象的finalize只会调用一次，所以下面的代码拯救自己一次。第二次失败了。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public class FinalizeEscapeGC {
+
+    public static FinalizeEscapeGC SAVE_HOOK = null;
+
+    public void isAlive(){
+        System.out.println(&amp;quot;yes , i am alive&amp;quot;);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        System.out.println(&amp;quot;finalize method executed&amp;quot;);
+        FinalizeEscapeGC.SAVE_HOOK = this;
+    }
+
+    public static void main(String[] args) throws Exception {
+        SAVE_HOOK = new FinalizeEscapeGC();
+
+        // 对象第一次成功拯救自己
+        SAVE_HOOK = null;
+        System.gc();
+
+        //finalize 优先级低，等待执行
+        Thread.sleep(1000);
+
+        if (null != SAVE_HOOK) {
+            SAVE_HOOK.isAlive();
+        }else {
+            System.out.println(&amp;quot;no, i am dead&amp;quot;);
+        }
+
+        //对象第二次拯救自己
+        SAVE_HOOK = null;
+        System.gc();
+        //finalize 优先级低，等待执行
+        Thread.sleep(1000);
+
+        if (null != SAVE_HOOK) {
+            SAVE_HOOK.isAlive();
+        }else {
+            System.out.println(&amp;quot;no, i am dead&amp;quot;);
+        }
+    }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这种方式太不推荐了。&lt;/p&gt;
+
+&lt;h3 id=&#34;5-回收方法区&#34;&gt;5.回收方法区&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;很多人认为方法去是没有垃圾回收的，其实只是方法区垃圾回收效率低。&lt;/li&gt;
+&lt;li&gt;永久代的垃圾回收主要是两部分，一部分是常量，另一部分是无用的类。废弃常量和堆的回收很类似，但是判断一个类是否是无用的类，就比较麻烦。&lt;/li&gt;
+&lt;li&gt;无用的类判断条件是：所有实例都被回收了，ClassLoader被回收了，无法在任何地方通过反射得到该类的方法。&lt;/li&gt;
+&lt;li&gt;在大量使用反射、动态代理、CGlib等技术的地方，频繁自定义classLoader的地方都要虚拟机具备类卸载的功能，保证永久代不溢出。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;三-垃圾回收算法&#34;&gt;三、垃圾回收算法&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-标记-清楚&#34;&gt;1.标记-清楚&lt;/h3&gt;
+
+&lt;p&gt;对需要回收的对象标记，然后回收。标记和清除效率都不高，而且容易产生碎片。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-复制算法&#34;&gt;2.复制算法&lt;/h3&gt;
+
+&lt;p&gt;将空间分为相同的两块，每次回收后移动到另一边。存活率较高时效率低，另外浪费一半空间&lt;/p&gt;
+
+&lt;h3 id=&#34;3-标记-整理&#34;&gt;3.标记-整理&lt;/h3&gt;
+
+&lt;p&gt;标记然后移动。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-分代回收&#34;&gt;4.分代回收&lt;/h3&gt;
+
+&lt;p&gt;对不同对象用不同方法。&lt;/p&gt;
+
+&lt;h2 id=&#34;四-算法实现&#34;&gt;四、算法实现&lt;/h2&gt;
+
+&lt;p&gt;TODO&lt;/p&gt;
+
+&lt;h2 id=&#34;五-常见垃圾收集器&#34;&gt;五、常见垃圾收集器&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-todo&#34;&gt;1.TODO&lt;/h3&gt;
+
+&lt;h3 id=&#34;2-阅读gc日志&#34;&gt;2.阅读GC日志&lt;/h3&gt;
+
+&lt;p&gt;gc 参数：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;JVM的GC日志的主要参数包括如下几个：
+
+-XX:+PrintGC 输出GC日志
+
+-XX:+PrintGCDetails 输出GC的详细日志
+
+-XX:+PrintGCTimeStamps 输出GC的时间戳（以基准时间的形式）
+
+-XX:+PrintGCDateStamps 输出GC的时间戳（以日期的形式，如 2013-05-04T21:53:59.234+0800）
+
+-XX:+PrintHeapAtGC 在进行GC的前后打印出堆的信息
+
+-Xloggc:../logs/gc.log 日志文件的输出路径
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;日志：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;0.756: [Full GC (System) 0.756: [CMS: 0K-&amp;gt;1696K(204800K), 0.0347096 secs] 11488K-&amp;gt;1696K(252608K), [CMS Perm : 10328K-&amp;gt;10320K(131072K)], 0.0347949 secs] [Times: user=0.06 sys=0.00, real=0.05 secs]  
+5.617: [GC 5.617: [ParNew: 43296K-&amp;gt;7006K(47808K), 0.0136826 secs] 44992K-&amp;gt;8702K(252608K), 0.0137904 secs] [Times: user=0.03 sys=0.00, real=0.02 secs]  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;解释如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;5.617（时间戳）: [GC（Young GC） 5.617（时间戳）: [ParNew（使用ParNew作为年轻代的垃圾回收器）: 43296K（年轻代垃圾回收前的大小）-&amp;gt;7006K（年轻代垃圾回收以后的大小）(47808K)（年轻代的总大小）, 0.0136826 secs（回收时间）] 44992K（堆区垃圾回收前的大小）-&amp;gt;8702K（堆区垃圾回收后的大小）(252608K)（堆区总大小）, 0.0137904 secs（回收时间）] [Times: user=0.03（Young GC用户耗时） sys=0.00（Young GC系统耗时）, real=0.02 secs（Young GC实际耗时）]  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;第一个是时间戳，然后是GC或者FullGC代表垃圾回收类型。然后中括号括起来的是年轻代垃圾回收，第一个是垃圾回收器，例如：DefNew，PSYoungGen等，然后是年轻代的容量变化和总用量。中括号外的是堆的总容量。
+后面三个是时间，分别是user,sys,real。分别是用户态CPU时间、内核态CPU时间、墙钟时间，墙钟时间包含各种非运算的等待耗时，例如IO阻塞，CPU时间则不包含这些世界，当计算机是多核这些世界会累加，所以看到real或者sys超过real也正常。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-垃圾收集器参数&#34;&gt;3.垃圾收集器参数&lt;/h3&gt;
 </description>
       
     </item>
@@ -1877,6 +2100,118 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
     </item>
     
     <item>
+      <title>neo4j导数据</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
+
+&lt;p&gt;dbms.security.allow_csv_import_from_file_urls=true
+&amp;ndash; load csv 命令&lt;/p&gt;
+
+&lt;p&gt;dbms.directories.import=import&lt;/p&gt;
+
+&lt;p&gt;restart neo4j&lt;/p&gt;
+
+&lt;h3 id=&#34;2-导入数据方法1&#34;&gt;2.导入数据方法1&lt;/h3&gt;
+
+&lt;p&gt;load csv with headers from &amp;ldquo;file:///path/to/file&amp;rdquo; as row
+create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
+
+&lt;h3 id=&#34;3-导入数据方法2&#34;&gt;3. 导入数据方法2&lt;/h3&gt;
+
+&lt;p&gt;dbms.directories.import=/var/lib/neo4j/import/&lt;/p&gt;
+
+&lt;p&gt;注释：&lt;/p&gt;
+
+&lt;h1 id=&#34;dbms-security-allow-csv-import-from-file-urls-true&#34;&gt;dbms.security.allow_csv_import_from_file_urls=true&lt;/h1&gt;
+
+&lt;p&gt;将文件放入 ：/var/lib/neo4j/import/  文件夹下，直接输入文件名即可：&lt;/p&gt;
+
+&lt;p&gt;load csv with headers from &amp;ldquo;file:///filename&amp;rdquo; as row
+create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
+
+&lt;h3 id=&#34;4-初始化导数据&#34;&gt;4.初始化导数据&lt;/h3&gt;
+
+&lt;p&gt;新建每个节点和关系的header文件和数据文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# vertex header
+phone:ID(PHONE),isblack,ismedia,iscuishou
+# edge header
+:START_ID(USERID),:END_ID(PHONE)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后导数据：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;neo4j-import \
+ --into /data/neo4j/graph/all20180417.db \
+ --skip-duplicate-nodes true \
+ --skip-bad-relationships true \
+ --ignore-extra-columns true \
+ --ignore-empty-strings true \
+ --bad-tolerance 10000000 \
+  --processors 56 \
+ --id-type string \
+ --max-memory 170G \
+--nodes:LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_lbs.txt&amp;quot;  \
+--nodes:IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_idcard.txt&amp;quot;  \
+--nodes:GNHID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_gnhid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_gnhid.txt&amp;quot;  \
+--nodes:QQ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_qq.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_qq.txt&amp;quot;  \
+--nodes:WEIXIN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_weixin.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_weixin.txt&amp;quot;  \
+--nodes:EMAIL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_email.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_email.txt&amp;quot;  \
+--nodes:DEVICETOKEN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_devicetoken.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_devicetoken.txt&amp;quot;  \
+--nodes:COMPANY &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_company.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_company.txt&amp;quot;  \
+--nodes:IP &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_ip.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_ip.txt&amp;quot;  \
+--nodes:ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_orderid.txt&amp;quot;  \
+--nodes:USERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_userid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_userid.txt&amp;quot;  \
+--nodes:PHONE &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_phone.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_phone.txt&amp;quot;  \
+--nodes:WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_wifi.txt&amp;quot;  \
+--relationships:USERID_PHONE_EMG &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_emg.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_emg.txt&amp;quot;  \
+--relationships:USERID_PHONE_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_loan.txt&amp;quot;  \
+--relationships:USERID_COMPANY_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_company_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_company_loan.txt&amp;quot;  \
+--relationships:USERID_LBS_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_lbs_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_lbs_loan.txt&amp;quot;  \
+--relationships:USERID_DEVICETOKEN_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_devicetoken_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_devicetoken_loan.txt&amp;quot;  \
+--relationships:USERID_LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_lbs.txt&amp;quot;  \
+--relationships:USERID_COMPANY_GJJ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gjj.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gjj.txt&amp;quot;  \
+--relationships:USERID_IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_idcard.txt&amp;quot;  \
+--relationships:USERID_COMPANY_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gnh_users.txt&amp;quot;  \
+--relationships:USERID_GNHID_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_gnhid_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_gnhid_users.txt&amp;quot;  \
+--relationships:USERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_gnh_users.txt&amp;quot;  \
+--relationships:USERID_PHONE_GNH_EMG_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_gnh_emg_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_gnh_emg_users.txt&amp;quot;  \
+--relationships:USERID_QQ_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_gnh_users.txt&amp;quot;  \
+--relationships:ORDERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_ip_gnh_users.txt&amp;quot;  \
+--relationships:USERID_ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_orderid.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_RISKBRAIN_UMID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_riskbrain_umid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_riskbrain_umid.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_USER_DEVICES &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_t_user_devices.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_t_user_devices.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_user_event.txt&amp;quot; \
+--relationships:USERID_COMPANY_USER_INFO_EXT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_user_info_ext.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_user_info_ext.txt&amp;quot; \
+--relationships:USERID_IP_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_custinfo.txt&amp;quot; \
+--relationships:USERID_IP_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_user_event.txt&amp;quot; \
+--relationships:USERID_EMAIL_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_event.txt&amp;quot; \
+--relationships:USERID_EMAIL_EXTMAIL_USER_MAILACCOUNT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_mailaccount.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_mailaccount.txt&amp;quot; \
+--relationships:USERID_QQ_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_user_event.txt&amp;quot; \
+--relationships:USERID_WEIXIN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_weixin_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_weixin_user_event.txt&amp;quot; \
+--relationships:USERID_PHONE_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_event.txt&amp;quot; \
+--relationships:USERID_PHONE_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_custinfo.txt&amp;quot; \
+--relationships:USERID_PHONE_USERCENTER &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_usercenter.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_usercenter.txt&amp;quot; \
+--relationships:USERID_PHONE_USER_EMG_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_emg_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_emg_contact.txt&amp;quot; \
+--relationships:USERID_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_tel.txt&amp;quot; \
+--relationships:USERID_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_contact.txt&amp;quot; \
+--relationships:PHONE_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_phone_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_phone_phone_tel.txt&amp;quot; \
+--relationships:PHONE_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_phone_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_phone_phone_contact.txt&amp;quot; \
+--relationships:USERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_wifi.txt&amp;quot; \
+--relationships:ORDERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_wifi.txt&amp;quot; \
+          &amp;gt; /data/neo4j/graph/all20180417.log 2&amp;gt;&amp;amp;1 &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
       <title>neo4j编译打包启动服务端</title>
       <link>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
@@ -1946,7 +2281,7 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
 
 &lt;h3 id=&#34;2-打断点调试&#34;&gt;2.打断点调试&lt;/h3&gt;
 
-&lt;p&gt;既然是源码分析，我们的办法就是打断点，调试。查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，我们慢慢来吧。&lt;/p&gt;
+&lt;p&gt;既然是源码分析，我们的办法就是先看，然后打断点调试，查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，我们慢慢来吧。&lt;/p&gt;
 
 &lt;h3 id=&#34;3&#34;&gt;3.&lt;/h3&gt;
 </description>
@@ -2061,6 +2396,17 @@ right join
     chuanxiao b
 on
     a.contact_name regexp regexp_replace(b.regs,&amp;quot;%&amp;quot;,&amp;quot;.*&amp;quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;修改null存储为&amp;rdquo;,&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;ROW FORMAT DELIMITED
+      FIELDS TERMINATED BY &#39;,&#39;
+      LINES TERMINATED BY &#39;\n&#39;
+      NULL DEFINED AS &#39;&#39;
+     stored as textfile;
+     
+alter table fin_kg.kg_v2_e_phone_gang_bak SET SERDEPROPERTIES (&#39;serialization.null.format&#39;=&#39;&#39;); 
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;h3 id=&#34;2-分位点&#34;&gt;2.分位点&lt;/h3&gt;

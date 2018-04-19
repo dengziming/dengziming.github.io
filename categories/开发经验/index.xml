@@ -12,6 +12,118 @@
     
     
     <item>
+      <title>neo4j导数据</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
+
+&lt;p&gt;dbms.security.allow_csv_import_from_file_urls=true
+&amp;ndash; load csv 命令&lt;/p&gt;
+
+&lt;p&gt;dbms.directories.import=import&lt;/p&gt;
+
+&lt;p&gt;restart neo4j&lt;/p&gt;
+
+&lt;h3 id=&#34;2-导入数据方法1&#34;&gt;2.导入数据方法1&lt;/h3&gt;
+
+&lt;p&gt;load csv with headers from &amp;ldquo;file:///path/to/file&amp;rdquo; as row
+create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
+
+&lt;h3 id=&#34;3-导入数据方法2&#34;&gt;3. 导入数据方法2&lt;/h3&gt;
+
+&lt;p&gt;dbms.directories.import=/var/lib/neo4j/import/&lt;/p&gt;
+
+&lt;p&gt;注释：&lt;/p&gt;
+
+&lt;h1 id=&#34;dbms-security-allow-csv-import-from-file-urls-true&#34;&gt;dbms.security.allow_csv_import_from_file_urls=true&lt;/h1&gt;
+
+&lt;p&gt;将文件放入 ：/var/lib/neo4j/import/  文件夹下，直接输入文件名即可：&lt;/p&gt;
+
+&lt;p&gt;load csv with headers from &amp;ldquo;file:///filename&amp;rdquo; as row
+create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
+
+&lt;h3 id=&#34;4-初始化导数据&#34;&gt;4.初始化导数据&lt;/h3&gt;
+
+&lt;p&gt;新建每个节点和关系的header文件和数据文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# vertex header
+phone:ID(PHONE),isblack,ismedia,iscuishou
+# edge header
+:START_ID(USERID),:END_ID(PHONE)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后导数据：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;neo4j-import \
+ --into /data/neo4j/graph/all20180417.db \
+ --skip-duplicate-nodes true \
+ --skip-bad-relationships true \
+ --ignore-extra-columns true \
+ --ignore-empty-strings true \
+ --bad-tolerance 10000000 \
+  --processors 56 \
+ --id-type string \
+ --max-memory 170G \
+--nodes:LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_lbs.txt&amp;quot;  \
+--nodes:IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_idcard.txt&amp;quot;  \
+--nodes:GNHID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_gnhid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_gnhid.txt&amp;quot;  \
+--nodes:QQ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_qq.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_qq.txt&amp;quot;  \
+--nodes:WEIXIN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_weixin.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_weixin.txt&amp;quot;  \
+--nodes:EMAIL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_email.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_email.txt&amp;quot;  \
+--nodes:DEVICETOKEN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_devicetoken.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_devicetoken.txt&amp;quot;  \
+--nodes:COMPANY &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_company.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_company.txt&amp;quot;  \
+--nodes:IP &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_ip.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_ip.txt&amp;quot;  \
+--nodes:ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_orderid.txt&amp;quot;  \
+--nodes:USERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_userid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_userid.txt&amp;quot;  \
+--nodes:PHONE &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_phone.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_phone.txt&amp;quot;  \
+--nodes:WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_wifi.txt&amp;quot;  \
+--relationships:USERID_PHONE_EMG &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_emg.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_emg.txt&amp;quot;  \
+--relationships:USERID_PHONE_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_loan.txt&amp;quot;  \
+--relationships:USERID_COMPANY_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_company_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_company_loan.txt&amp;quot;  \
+--relationships:USERID_LBS_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_lbs_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_lbs_loan.txt&amp;quot;  \
+--relationships:USERID_DEVICETOKEN_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_devicetoken_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_devicetoken_loan.txt&amp;quot;  \
+--relationships:USERID_LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_lbs.txt&amp;quot;  \
+--relationships:USERID_COMPANY_GJJ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gjj.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gjj.txt&amp;quot;  \
+--relationships:USERID_IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_idcard.txt&amp;quot;  \
+--relationships:USERID_COMPANY_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gnh_users.txt&amp;quot;  \
+--relationships:USERID_GNHID_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_gnhid_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_gnhid_users.txt&amp;quot;  \
+--relationships:USERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_gnh_users.txt&amp;quot;  \
+--relationships:USERID_PHONE_GNH_EMG_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_gnh_emg_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_gnh_emg_users.txt&amp;quot;  \
+--relationships:USERID_QQ_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_gnh_users.txt&amp;quot;  \
+--relationships:ORDERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_ip_gnh_users.txt&amp;quot;  \
+--relationships:USERID_ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_orderid.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_RISKBRAIN_UMID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_riskbrain_umid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_riskbrain_umid.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_USER_DEVICES &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_t_user_devices.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_t_user_devices.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_user_event.txt&amp;quot; \
+--relationships:USERID_COMPANY_USER_INFO_EXT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_user_info_ext.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_user_info_ext.txt&amp;quot; \
+--relationships:USERID_IP_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_custinfo.txt&amp;quot; \
+--relationships:USERID_IP_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_user_event.txt&amp;quot; \
+--relationships:USERID_EMAIL_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_event.txt&amp;quot; \
+--relationships:USERID_EMAIL_EXTMAIL_USER_MAILACCOUNT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_mailaccount.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_mailaccount.txt&amp;quot; \
+--relationships:USERID_QQ_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_user_event.txt&amp;quot; \
+--relationships:USERID_WEIXIN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_weixin_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_weixin_user_event.txt&amp;quot; \
+--relationships:USERID_PHONE_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_event.txt&amp;quot; \
+--relationships:USERID_PHONE_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_custinfo.txt&amp;quot; \
+--relationships:USERID_PHONE_USERCENTER &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_usercenter.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_usercenter.txt&amp;quot; \
+--relationships:USERID_PHONE_USER_EMG_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_emg_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_emg_contact.txt&amp;quot; \
+--relationships:USERID_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_tel.txt&amp;quot; \
+--relationships:USERID_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_contact.txt&amp;quot; \
+--relationships:PHONE_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_phone_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_phone_phone_tel.txt&amp;quot; \
+--relationships:PHONE_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_phone_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_phone_phone_contact.txt&amp;quot; \
+--relationships:USERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_wifi.txt&amp;quot; \
+--relationships:ORDERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_wifi.txt&amp;quot; \
+          &amp;gt; /data/neo4j/graph/all20180417.log 2&amp;gt;&amp;amp;1 &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
       <title>常用maven命令</title>
       <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
@@ -108,6 +220,17 @@ right join
     chuanxiao b
 on
     a.contact_name regexp regexp_replace(b.regs,&amp;quot;%&amp;quot;,&amp;quot;.*&amp;quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;修改null存储为&amp;rdquo;,&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;ROW FORMAT DELIMITED
+      FIELDS TERMINATED BY &#39;,&#39;
+      LINES TERMINATED BY &#39;\n&#39;
+      NULL DEFINED AS &#39;&#39;
+     stored as textfile;
+     
+alter table fin_kg.kg_v2_e_phone_gang_bak SET SERDEPROPERTIES (&#39;serialization.null.format&#39;=&#39;&#39;); 
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;h3 id=&#34;2-分位点&#34;&gt;2.分位点&lt;/h3&gt;

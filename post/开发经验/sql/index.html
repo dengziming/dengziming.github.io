@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="314">
+<meta itemprop="wordCount" content="355">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
             
           </div>
-        <span class="more-meta"> 314 words </span>
+        <span class="more-meta"> 355 words </span>
         <span class="more-meta"> 1 min read </span>
       </div>
     </header>
@@ -271,6 +271,17 @@ right join
     chuanxiao b
 on
     a.contact_name regexp regexp_replace(b.regs,&quot;%&quot;,&quot;.*&quot;);
+</code></pre>
+
+<p>修改null存储为&rdquo;,</p>
+
+<pre><code class="language-sql">ROW FORMAT DELIMITED
+      FIELDS TERMINATED BY ','
+      LINES TERMINATED BY '\n'
+      NULL DEFINED AS ''
+     stored as textfile;
+     
+alter table fin_kg.kg_v2_e_phone_gang_bak SET SERDEPROPERTIES ('serialization.null.format'=''); 
 </code></pre>
 
 <h3 id="2-分位点">2.分位点</h3>
