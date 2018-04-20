@@ -2090,29 +2090,31 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;第一遍就是打断点，然后查看调用栈，忽略过多的线程。&lt;/p&gt;
 
 &lt;p&gt;找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，F6单步执行，F跳出。
-1. &lt;code&gt;new CommunityBootstrapper(),ServerBootstrapper.start(boot,args)&lt;/code&gt;
-2. &lt;code&gt;ServerBootstrapper&lt;/code&gt; 中的初始化关键代码： &lt;code&gt;private GraphDatabaseDependencies dependencies = GraphDatabaseDependencies.newDependencies()&lt;/code&gt;; 这个dependencies貌似来头很大。F5进入
-    &lt;code&gt;public static GraphDatabaseDependencies newDependencies()&lt;/code&gt;
-    1. &lt;code&gt;KernelExtensionFactory factory : Service.load( KernelExtensionFactory.class)&lt;/code&gt;
-        这段代码似乎跳不进去，反正最后得到了7个:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    ```
-    0 = {LuceneKernelExtensionFactory@675} &amp;quot;KernelExtension:LuceneKernelExtensionFactory[lucene]&amp;quot;
-    1 = {LuceneSchemaIndexProviderFactory@679} &amp;quot;KernelExtension:LuceneSchemaIndexProviderFactory[lucene]&amp;quot;
-    2 = {NativeLuceneFusionSchemaIndexProviderFactory@680} &amp;quot;KernelExtension:NativeLuceneFusionSchemaIndexProviderFactory[lucene+native]&amp;quot;
-    3 = {BoltKernelExtension@681} &amp;quot;KernelExtension:BoltKernelExtension[bolt-server]&amp;quot;
-    4 = {ShellServerExtensionFactory@682} &amp;quot;KernelExtension:ShellServerExtensionFactory[shell]&amp;quot;
-    5 = {UdcKernelExtensionFactory@683} &amp;quot;KernelExtension:UdcKernelExtensionFactory[kernel udc]&amp;quot;
-    6 = {JmxExtensionFactory@684} &amp;quot;KernelExtension:JmxExtensionFactory[kernel jmx]&amp;quot;
-    ```
-
-2. `List&amp;lt;QueryEngineProvider&amp;gt; queryEngineProviders = asList( Service.load( QueryEngineProvider.class ) );`
-    这段代码和前面一样，不过加载的是查询引擎的的class，我们暂且跳过！
-3. `return new GraphDatabaseDependencies( null, null, new ArrayList&amp;lt;&amp;gt;(), kernelExtensions,
-            urlAccessRules, queryEngineProviders );`
-&lt;/code&gt;&lt;/pre&gt;
+1. &lt;code&gt;new CommunityBootstrapper(),ServerBootstrapper.start(boot,args)&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;ServerBootstrapper&lt;/code&gt; 中的初始化关键代码： &lt;code&gt;private GraphDatabaseDependencies dependencies = GraphDatabaseDependencies.newDependencies()&lt;/code&gt;; 这个dependencies貌似来头很大。F5进入
+&lt;code&gt;public static GraphDatabaseDependencies newDependencies()&lt;/code&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;KernelExtensionFactory factory : Service.load( KernelExtensionFactory.class)&lt;/code&gt;
+这段代码似乎跳不进去，反正最后得到了7个:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;0 = {LuceneKernelExtensionFactory@675} &amp;quot;KernelExtension:LuceneKernelExtensionFactory[lucene]&amp;quot;
+1 = {LuceneSchemaIndexProviderFactory@679} &amp;quot;KernelExtension:LuceneSchemaIndexProviderFactory[lucene]&amp;quot;
+2 = {NativeLuceneFusionSchemaIndexProviderFactory@680} &amp;quot;KernelExtension:NativeLuceneFusionSchemaIndexProviderFactory[lucene+native]&amp;quot;
+3 = {BoltKernelExtension@681} &amp;quot;KernelExtension:BoltKernelExtension[bolt-server]&amp;quot;
+4 = {ShellServerExtensionFactory@682} &amp;quot;KernelExtension:ShellServerExtensionFactory[shell]&amp;quot;
+5 = {UdcKernelExtensionFactory@683} &amp;quot;KernelExtension:UdcKernelExtensionFactory[kernel udc]&amp;quot;
+6 = {JmxExtensionFactory@684} &amp;quot;KernelExtension:JmxExtensionFactory[kernel jmx]&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;List&amp;lt;QueryEngineProvider&amp;gt; queryEngineProviders = asList( Service.load( QueryEngineProvider.class ) );&lt;/code&gt;
+这段代码和前面一样，不过加载的是查询引擎的的class，我们暂且跳过！&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;`return new GraphDatabaseDependencies( null, null, new ArrayList&amp;lt;&amp;gt;(), kernelExtensions,&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
 &lt;li&gt;&lt;p&gt;&lt;code&gt;ServerBootstrapper.start( Bootstrapper boot, String... argv )&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
@@ -2162,31 +2164,38 @@ public AbstractNeoServer( Config config, Database.Factory dbFactory,
 &lt;li&gt;&lt;p&gt;&lt;code&gt;init()&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;lambda$lifecycleManagingDatabase$0:47, LifecycleManagingDatabase (org.neo4j.server.database)&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;lambda$lifecycleManagingDatabase$0:47, LifecycleManagingDatabase (org.neo4j.server.database)&lt;/code&gt;
 这里的 java8 lamabda表达式有点不懂，总之就是这个 dbFactory.newDatabase( config, dependencies ) 执行的是这段代码：
-&lt;code&gt;( config, dependencies ) -&amp;gt; new LifecycleManagingDatabase( config, graphDbFactory, dependencies );&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;dependencyResolver.satisfyDependency(LifecycleManagingDatabase )&lt;/code&gt;
-这里的 satisfyDependency 方法有点奇怪，总之就是将 LifecycleManagingDatabase 的所有父类添加到一个临时变量，好像啥也没做。&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;life.add(LifecycleManagingDatabase)&lt;/code&gt;
+&lt;code&gt;( config, dependencies ) -&amp;gt; new LifecycleManagingDatabase( config, graphDbFactory, dependencies );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;dependencyResolver.satisfyDependency(LifecycleManagingDatabase )&lt;/code&gt;
+这里的 satisfyDependency 方法有点奇怪，总之就是将 LifecycleManagingDatabase 的所有父类添加到一个临时变量，好像啥也没做。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;life.add(LifecycleManagingDatabase)&lt;/code&gt;
 奇怪的代码，后续我们专门讲解这个 life 的实现，这是注释：
 Add a new Lifecycle instance. It will immediately be transitioned to the state of this LifeSupport.
-将传入的dependency 新建为一个LifecycleInstance，add到 instances中。
-&lt;code&gt;
-LifecycleInstance newInstance = new LifecycleInstance( instance );
+将传入的dependency 新建为一个LifecycleInstance，add到 instances中。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;LifecycleInstance newInstance = new LifecycleInstance( instance );
 private volatile List&amp;lt;LifecycleInstance&amp;gt; instances = new ArrayList&amp;lt;&amp;gt;();
-&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;this.database = LifecycleManagingDatabase&lt;/code&gt;&lt;/li&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;this.database = LifecycleManagingDatabase&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
-&lt;li&gt;新建其他的，非内核部分我们忽略。
-&lt;code&gt;java
-this.authManagerSupplier = dependencyResolver.provideDependency( AuthManager.class );
+
+&lt;li&gt;&lt;p&gt;新建其他的，非内核部分我们忽略。&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.authManagerSupplier = dependencyResolver.provideDependency( AuthManager.class );
 this.userManagerSupplier = dependencyResolver.provideDependency( UserManagerSupplier.class );
 this.sslPolicyFactorySupplier = dependencyResolver.provideDependency( SslPolicyLoader.class );
 this.webServer = createWebServer();
-&lt;/code&gt;&lt;/li&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
 &lt;li&gt;createServerModules()
 &lt;code&gt;
 return Arrays.asList(
@@ -2199,9 +2208,10 @@ new Neo4jBrowserModule( webServer ),
 createAuthorizationModule(),
 new SecurityRulesModule( webServer, getConfig(), logProvider ) );
 &lt;/code&gt;
-4.创建 ServerComponentsLifecycleAdapter
 &lt;br /&gt;&lt;/li&gt;
 &lt;/ol&gt;
+
+&lt;p&gt;4.创建 ServerComponentsLifecycleAdapter&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;serverComponents = new ServerComponentsLifecycleAdapter();
 life.add( serverComponents );
@@ -2216,22 +2226,25 @@ debug进入：&lt;code&gt;LifeSupport&lt;/code&gt;&lt;/p&gt;
 &lt;li&gt;&lt;p&gt;init();&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;status = changedStatus( this, status, LifecycleStatus.INITIALIZING );&lt;/li&gt;
-&lt;li&gt;for ( LifecycleInstance instance : instances ) instance.init();
-这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();
+&lt;li&gt;&lt;p&gt;status = changedStatus( this, status, LifecycleStatus.INITIALIZING );&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;for ( LifecycleInstance instance : instances ) instance.init();
+这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;LifecycleInstance.init()
-还好两个代码里面什么都没做，不然再F5进去，我要奔溃了。。。&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;li&gt;status = changedStatus( this, status, LifecycleStatus.STOPPED );
+还好两个代码里面什么都没做，不然再F5进去，我要奔溃了。。。
 &lt;br /&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;status = changedStatus( this, status, LifecycleStatus.STOPPED );&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;for ( LifecycleInstance instance : instances ) instance.start();
 这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;1. `LifecycleInstance.start() `
+
 2. `LifecycleManagingDatabase.start()`
 
     ```java
@@ -2255,6 +2268,7 @@ debug进入：&lt;code&gt;LifeSupport&lt;/code&gt;&lt;/p&gt;
     ```
     主要的核心代码已经找到了：new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );
     接下来我们主要调试这一段。
+
 3. `ServerComponentsLifecycleAdapter.start()`
     这里主要是和web，cypher有关，我们暂时忽略。
 &lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
@@ -2266,29 +2280,36 @@ debug进入：&lt;code&gt;LifeSupport&lt;/code&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;2-调试-graphdatabasefacadefactory-newfacade&#34;&gt;2.调试 GraphDatabaseFacadeFactory.newFacade&lt;/h2&gt;
 
-&lt;p&gt;上面我们已经调试到了 最后的部分，也是高潮部分。
-newFacade 方法：
-    1. initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );
-        1.new GraphDatabaseFacade()
-        初始化相关数据
-        2.&lt;code&gt;GraphDatabaseFacade initFacade( File storeDir, Config config, final Dependencies dependencies, final GraphDatabaseFacade graphDatabaseFacade )&lt;/code&gt;
-            1. &lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;
-                1. &lt;code&gt;new PlatformModule( storeDir, config, databaseInfo, dependencies, graphDatabaseFacade );&lt;/code&gt;
-                这一部分代码很长很关键的感觉，我只列我感觉很重要的，读者可以自己调试自己觉得重要的：
-                    1. &lt;code&gt;this.dataSourceManager = new DataSourceManager();&lt;/code&gt;
-                    DataSourceManager 和之前的 LifecycleManagingDatabase、ServerComponentsLifecycleAdapter一样，都是 Lifecycle 的实现类。
-                        1. 初始化
-                        &lt;code&gt;
-                        private LifeSupport life = new LifeSupport();
-                        private final Listeners&amp;lt;Listener&amp;gt; dsRegistrationListeners = new Listeners&amp;lt;&amp;gt;();
-                        private NeoStoreDataSource dataSource;
-&lt;/code&gt;
-                    2. &lt;code&gt;dependencies = new org.neo4j.kernel.impl.util.Dependencies(new DataSourceManager.DependencyResolverSupplier( dataSourceManager ) );&lt;/code&gt;
-                     这个dependencies和之前那个dependencies要区分开
-                    3. &lt;code&gt;dependencies.satisfyDependency( databaseInfo );&lt;/code&gt;
-                    还是没看到 satisfyDependency 干了啥 就是将 databaseInfo 的所有父类添加到一个临时变量，好像啥也没做。&lt;/p&gt;
+&lt;p&gt;上面我们已经调试到了 最后的部分，也是高潮部分。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code&gt;                4. 
+&lt;p&gt;newFacade 方法：
+    1. initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    1.new GraphDatabaseFacade()
+    初始化相关数据
+
+    2.`GraphDatabaseFacade initFacade( File storeDir, Config config, final Dependencies dependencies, final GraphDatabaseFacade graphDatabaseFacade )`
+
+        1. `PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );`
+
+            1. `new PlatformModule( storeDir, config, databaseInfo, dependencies, graphDatabaseFacade );`
+            这一部分代码很长很关键的感觉，我只列我感觉很重要的，读者可以自己调试自己觉得重要的：
+                1. `this.dataSourceManager = new DataSourceManager();`
+                DataSourceManager 和之前的 LifecycleManagingDatabase、ServerComponentsLifecycleAdapter一样，都是 Lifecycle 的实现类。
+                    1. 初始化
+                    ```
+                    private LifeSupport life = new LifeSupport();
+                    private final Listeners&amp;lt;Listener&amp;gt; dsRegistrationListeners = new Listeners&amp;lt;&amp;gt;();
+                    private NeoStoreDataSource dataSource;
+                    ```
+
+                2. `dependencies = new org.neo4j.kernel.impl.util.Dependencies(new DataSourceManager.DependencyResolverSupplier( dataSourceManager ) );`
+                 这个dependencies和之前那个dependencies要区分开
+
+                3. `dependencies.satisfyDependency( databaseInfo );`
+                还是没看到 satisfyDependency 干了啥 就是将 databaseInfo 的所有父类添加到一个临时变量，好像啥也没做。
+
+                4. 
                 ```
                 clock = dependencies.satisfyDependency( createClock() );
                 life = dependencies.satisfyDependency( createLife() );
@@ -2318,6 +2339,7 @@ newFacade 方法：
                     1.new LinkedBlockingQueue() 
                     可以看出工作是放在一个队列中的。
                 dependencies.satisfyDependency( recoveryCleanupWorkCollector );
+
                 9.
                 dependencies.satisfyDependency( life.add( new UsageData( jobScheduler ) ) );
 
@@ -2354,8 +2376,10 @@ newFacade 方法：
             2. EditionModule edition = editionFactory.apply( platform );
 
             3. final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );
+
                 1. new DataSourceModule( platformModule, editionModule, queryEngine );
                 和上面的 PlatformModule 一样，一大堆的新建。。。最后 life.add( platformModule.kernelExtensions ) 新建DataSource
+
                     1. 。。。。。
                     2.。。。。。。
                     3. life.add( platformModule.kernelExtensions )  # 这个很关键
@@ -2397,6 +2421,7 @@ newFacade 方法：
                         editionModule.idController,
                         platformModule.databaseInfo.operationalMode )
                     ```
+
                 4. 
                 graphDatabaseFacade.init(
                 spi,
@@ -2405,7 +2430,9 @@ newFacade 方法：
                 platform.config,
                 edition.relationshipTypeTokenHolder
                 );  
+
                 5. platform.life.start();
+
                     1. init();
                         for ( LifecycleInstance instance : instances ) instance.start();
                         这里的instance ：
@@ -2518,8 +2545,11 @@ AbstractNeoServer(CommunityNeoServer)执行完了init方法，就执行 life 的
 &lt;p&gt;总结：
 CommunityNeoServer 中的 出现的 LifeSupport 为：
 1. new LifecycleManagingDatabase( config, graphDbFactory, dependencies )
- 这里的 graphDbFactory 是 CommunityNeoServer 的一个匿名内部类接口的实现类，dependencies就是包含了 kernelExtensions 等内容的东西。
-2. new ServerComponentsLifecycleAdapter()&lt;/p&gt;
+ 这里的 graphDbFactory 是 CommunityNeoServer 的一个匿名内部类接口的实现类，dependencies就是包含了 kernelExtensions 等内容的东西。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;new ServerComponentsLifecycleAdapter()&lt;/li&gt;
+&lt;/ol&gt;
 
 &lt;h3 id=&#34;2-第二次使用&#34;&gt;(2). 第二次使用&lt;/h3&gt;
 
@@ -2615,10 +2645,10 @@ life.add( new MonitorGc( config, logging.getInternalLog( MonitorGc.class ) ) );
 &lt;p&gt;这次调试就好多了，我们可以着重看重要的代码&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;server = createNeoServer( config, dependencies, userLogProvider );&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;server = createNeoServer( config, dependencies, userLogProvider );&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;this( config, lifecycleManagingDatabase( COMMUNITY_FACTORY ), dependencies, logProvider );&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;this( config, lifecycleManagingDatabase( COMMUNITY_FACTORY ), dependencies, logProvider );&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;
@@ -2629,33 +2659,41 @@ File storeDir = config.get( GraphDatabaseSettings.database_path );
 return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
         .newFacade( storeDir, config, dependencies );
 };
-&lt;/code&gt;&lt;/li&gt;
+&lt;/code&gt;
+&lt;br /&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;server.start();&lt;/code&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;server.start();&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;init&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;init&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;life.add(GraphDatabaseFacadeFactory)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;life.add(GraphDatabaseFacadeFactory)&lt;/code&gt;
+&lt;br /&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;this.webServer = createWebServer();&lt;/code&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;this.webServer = createWebServer();&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;new JettyWebServer()&lt;/li&gt;
+&lt;li&gt;new JettyWebServer()
+&lt;br /&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;createServerModules()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;serverComponents = new ServerComponentsLifecycleAdapter();&lt;/code&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;createServerModules()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;serverComponents = new ServerComponentsLifecycleAdapter();&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;life.start();&lt;/code&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;life.start();&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;for ( LifecycleInstance instance : instances ) start()
@@ -2681,14 +2719,18 @@ return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionM
 &lt;li&gt;&lt;p&gt;&lt;code&gt;newFacade( File storeDir, Config config, final Dependencies dependencies )&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;new GraphDatabaseFacade()&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;initFacade( File storeDir, Config config, final Dependencies dependencies,final GraphDatabaseFacade graphDatabaseFacade )&lt;/code&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;new GraphDatabaseFacade()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;initFacade( File storeDir, Config config, final Dependencies dependencies,final GraphDatabaseFacade graphDatabaseFacade )&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;EditionModule edition = editionFactory.apply( platform );&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;platform.life.start();&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;EditionModule edition = editionFactory.apply( platform );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;platform.life.start();&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
