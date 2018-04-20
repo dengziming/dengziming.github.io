@@ -13,10 +13,10 @@
     
     <item>
       <title>neo4j编译打包启动服务端</title>
-      <link>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</link>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</guid>
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/</guid>
       
         <description>
 
@@ -81,9 +81,23 @@
 
 &lt;h3 id=&#34;2-打断点调试&#34;&gt;2.打断点调试&lt;/h3&gt;
 
-&lt;p&gt;既然是源码分析，我们的办法就是先看，然后打断点调试，查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，我们慢慢来吧。&lt;/p&gt;
+&lt;p&gt;既然是源码分析，我们的办法就是先看，然后打断点调试，查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，后续我们慢慢来吧。&lt;/p&gt;
 
-&lt;h3 id=&#34;3&#34;&gt;3.&lt;/h3&gt;
+&lt;h3 id=&#34;3-代码结构查看&#34;&gt;3.代码结构查看&lt;/h3&gt;
+
+&lt;p&gt;看源码之前我们先大概过一下代码结构。我们主要看 community 模块的结构，里面有很多子模块。&lt;/p&gt;
+
+&lt;p&gt;我们可以大概根据名字猜测 ：io模块是用来处理读写数据的，kernel模块是我们需要着重查看的。bolt是处理bolt连接的，server是整个项目启动的。codegen是动态生成代码的。我们要从内核部分开始看。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-架构了解&#34;&gt;4.架构了解&lt;/h3&gt;
+
+&lt;p&gt;The node records contain only a pointer to their first property and their first relationship (in what is oftentermed the _relationship chain). From here, we can follow the (doubly) linked-list of relationships until we find the one we’re interested in, the LIKES relationship from Node 1 to Node 2 in this case. Once we’ve found the relationship record of interest, we can simply read its properties if there are any via the same singly-linked list structure as node properties, or we can examine the node records that it relates via its start node and end node IDs. These IDs, multiplied by the node record size, of course give the immediate offset of both nodes in the node store file.&lt;/p&gt;
+
+&lt;p&gt;这段话来自&lt;Graph Databases&gt;(作者：IanRobinson) 一书。描述了neo4j的存储方式。详情可以查阅其他资料。&lt;/p&gt;
+
+&lt;h3 id=&#34;5-源码查看&#34;&gt;5.源码查看&lt;/h3&gt;
+
+&lt;p&gt;参考下一篇&lt;/p&gt;
 </description>
       
     </item>
