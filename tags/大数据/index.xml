@@ -1600,11 +1600,11 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
     </item>
     
     <item>
-      <title>neo4j编译打包启动服务端</title>
-      <link>https://dengziming.github.io/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/</link>
+      <title>neo4j源码分析1-编译打包启动</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/</guid>
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/</guid>
       
         <description>
 

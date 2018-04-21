@@ -278,34 +278,6 @@
     
       <article class="post bg-white">
   <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/">neo4j启动源码跟踪</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 3765 words </span>
-      <span class="more-meta"> 8 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/">neo4j存储结构分析</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
@@ -362,7 +334,7 @@
     
       <article class="post bg-white">
   <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/">neo4j编译打包启动服务端</a></h1>
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/">neo4j源码分析1-编译打包启动</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
       <div class="post-category">
@@ -381,7 +353,63 @@
       1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了
     </div>
     <div class="read-more">
-      <a href="/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/" class="read-more-link">Read more</a>
+      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/">neo4j源码分析2-启动源码跟踪</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 4400 words </span>
+      <span class="more-meta"> 9 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-lifecycle%E6%9F%A5%E7%9C%8B/">neo4j源码分析3-LifeCycle查看</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 2218 words </span>
+      <span class="more-meta"> 5 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 1. PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); 2. EditionModule edition = editionFactory.apply( platform ); 3. final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); 4. platform.life.start(); 这四
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-lifecycle%E6%9F%A5%E7%9C%8B/" class="read-more-link">Read more</a>
     </div>
     
   </div>

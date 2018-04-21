@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>neo4j源码分析2-启动源码跟踪 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="neo4j源码分析2-启动源码跟踪" />
+<meta property="og:description" content="1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="neo4j源码分析2-启动源码跟踪">
+<meta itemprop="description" content="1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="4400">
+
+
+
+<meta itemprop="keywords" content="neo4j,图数据库," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j源码分析2-启动源码跟踪"/>
+<meta name="twitter:description" content="1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">neo4j源码分析2-启动源码跟踪</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+            
+          </div>
+        <span class="more-meta"> 4400 words </span>
+        <span class="more-meta"> 9 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#1-第一遍调试">1.第一遍调试</a></li>
+<li><a href="#2-调试-graphdatabasefacadefactory-newfacade">2.调试 GraphDatabaseFacadeFactory.newFacade</a></li>
+<li><a href="#3-学习neo4j-server的设计模式">3.学习neo4j server的设计模式</a>
+<ul>
+<li><a href="#1-第一次使用">(1). 第一次使用</a></li>
+<li><a href="#2-第二次使用">(2). 第二次使用</a></li>
+</ul></li>
+<li><a href="#4-理解lifesupport后再次调试代码">4.理解LifeSupport后再次调试代码</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h2 id="1-第一遍调试">1.第一遍调试</h2>
+
+<p>第一遍就是打断点，然后查看调用栈，忽略过多的线程。</p>
+
+<p>找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，F6单步执行，F跳出。
+1. <code>new CommunityBootstrapper(),ServerBootstrapper.start(boot,args)</code></p>
+
+<ol>
+<li><p><code>ServerBootstrapper</code> 中的初始化关键代码： <code>private GraphDatabaseDependencies dependencies = GraphDatabaseDependencies.newDependencies()</code>; 这个dependencies貌似来头很大。F5进入
+<code>public static GraphDatabaseDependencies newDependencies()</code></p>
+
+<ol>
+<li><p><code>KernelExtensionFactory factory : Service.load( KernelExtensionFactory.class)</code>
+这段代码似乎跳不进去，反正最后得到了7个:</p>
+
+<p>0 = {LuceneKernelExtensionFactory@675} &ldquo;KernelExtension:LuceneKernelExtensionFactory[lucene]&rdquo;
+1 = {LuceneSchemaIndexProviderFactory@679} &ldquo;KernelExtension:LuceneSchemaIndexProviderFactory[lucene]&rdquo;
+2 = {NativeLuceneFusionSchemaIndexProviderFactory@680} &ldquo;KernelExtension:NativeLuceneFusionSchemaIndexProviderFactory[lucene+native]&rdquo;
+3 = {BoltKernelExtension@681} &ldquo;KernelExtension:BoltKernelExtension[bolt-server]&rdquo;
+4 = {ShellServerExtensionFactory@682} &ldquo;KernelExtension:ShellServerExtensionFactory[shell]&rdquo;
+5 = {UdcKernelExtensionFactory@683} &ldquo;KernelExtension:UdcKernelExtensionFactory[kernel udc]&rdquo;
+6 = {JmxExtensionFactory@684} &ldquo;KernelExtension:JmxExtensionFactory[kernel jmx]&rdquo;</p></li>
+
+<li><p><code>List&lt;QueryEngineProvider&gt; queryEngineProviders = asList( Service.load( QueryEngineProvider.class ) );</code></p>
+
+<p>这段代码和前面一样，不过加载的是查询引擎的的class，我们暂且跳过！</p></li>
+
+<li><p><code>return new GraphDatabaseDependencies( null, null, new ArrayList&lt;&gt;(), kernelExtensions,)</code></p></li>
+</ol></li>
+
+<li><p><code>ServerBootstrapper.start( Bootstrapper boot, String... argv )</code></p>
+
+<ol>
+<li><p><code>CommunityBootstrapper(AbstractNeoServer).start</code></p>
+
+<ol>
+<li><p><code>server = createNeoServer( config, dependencies, userLogProvider );</code></p>
+
+<ol>
+<li><code>new CommunityNeoServer( config, dependencies, logProvider );</code>
+<br /></li>
+</ol>
+
+<pre><code class="language-java">// 初始化很多属性
+
+protected abstract WebServer createWebServer();
+
+// 放在代码后面的属性
+private final Dependencies dependencyResolver = new Dependencies( new Supplier&lt;DependencyResolver&gt;()
+{
+    @Override
+    public DependencyResolver get()
+    {
+        Database db = dependencyResolver.resolveDependency( Database.class );
+        return db.getGraph().getDependencyResolver();
+    }
+} );
+// 构造方法
+public AbstractNeoServer( Config config, Database.Factory dbFactory,
+        GraphDatabaseFacadeFactory.Dependencies dependencies, LogProvider logProvider )
+{
+    this.logProvider = logProvider;
+    // 初始化很多东西
+}
+</code></pre></li>
+
+<li><p><code>AbstractNeoServer.start();</code></p>
+
+<ol>
+<li><p><code>init()</code></p>
+
+<ol>
+<li><p><code>this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );</code></p>
+
+<ol>
+<li><p><code>lambda$lifecycleManagingDatabase$0:47, LifecycleManagingDatabase (org.neo4j.server.database)</code>
+这里的 java8 lamabda表达式有点不懂，总之就是这个 dbFactory.newDatabase( config, dependencies ) 执行的是这段代码：
+<code>( config, dependencies ) -&gt; new LifecycleManagingDatabase( config, graphDbFactory, dependencies );</code></p></li>
+
+<li><p><code>dependencyResolver.satisfyDependency(LifecycleManagingDatabase )</code>
+这里的 satisfyDependency 方法有点奇怪，总之就是将 LifecycleManagingDatabase 的所有父类添加到一个临时变量，好像啥也没做。</p></li>
+
+<li><p><code>life.add(LifecycleManagingDatabase)</code>
+奇怪的代码，后续我们专门讲解这个 life 的实现，这是注释：
+Add a new Lifecycle instance. It will immediately be transitioned to the state of this LifeSupport.
+将传入的dependency 新建为一个LifecycleInstance，add到 instances中。</p>
+
+<pre><code>LifecycleInstance newInstance = new LifecycleInstance( instance );
+private volatile List&lt;LifecycleInstance&gt; instances = new ArrayList&lt;&gt;();
+</code></pre></li>
+
+<li><p><code>this.database = LifecycleManagingDatabase</code></p></li>
+</ol></li>
+
+<li><p>新建其他的，非内核部分我们忽略。</p></li>
+</ol>
+
+<pre><code class="language-java">this.authManagerSupplier = dependencyResolver.provideDependency( AuthManager.class );
+this.userManagerSupplier = dependencyResolver.provideDependency( UserManagerSupplier.class );
+this.sslPolicyFactorySupplier = dependencyResolver.provideDependency( SslPolicyLoader.class );
+this.webServer = createWebServer();
+</code></pre>
+
+<ol>
+<li>createServerModules()
+<br /></li>
+</ol>
+
+<pre><code>return Arrays.asList(
+new DBMSModule( webServer, getConfig() ),
+new RESTApiModule( webServer, getConfig(), getDependencyResolver(), logProvider ),
+new ManagementApiModule( webServer, getConfig() ),
+new ThirdPartyJAXRSModule( webServer, getConfig(), logProvider, this ),
+new ConsoleModule( webServer, getConfig() ),
+new Neo4jBrowserModule( webServer ),
+createAuthorizationModule(),
+new SecurityRulesModule( webServer, getConfig(), logProvider ) );
+</code></pre>
+
+<p>4.创建 ServerComponentsLifecycleAdapter</p>
+
+<pre><code class="language-java">serverComponents = new ServerComponentsLifecycleAdapter();
+life.add( serverComponents );
+
+this.initialized = true;
+</code></pre></li>
+
+<li><p>life.start();
+debug进入：<code>LifeSupport</code></p>
+
+<ol>
+<li><p>init();</p>
+
+<ol>
+<li><p>status = changedStatus( this, status, LifecycleStatus.INITIALIZING );</p></li>
+
+<li><p>for ( LifecycleInstance instance : instances ) instance.init();
+这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();</p>
+
+<ol>
+<li>LifecycleInstance.init()
+还好两个代码里面什么都没做，不然再F5进去，我要奔溃了。。。</li>
+</ol></li>
+
+<li><p>status = changedStatus( this, status, LifecycleStatus.STOPPED );</p></li>
+</ol></li>
+
+<li><p>for ( LifecycleInstance instance : instances ) instance.start();
+这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();</p>
+
+<pre><code>1. `LifecycleInstance.start() `
+
+2. `LifecycleManagingDatabase.start()`
+
+    ```java
+    log.info( &quot;Starting...&quot; );
+    this.graph = dbFactory.newGraphDatabase( config, dependencies );
+    if ( !isInTestMode() )
+    {
+        preLoadCypherCompiler();
+    }
+    log.info( &quot;Started.&quot; );
+
+    ```
+
+    1. this.graph = dbFactory.newGraphDatabase( config, dependencies );
+    这里又是lambda表达式：
+    new GraphDatabaseFacadeFactory,
+    ```java
+    File storeDir = config.get( GraphDatabaseSettings.database_path );
+    return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
+           .newFacade( storeDir, config, dependencies );
+    ```
+    主要的核心代码已经找到了：new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );
+    接下来我们主要调试这一段。
+
+3. `ServerComponentsLifecycleAdapter.start()`
+    这里主要是和web，cypher有关，我们暂时忽略。
+</code></pre></li>
+</ol></li>
+</ol></li>
+</ol></li>
+</ol></li>
+</ol>
+
+<h2 id="2-调试-graphdatabasefacadefactory-newfacade">2.调试 GraphDatabaseFacadeFactory.newFacade</h2>
+
+<p>上面我们已经调试到了 最后的部分，也是高潮部分。</p>
+
+<p>newFacade 方法：
+1. <code>initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );</code></p>
+
+<pre><code>1.`new GraphDatabaseFacade()`
+初始化相关数据
+
+2.`GraphDatabaseFacade initFacade( File storeDir, Config config, final Dependencies dependencies, final GraphDatabaseFacade graphDatabaseFacade )`
+
+    1. `PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );`
+
+        1. `new PlatformModule( storeDir, config, databaseInfo, dependencies, graphDatabaseFacade );`
+        这一部分代码很长很关键的感觉，这里是内核相关，先跳过，回头看。下一章节 TODO
+
+        2. EditionModule edition = editionFactory.apply( platform );
+
+        这里和上一个PlatformModule干的事情一样。下一章节 TODO
+
+    2. `final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );`
+
+        1. new DataSourceModule( platformModule, editionModule, queryEngine );
+        和上面的 PlatformModule 一样，一大堆的新建。。。最后 life.add( platformModule.kernelExtensions ) 新建DataSource
+    3. `ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );`
+
+    4. `platform.life.start();`
+
+        1. init();
+        2. for ( LifecycleInstance instance : instances ) instance.start();
+            这里的instance ：
+
+            ```java
+            0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;
+            1 = {LifeSupport$LifecycleInstance@3730} &quot;org.neo4j.kernel.impl.util.Neo4jJobScheduler@2667f029: STARTED&quot;
+            2 = {LifeSupport$LifecycleInstance@3635} &quot;org.neo4j.udc.UsageData@67a20f67: STARTED&quot;
+            3 = {LifeSupport$LifecycleInstance@3658} &quot;org.neo4j.kernel.impl.logging.StoreLogService@57c758ac: STARTED&quot;
+            4 = {LifeSupport$LifecycleInstance@3681} &quot;org.neo4j.kernel.internal.locker.StoreLockerLifecycleAdapter@a9cd3b1: STARTED&quot;
+            5 = {LifeSupport$LifecycleInstance@3731} &quot;org.neo4j.kernel.impl.pagecache.PageCacheLifecycle@13e39c73: STOPPED&quot;
+            6 = {LifeSupport$LifecycleInstance@3732} &quot;org.neo4j.kernel.info.DiagnosticsManager@64cd705f: STOPPED&quot;
+            7 = {LifeSupport$LifecycleInstance@3733} &quot;org.neo4j.kernel.impl.transaction.state.DataSourceManager@548d708a: STOPPED&quot;
+            8 = {LifeSupport$LifecycleInstance@3734} &quot;org.neo4j.kernel.impl.util.watcher.DefaultFileSystemWatcherService@4b013c76: STOPPED&quot;
+            9 = {LifeSupport$LifecycleInstance@3735} &quot;org.neo4j.kernel.impl.core.DelegatingPropertyKeyTokenHolder@53fb3dab: STOPPED&quot;
+            10 = {LifeSupport$LifecycleInstance@3736} &quot;org.neo4j.kernel.impl.core.DelegatingLabelTokenHolder@cb0755b: STOPPED&quot;
+            11 = {LifeSupport$LifecycleInstance@3737} &quot;org.neo4j.kernel.impl.core.DelegatingRelationshipTypeTokenHolder@33065d67: STOPPED&quot;
+            12 = {LifeSupport$LifecycleInstance@3738} &quot;org.neo4j.kernel.internal.DefaultKernelData@30: STOPPED&quot;
+            13 = {LifeSupport$LifecycleInstance@3739} &quot;org.neo4j.kernel.impl.core.ThreadToStatementContextBridge@7bba5817: STOPPED&quot;
+            14 = {LifeSupport$LifecycleInstance@3740} &quot;org.neo4j.kernel.extension.KernelExtensions@25df00a0: STOPPED&quot;
+            15 = {LifeSupport$LifecycleInstance@3741} &quot;org.neo4j.kernel.impl.proc.Procedures@6cc4cdb9: STOPPED&quot;
+            16 = {LifeSupport$LifecycleInstance@3742} &quot;org.neo4j.server.security.auth.BasicAuthManager@47c81abf: STOPPED&quot;
+            17 = {LifeSupport$LifecycleInstance@3743} &quot;org.neo4j.kernel.impl.cache.MonitorGc@30b6ffe0: STOPPED&quot;
+            18 = {LifeSupport$LifecycleInstance@3744} &quot;org.neo4j.kernel.impl.pagecache.PublishPageCacheTracerMetricsAfterStart@2415fc55: STOPPED&quot;
+            19 = {LifeSupport$LifecycleInstance@3745} &quot;org.neo4j.kernel.DatabaseAvailability@1890516e: STOPPED&quot;
+            20 = {LifeSupport$LifecycleInstance@3746} &quot;org.neo4j.kernel.impl.factory.DataSourceModule$StartupWaiter@16c069df: STOPPED&quot;
+            21 = {LifeSupport$LifecycleInstance@3747} &quot;org.neo4j.kernel.internal.KernelEventHandlers@2bec854f: STOPPED&quot;
+           ```
+           每个instance的start方法具体是怎样的，我们稍后细看，这里跳过 TODO
+</code></pre>
+
+<h2 id="3-学习neo4j-server的设计模式">3.学习neo4j server的设计模式</h2>
+
+<p>上面我们调试了一遍启动过程，整个个过程可以多来几次，每一遍加深对neo4j的理解。
+调试之前我们学习一下 LifeSupport 这个类的设计和使用。</p>
+
+<p>LifeSupport继承自Lifecycle，源码如下：</p>
+
+<pre><code class="language-java">/**
+ * Lifecycle interface for kernel components. Init is called first,
+ * followed by start,
+ * and then any number of stop-start sequences,
+ * and finally stop and shutdown.
+ *
+ * As a stop-start cycle could be due to change of configuration, please perform anything that depends on config
+ * in start().
+ *
+ * Implementations can throw any exception. Caller must handle this properly.
+ *
+ * The primary purpose of init in a component is to set up structure: instantiate dependent objects,
+ * register handlers/listeners, etc.
+ * Only in start should the component actually do anything with this structure.
+ * Stop reverses whatever was done in start, and shutdown finally clears any set-up structure, if necessary.
+ */
+public interface Lifecycle
+{
+    void init() throws Throwable;
+
+    void start() throws Throwable;
+
+    void stop() throws Throwable;
+
+    void shutdown() throws Throwable;
+
+}
+</code></pre>
+
+<p>注释很清楚，万一看不懂百度翻译一下就明白。注意这里：init只是set up structure——初始化依赖的对象，注册处理器/监听器。只有start方法执行后才会用这个structure TOTDO，是不是看源码可以跳过init</p>
+
+<p>按F4发现有很多的实现类</p>
+
+<pre><code class="language-java">PaxosClusterMemberAvailability (org.neo4j.cluster.member.paxos)
+DefaultKernelData (org.neo4j.kernel.internal)
+LifecycleAdapter (org.neo4j.kernel.lifecycle)
+NeoStoreDataSource (org.neo4j.kernel)
+TransactionPropagator (org.neo4j.kernel.ha.transaction)
+ShellServerKernelExtension (org.neo4j.shell.impl)
+OnlineBackupKernelExtension (org.neo4j.backup)
+DummyExtension (org.neo4j.kernel)
+LifeSupport (org.neo4j.kernel.lifecycle)
+HighAvailabilityModeSwitcher (org.neo4j.kernel.ha.cluster.modeswitch)
+KernelEventHandlers (org.neo4j.kernel.internal)
+RecordStorageEngine (org.neo4j.kernel.impl.storageengine.impl.recordstorage)
+JmxKernelExtension (org.neo4j.jmx.impl)
+ExecutorLifecycleAdapter (org.neo4j.cluster)
+KernelExtensions (org.neo4j.kernel.extension)
+RecoveryCleanupWorkCollector (org.neo4j.index.internal.gbptree)
+IndexImplementation (org.neo4j.kernel.spi.explicitindex)
+NetworkReceiver (org.neo4j.cluster.com)
+...
+</code></pre>
+
+<p>然后我们重点看看 LifeSupport ，我们分析发现 LifeSupport 也是一个 Lifecycle，而且有一个 LifecycleInstance 的数组 instances ，
+LifecycleInstance 也是继承自 Lifecycle。所以实际上 LifeSupport 就是一堆 Lifecycle 放在了一起，进行了一个类似装饰模式而已。
+LifeSupport的init,start,stop,shutdown方法，分别是循环instances执行init,start,stop,shutdown方法。</p>
+
+<p>经过上面的调试，我们发现neo4j基本上就是一个一个这样的 LifeSupport 组成的。</p>
+
+<h3 id="1-第一次使用">(1). 第一次使用</h3>
+
+<p>我们第一次遇到 LifeSupport是 在： CommunityBootstrapper.start() 时候，先创建 CommunityNeoServer，调用它的 start，start 前先是init方法。遇到了两个代码：</p>
+
+<pre><code class="language-java">this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );
+serverComponents = new ServerComponentsLifecycleAdapter();
+life.add( serverComponents );
+</code></pre>
+
+<p>这里的 life 就是 AbstractNeoServer(CommunityNeoServer) LifeSupport，是父类的成员变量，新建 CommunityNeoServer 的时候初始化的。然后在init方法中给他添加了两个 Lifecycle 的实现对象。
+AbstractNeoServer(CommunityNeoServer)执行完了init方法，就执行 life 的start方法，实际上执行的还是 new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter() 的start。</p>
+
+<p>总结：
+CommunityNeoServer 中的 出现的 LifeSupport 为：
+1. new LifecycleManagingDatabase( config, graphDbFactory, dependencies )
+ 这里的 graphDbFactory 是 CommunityNeoServer 的一个匿名内部类接口的实现类，dependencies就是包含了 kernelExtensions 等内容的东西。</p>
+
+<ol>
+<li>new ServerComponentsLifecycleAdapter()</li>
+</ol>
+
+<h3 id="2-第二次使用">(2). 第二次使用</h3>
+
+<p>我们后面还有一次用到了 LifeSupport 。就是执行life的start时候，需要上面的 LifecycleManagingDatabase 的 start 方法。里面最重要的就是 dbFactory.newGraphDatabase( config, dependencies );
+这个 dbFactory 我们已经说了是 CommunityNeoServer 的一个匿名内部类接口的实现类 COMMUNITY_FACTORY， 最终执行方法返回：
+<code>return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );</code></p>
+
+<p>TODO 这里出现了 DatabaseInfo.COMMUNITY ，如果我们想使用企业版的功能，肯定需要在这里修改源码。还有 CommunityEditionModule ，
+创建的实例只能用于社区版，所以是否可以猜想，企业版就是比社区版多了几个 LifeSupport 而已</p>
+
+<p>然后调用 GraphDatabaseFacadeFactory的newFacade方法，<code>return initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );</code>
+这里 new GraphDatabaseFacade(),然后初始化，实际上就是初始化一个数据库了。
+然后创建一个 platform ，经过一堆复杂处理后，调用 platform 的 life 的start方法。也就是我们关心的 LifeSupport 。在查看之前，我们需要知道创建这个 platform 干了啥。</p>
+
+<p>打开PlatformModule的构造方法，太复杂了。。。。，但是先别泄气，我们先抓 LifeSupport 吧，搞定了这个再看别的。</p>
+
+<p>前面几行 F6 跳过，然后直接看：<code>life = dependencies.satisfyDependency( createLife() );</code>
+这个 createLife 方法就是new了一个 LifeSupport，然后F6跳过几行，直接看：</p>
+
+<pre><code>fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
+life.add( new FileSystemLifecycleAdapter( fileSystem ) );
+</code></pre>
+
+<p>这里 createFileSystemAbstraction 就是 new DefaultFileSystemAbstraction，然后添加到 life，这时候 life 的 size 已经是1了。</p>
+
+<p>然后F6跳过几行，直接看： <code>jobScheduler = life.add( dependencies.satisfyDependency( createJobScheduler() ) );</code>
+这里 createJobScheduler 就是 Neo4jJobScheduler。这时候 life 的 size 已经是2了。</p>
+
+<p>然后F6跳过几行，直接看： <code>dependencies.satisfyDependency( life.add( new UsageData( jobScheduler ) ) );</code>
+这里 new UsageData ,这时候 life 的 size 已经是3了。</p>
+
+<p>然后F6跳过几行，直接看： <code>life.add( dependencies.satisfyDependency( new StoreLockerLifecycleAdapter( createStoreLocker() ) ) );</code>
+这里的 createStoreLocker 就是 new GlobalStoreLocker( fileSystem, storeDir );
+然后 new StoreLockerLifecycleAdapter，这时候 life 的 size 已经是5了。我很好奇为啥突然加了两个。多了一个 StoreLogservice</p>
+
+<p>然后F6跳过几行，直接看：
+<code>pageCache = dependencies.satisfyDependency( createPageCache( fileSystem, config, logging, tracers ) );life.add( new PageCacheLifecycle( pageCache ) );</code>
+然后 new PageCacheLifecycle( pageCache ) 这时候 life 的 size 已经是6了。</p>
+
+<p>继续查看：<code>diagnosticsManager = life.add( dependencies.satisfyDependency( new DiagnosticsManager( logging.getInternalLog( DiagnosticsManager.class ) ) ) );</code>
+这里 new DiagnosticsManager( logging.getInternalLog( DiagnosticsManager.class ) )  ，这时候 life 的 size 已经是7了。</p>
+
+<p>一直到 createPlatform 运行完，life一共有7个 LifeSupport。然后调用：<code>EditionModule edition = editionFactory.apply( platform );</code>直接进入 CommunityEditionModule 的构造方法</p>
+
+<p>直接F6: <code>LifeSupport life = platformModule.life;life.add( platformModule.dataSourceManager );</code>
+这里添加了 dataSourceManager，实际上是个 DAtaSourceManager。这时候 life 的 size 已经是8了。</p>
+
+<pre><code class="language-java">life.add( watcherService );
+propertyKeyTokenHolder = life.add( dependencies.satisfyDependency( new DelegatingPropertyKeyTokenHolder(
+createPropertyKeyCreator( config, dataSourceManager, idGeneratorFactory ) ) ) );
+labelTokenHolder = life.add( dependencies.satisfyDependency(new DelegatingLabelTokenHolder( createLabelIdCreator( config,
+dataSourceManager, idGeneratorFactory ) ) ));
+relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new DelegatingRelationshipTypeTokenHolder(
+createRelationshipTypeCreator( config, dataSourceManager, idGeneratorFactory ) ) ));
+</code></pre>
+
+<p>这时候 life 的 size 已经是12了。</p>
+
+<p><code>dependencies.satisfyDependency(createKernelData( fileSystem, pageCache, storeDir, config, graphDatabaseFacade, life ) );</code></p>
+
+<p>这个方法运行完成后，life一共有12个 LifeSupport。</p>
+
+<p>然后是：<code>final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );</code>
+这里我们只抓取和life有关的代码：</p>
+
+<pre><code class="language-java">LifeSupport life = platformModule.life;
+threadToTransactionBridge = deps.satisfyDependency( life.add( new ThreadToStatementContextBridge() ) );
+life.add( platformModule.kernelExtensions );
+</code></pre>
+
+<p>和</p>
+
+<pre><code class="language-java">
+life.add( new MonitorGc( config, logging.getInternalLog( MonitorGc.class ) ) );
+
+life.add( new PublishPageCacheTracerMetricsAfterStart( platformModule.tracers.pageCursorTracerSupplier ) );
+
+life.add( new DatabaseAvailability( platformModule.availabilityGuard, platformModule.transactionMonitor,
+        config.get( GraphDatabaseSettings.shutdown_transaction_end_timeout ).toMillis() ) );
+
+life.add( new StartupWaiter( platformModule.availabilityGuard, editionModule.transactionStartTimeout ) );
+
+// Kernel event handlers should be the very last, i.e. very first to receive shutdown events
+life.add( kernelEventHandlers );
+</code></pre>
+
+<p>到这里life的size已经是22 。
+然后会调用platform.life.start().就会循环调用上面的所有的 LifeSupport 的start方法。
+所以实际上，整个代码的运行就是一个个的 lifeSupport 的运行，</p>
+
+<h2 id="4-理解lifesupport后再次调试代码">4.理解LifeSupport后再次调试代码</h2>
+
+<p>这次调试就好多了，我们可以着重看重要的代码</p>
+
+<ol>
+<li><p><code>server = createNeoServer( config, dependencies, userLogProvider );</code></p>
+
+<ol>
+<li><p><code>this( config, lifecycleManagingDatabase( COMMUNITY_FACTORY ), dependencies, logProvider );</code></p>
+
+<p>1.</p>
+
+<pre><code>COMMUNITY_FACTORY = ( config, dependencies ) -&gt;
+{
+    File storeDir = config.get( GraphDatabaseSettings.database_path );
+    return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
+            .newFacade( storeDir, config, dependencies );
+};
+</code></pre></li>
+</ol></li>
+
+<li><p><code>server.start();</code></p>
+
+<ol>
+<li><p><code>init</code></p>
+
+<ol>
+<li><p><code>this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );</code></p>
+
+<ol>
+<li><p><code>new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );</code></p>
+
+<ol>
+<li><code>life.add(GraphDatabaseFacadeFactory)</code></li>
+</ol></li>
+
+<li><p><code>this.webServer = createWebServer();</code></p>
+
+<ol>
+<li><code>new JettyWebServer()</code></li>
+</ol></li>
+
+<li><p><code>createServerModules()</code></p></li>
+
+<li><p><code>serverComponents = new ServerComponentsLifecycleAdapter();</code></p></li>
+</ol></li>
+</ol></li>
+
+<li><p><code>life.start();</code></p>
+
+<ol>
+<li>for ( LifecycleInstance instance : instances ) start()</li>
+</ol></li>
+</ol></li>
+</ol>
+
+<p>上面两个 Lifecycle start 分开看。</p>
+
+<ol>
+<li><p><code>LifecycleManagingDatabase.start()</code></p>
+
+<ol>
+<li><p><code>this.graph = dbFactory.newGraphDatabase( config, dependencies );</code></p>
+
+<ol>
+<li><p><code>return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );</code></p>
+
+<ol>
+<li><p><code>new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )</code> 这里的lambda类似scala的匿名函数，钩子方法。</p></li>
+
+<li><p><code>newFacade( File storeDir, Config config, final Dependencies dependencies )</code></p>
+
+<ol>
+<li><p><code>new GraphDatabaseFacade()</code></p></li>
+
+<li><p><code>initFacade( File storeDir, Config config, final Dependencies dependencies,final GraphDatabaseFacade graphDatabaseFacade )</code></p>
+
+<ol>
+<li><p><code>PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );</code>
+这里就是上面我们省略的部分，</p></li>
+
+<li><p><code>EditionModule edition = editionFactory.apply( platform );</code></p></li>
+
+<li><p><code>final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );</code></p></li>
+
+<li><p><code>platform.life.start();</code>
+start的过程启动了所有的 LifeCycle</p></li>
+</ol></li>
+</ol></li>
+</ol></li>
+</ol></li>
+</ol></li>
+
+<li><p><code>ServerComponentsLifecycleAdapter.start()</code>
+后续的程序</p></li>
+</ol>
+
+<p>接下来我们就是一个一个分析
+1. <code>PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );</code>
+2. <code>EditionModule edition = editionFactory.apply( platform );</code>
+3. <code>final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );</code>
+4. <code>platform.life.start();</code>
+这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个<code>0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;</code>为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
+我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&gt; &hellip; -&gt; new PlatformModule()，然后找到对应的代码：</p>
+
+<pre><code class="language-java">fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
+life.add( new FileSystemLifecycleAdapter( fileSystem ) );
+</code></pre>
+
+<p>然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。</p>
+
+<p>另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
+例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
+以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/neo4j/">neo4j</a>
+          
+          <a href="/tags/%E5%9B%BE%E6%95%B0%E6%8D%AE%E5%BA%93/">图数据库</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">neo4j源码分析1-编译打包启动</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-lifecycle%E6%9F%A5%E7%9C%8B/">
+            <span class="next-text nav-default">neo4j源码分析3-LifeCycle查看</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'neo4j源码分析2-启动源码跟踪',
+    link: decodeURI(location.href),
+    desc: '1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

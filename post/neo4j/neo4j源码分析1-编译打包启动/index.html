@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>neo4j存储结构分析 - 数据分析师之旅</title>
+  <title>neo4j源码分析1-编译打包启动 - 数据分析师之旅</title>
   <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
 
 <meta name="renderer" content="webkit" />
@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="1.修改配置 待完成" />
+  <meta name="description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &amp;lt;plugin&amp;gt; &amp;lt;groupId&amp;gt;org.revapi&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;revapi-maven-plugin&amp;lt;/artifactId&amp;gt; &amp;lt;/plugin&amp;gt; 里面好像涉及到了" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -31,7 +31,7 @@
 <meta name="generator" content="Hugo 0.26" />
 
 
-<link rel="canonical" href="https://dengziming.github.io/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/" />
+<link rel="canonical" href="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/" />
 
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -49,10 +49,10 @@
 
 
 
-<meta property="og:title" content="neo4j存储结构分析" />
-<meta property="og:description" content="1.修改配置 待完成" />
+<meta property="og:title" content="neo4j源码分析1-编译打包启动" />
+<meta property="og:description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了" />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/" />
+<meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/" />
 
 
 
@@ -69,18 +69,18 @@
 
 
 
-<meta itemprop="name" content="neo4j存储结构分析">
-<meta itemprop="description" content="1.修改配置 待完成">
+<meta itemprop="name" content="neo4j源码分析1-编译打包启动">
+<meta itemprop="description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="9">
+<meta itemprop="wordCount" content="1254">
 
 
 
-<meta itemprop="keywords" content="neo4j,图数据库," />
-<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j存储结构分析"/>
-<meta name="twitter:description" content="1.修改配置 待完成"/>
+<meta itemprop="keywords" content="源码,neo4j,大数据," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j源码分析1-编译打包启动"/>
+<meta name="twitter:description" content="1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -170,17 +170,17 @@
           <article class="post bg-white">
     
     <header class="post-header">
-      <h1 class="post-title">neo4j存储结构分析</h1>
+      <h1 class="post-title">neo4j源码分析1-编译打包启动</h1>
 
       <div class="post-meta">
         <span class="post-time"> 2018-03-22 </span>
         <div class="post-category">
             
-              <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 9 words </span>
-        <span class="more-meta"> 1 min read </span>
+        <span class="more-meta"> 1254 words </span>
+        <span class="more-meta"> 3 min read </span>
       </div>
     </header>
 
@@ -194,7 +194,20 @@
 <ul>
 <li>
 <ul>
-<li><a href="#1-修改配置">1.修改配置</a></li>
+<li><a href="#1-打包">1.打包</a>
+<ul>
+<li><a href="#1-打包community">1.打包community</a></li>
+<li><a href="#2-打包企业版">2.打包企业版</a></li>
+<li><a href="#3-打包完整的tar包">3. 打包完整的tar包</a></li>
+</ul></li>
+<li><a href="#二-运行">二、运行</a>
+<ul>
+<li><a href="#1-启动">1.启动</a></li>
+<li><a href="#2-打断点调试">2.打断点调试</a></li>
+<li><a href="#3-代码结构查看">3.代码结构查看</a></li>
+<li><a href="#4-架构了解">4.架构了解</a></li>
+<li><a href="#5-源码查看">5.源码查看</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
@@ -205,9 +218,84 @@
     <div class="post-content">
       
 
-<h2 id="1-修改配置">1.修改配置</h2>
+<h2 id="1-打包">1.打包</h2>
 
-<p>待完成</p>
+<h3 id="1-打包community">1.打包community</h3>
+
+<p>进入community,neo4j-graphdb-api，
+注释掉common的：</p>
+
+<pre><code class="language-xml">&lt;plugin&gt;
+  &lt;groupId&gt;org.revapi&lt;/groupId&gt;
+  &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt;
+&lt;/plugin&gt;
+</code></pre>
+
+<p>里面好像涉及到了版本检查，如果某个类的最新发布版本已经没有这个方法，打包会失败，反正对打包有影响，不删除可能会失败。</p>
+
+<p>还可能要在主项目的pom里面注释掉：<code>maven-checkstyle-plugin</code>，代码风格检查可能会通不过。
+然后用maven命令：</p>
+
+<pre><code class="language-bash">mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+</code></pre>
+
+<h3 id="2-打包企业版">2.打包企业版</h3>
+
+<p>进入enterprise,ha目录
+进入management,注释掉 <groupId>org.revapi</groupId>
+还有其他问题，比如java文件没有license，这里不一一列举。</p>
+
+<pre><code class="language-bash">mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+</code></pre>
+
+<h3 id="3-打包完整的tar包">3. 打包完整的tar包</h3>
+
+<p>进入项目路径</p>
+
+<pre><code class="language-bash">mvn clean install -Dmaven.test.skip=true
+</code></pre>
+
+<p>要注意两个参数的异同点：</p>
+
+<pre><code>
+-DskipTests，不执行测试用例，但编译测试用例类生成相应的class文件至target/test-classes下。
+
+-Dmaven.test.skip=true，不执行测试用例，也不编译测试用例类。
+</code></pre>
+
+<p>打包的输出文件：packaging/standalone/target/neo4j-community-3.4.0-SNAPSHOT-unix.tar.gz，这个就是我们的neo4j包。解压后，放到一个目录。一方面你可以选择执行 bin/neo4j start 启动neo4j，我们要分析源码，自然会是在本地启动。</p>
+
+<h2 id="二-运行">二、运行</h2>
+
+<h3 id="1-启动">1.启动</h3>
+
+<p>我们在IDEA中，找到入口类：org.neo4j.server.CommunityEntryPoint，点击运行，然后会报错，我们需要添加运行参数：</p>
+
+<p>-server &ndash;home-dir=~/neo4j-community-3.2.6 &ndash;config-dir=~/neo4j-community-3.2.6/conf</p>
+
+<p>这里的参数是刚刚解压的neo4j目录和配置文件。然后运行成功，访问 <a href="http://localhost:7474/browser/，会发现有问题。">http://localhost:7474/browser/，会发现有问题。</a>
+通过调试前端的js代码，我们发现版本有问题，这里我们稍作修改，找到 org.neo4j.kernel.internal.Version。最后的代码注释掉，换成我们的版本，也就是将Version.class.getPackage().getImplementationVersion() 换成 3.4，然后就可以运行成功了。
+打开7474端口，写cypher语言，查看。</p>
+
+<h3 id="2-打断点调试">2.打断点调试</h3>
+
+<p>既然是源码分析，我们的办法就是先看，然后打断点调试，查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，后续我们慢慢来吧。</p>
+
+<h3 id="3-代码结构查看">3.代码结构查看</h3>
+
+<p>看源码之前我们先大概过一下代码结构。我们主要看 community 模块的结构，里面有很多子模块。</p>
+
+<p>我们可以大概根据名字猜测 ：io模块是用来处理读写数据的，kernel模块是我们需要着重查看的。bolt是处理bolt连接的，server是整个项目启动的。codegen是动态生成代码的。我们要从内核部分开始看。</p>
+
+<h3 id="4-架构了解">4.架构了解</h3>
+
+<p>The node records contain only a pointer to their first property and their first relationship (in what is oftentermed the _relationship chain). From here, we can follow the (doubly) linked-list of relationships until we find the one we’re interested in, the LIKES relationship from Node 1 to Node 2 in this case. Once we’ve found the relationship record of interest, we can simply read its properties if there are any via the same singly-linked list structure as node properties, or we can examine the node records that it relates via its start node and end node IDs. These IDs, multiplied by the node record size, of course give the immediate offset of both nodes in the node store file.</p>
+
+<p>这段话来自<Graph Databases>(作者：IanRobinson) 一书。描述了neo4j的存储方式。详情可以查阅其他资料。</p>
+
+<h3 id="5-源码查看">5.源码查看</h3>
+
+<p>参考下一篇</p>
 
     </div>
 
@@ -252,23 +340,25 @@
     <footer class="post-footer">
       <div class="post-tags">
           
+          <a href="/tags/%E6%BA%90%E7%A0%81/">源码</a>
+          
           <a href="/tags/neo4j/">neo4j</a>
           
-          <a href="/tags/%E5%9B%BE%E6%95%B0%E6%8D%AE%E5%BA%93/">图数据库</a>
+          <a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/">大数据</a>
           
         </div>
 
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/project/hadoop/hadoop/">
+          <a class="prev" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">hadoop网站日志分析项目架构</span>
+            <span class="prev-text nav-default">neo4j导数据</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/">
-            <span class="next-text nav-default">neo4j导数据</span>
+          <a class="next" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/">
+            <span class="next-text nav-default">neo4j源码分析2-启动源码跟踪</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>
           </a>
@@ -286,9 +376,9 @@
   <script type="text/javascript">
   const gitment = new Gitment({
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
-    title: 'neo4j存储结构分析',
+    title: 'neo4j源码分析1-编译打包启动',
     link: decodeURI(location.href),
-    desc: '1.修改配置 待完成',
+    desc: '1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： \x26lt;plugin\x26gt; \x26lt;groupId\x26gt;org.revapi\x26lt;\/groupId\x26gt; \x26lt;artifactId\x26gt;revapi-maven-plugin\x26lt;\/artifactId\x26gt; \x26lt;\/plugin\x26gt; 里面好像涉及到了',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

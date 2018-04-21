@@ -2077,11 +2077,230 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
     </item>
     
     <item>
-      <title>neo4j启动源码跟踪</title>
-      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/</link>
+      <title>neo4j存储结构分析</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/</guid>
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
+
+&lt;p&gt;待完成&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>neo4j导数据</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
+
+&lt;p&gt;dbms.security.allow_csv_import_from_file_urls=true
+&amp;ndash; load csv 命令&lt;/p&gt;
+
+&lt;p&gt;dbms.directories.import=import&lt;/p&gt;
+
+&lt;p&gt;restart neo4j&lt;/p&gt;
+
+&lt;h3 id=&#34;2-导入数据方法1&#34;&gt;2.导入数据方法1&lt;/h3&gt;
+
+&lt;p&gt;load csv with headers from &amp;ldquo;file:///path/to/file&amp;rdquo; as row
+create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
+
+&lt;h3 id=&#34;3-导入数据方法2&#34;&gt;3. 导入数据方法2&lt;/h3&gt;
+
+&lt;p&gt;dbms.directories.import=/var/lib/neo4j/import/&lt;/p&gt;
+
+&lt;p&gt;注释：&lt;/p&gt;
+
+&lt;h1 id=&#34;dbms-security-allow-csv-import-from-file-urls-true&#34;&gt;dbms.security.allow_csv_import_from_file_urls=true&lt;/h1&gt;
+
+&lt;p&gt;将文件放入 ：/var/lib/neo4j/import/  文件夹下，直接输入文件名即可：&lt;/p&gt;
+
+&lt;p&gt;load csv with headers from &amp;ldquo;file:///filename&amp;rdquo; as row
+create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
+
+&lt;h3 id=&#34;4-初始化导数据&#34;&gt;4.初始化导数据&lt;/h3&gt;
+
+&lt;p&gt;新建每个节点和关系的header文件和数据文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# vertex header
+phone:ID(PHONE),isblack,ismedia,iscuishou
+# edge header
+:START_ID(USERID),:END_ID(PHONE)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后导数据：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;neo4j-import \
+ --into /data/neo4j/graph/all20180417.db \
+ --skip-duplicate-nodes true \
+ --skip-bad-relationships true \
+ --ignore-extra-columns true \
+ --ignore-empty-strings true \
+ --bad-tolerance 10000000 \
+  --processors 56 \
+ --id-type string \
+ --max-memory 170G \
+--nodes:LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_lbs.txt&amp;quot;  \
+--nodes:IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_idcard.txt&amp;quot;  \
+--nodes:GNHID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_gnhid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_gnhid.txt&amp;quot;  \
+--nodes:QQ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_qq.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_qq.txt&amp;quot;  \
+--nodes:WEIXIN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_weixin.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_weixin.txt&amp;quot;  \
+--nodes:EMAIL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_email.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_email.txt&amp;quot;  \
+--nodes:DEVICETOKEN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_devicetoken.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_devicetoken.txt&amp;quot;  \
+--nodes:COMPANY &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_company.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_company.txt&amp;quot;  \
+--nodes:IP &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_ip.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_ip.txt&amp;quot;  \
+--nodes:ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_orderid.txt&amp;quot;  \
+--nodes:USERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_userid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_userid.txt&amp;quot;  \
+--nodes:PHONE &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_phone.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_phone.txt&amp;quot;  \
+--nodes:WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_wifi.txt&amp;quot;  \
+--relationships:USERID_PHONE_EMG &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_emg.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_emg.txt&amp;quot;  \
+--relationships:USERID_PHONE_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_loan.txt&amp;quot;  \
+--relationships:USERID_COMPANY_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_company_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_company_loan.txt&amp;quot;  \
+--relationships:USERID_LBS_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_lbs_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_lbs_loan.txt&amp;quot;  \
+--relationships:USERID_DEVICETOKEN_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_devicetoken_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_devicetoken_loan.txt&amp;quot;  \
+--relationships:USERID_LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_lbs.txt&amp;quot;  \
+--relationships:USERID_COMPANY_GJJ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gjj.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gjj.txt&amp;quot;  \
+--relationships:USERID_IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_idcard.txt&amp;quot;  \
+--relationships:USERID_COMPANY_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gnh_users.txt&amp;quot;  \
+--relationships:USERID_GNHID_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_gnhid_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_gnhid_users.txt&amp;quot;  \
+--relationships:USERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_gnh_users.txt&amp;quot;  \
+--relationships:USERID_PHONE_GNH_EMG_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_gnh_emg_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_gnh_emg_users.txt&amp;quot;  \
+--relationships:USERID_QQ_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_gnh_users.txt&amp;quot;  \
+--relationships:ORDERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_ip_gnh_users.txt&amp;quot;  \
+--relationships:USERID_ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_orderid.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_RISKBRAIN_UMID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_riskbrain_umid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_riskbrain_umid.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_USER_DEVICES &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_t_user_devices.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_t_user_devices.txt&amp;quot; \
+--relationships:USERID_DEVICETOKEN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_user_event.txt&amp;quot; \
+--relationships:USERID_COMPANY_USER_INFO_EXT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_user_info_ext.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_user_info_ext.txt&amp;quot; \
+--relationships:USERID_IP_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_custinfo.txt&amp;quot; \
+--relationships:USERID_IP_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_user_event.txt&amp;quot; \
+--relationships:USERID_EMAIL_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_event.txt&amp;quot; \
+--relationships:USERID_EMAIL_EXTMAIL_USER_MAILACCOUNT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_mailaccount.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_mailaccount.txt&amp;quot; \
+--relationships:USERID_QQ_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_user_event.txt&amp;quot; \
+--relationships:USERID_WEIXIN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_weixin_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_weixin_user_event.txt&amp;quot; \
+--relationships:USERID_PHONE_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_event.txt&amp;quot; \
+--relationships:USERID_PHONE_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_custinfo.txt&amp;quot; \
+--relationships:USERID_PHONE_USERCENTER &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_usercenter.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_usercenter.txt&amp;quot; \
+--relationships:USERID_PHONE_USER_EMG_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_emg_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_emg_contact.txt&amp;quot; \
+--relationships:USERID_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_tel.txt&amp;quot; \
+--relationships:USERID_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_contact.txt&amp;quot; \
+--relationships:PHONE_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_phone_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_phone_phone_tel.txt&amp;quot; \
+--relationships:PHONE_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_phone_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_phone_phone_contact.txt&amp;quot; \
+--relationships:USERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_wifi.txt&amp;quot; \
+--relationships:ORDERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_wifi.txt&amp;quot; \
+          &amp;gt; /data/neo4j/graph/all20180417.log 2&amp;gt;&amp;amp;1 &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>neo4j源码分析1-编译打包启动</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;1-打包&#34;&gt;1.打包&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-打包community&#34;&gt;1.打包community&lt;/h3&gt;
+
+&lt;p&gt;进入community,neo4j-graphdb-api，
+注释掉common的：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;plugin&amp;gt;
+  &amp;lt;groupId&amp;gt;org.revapi&amp;lt;/groupId&amp;gt;
+  &amp;lt;artifactId&amp;gt;revapi-maven-plugin&amp;lt;/artifactId&amp;gt;
+&amp;lt;/plugin&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;里面好像涉及到了版本检查，如果某个类的最新发布版本已经没有这个方法，打包会失败，反正对打包有影响，不删除可能会失败。&lt;/p&gt;
+
+&lt;p&gt;还可能要在主项目的pom里面注释掉：&lt;code&gt;maven-checkstyle-plugin&lt;/code&gt;，代码风格检查可能会通不过。
+然后用maven命令：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;2-打包企业版&#34;&gt;2.打包企业版&lt;/h3&gt;
+
+&lt;p&gt;进入enterprise,ha目录
+进入management,注释掉 &lt;groupId&gt;org.revapi&lt;/groupId&gt;
+还有其他问题，比如java文件没有license，这里不一一列举。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;3-打包完整的tar包&#34;&gt;3. 打包完整的tar包&lt;/h3&gt;
+
+&lt;p&gt;进入项目路径&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mvn clean install -Dmaven.test.skip=true
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;要注意两个参数的异同点：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+-DskipTests，不执行测试用例，但编译测试用例类生成相应的class文件至target/test-classes下。
+
+-Dmaven.test.skip=true，不执行测试用例，也不编译测试用例类。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;打包的输出文件：packaging/standalone/target/neo4j-community-3.4.0-SNAPSHOT-unix.tar.gz，这个就是我们的neo4j包。解压后，放到一个目录。一方面你可以选择执行 bin/neo4j start 启动neo4j，我们要分析源码，自然会是在本地启动。&lt;/p&gt;
+
+&lt;h2 id=&#34;二-运行&#34;&gt;二、运行&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-启动&#34;&gt;1.启动&lt;/h3&gt;
+
+&lt;p&gt;我们在IDEA中，找到入口类：org.neo4j.server.CommunityEntryPoint，点击运行，然后会报错，我们需要添加运行参数：&lt;/p&gt;
+
+&lt;p&gt;-server &amp;ndash;home-dir=~/neo4j-community-3.2.6 &amp;ndash;config-dir=~/neo4j-community-3.2.6/conf&lt;/p&gt;
+
+&lt;p&gt;这里的参数是刚刚解压的neo4j目录和配置文件。然后运行成功，访问 &lt;a href=&#34;http://localhost:7474/browser/，会发现有问题。&#34;&gt;http://localhost:7474/browser/，会发现有问题。&lt;/a&gt;
+通过调试前端的js代码，我们发现版本有问题，这里我们稍作修改，找到 org.neo4j.kernel.internal.Version。最后的代码注释掉，换成我们的版本，也就是将Version.class.getPackage().getImplementationVersion() 换成 3.4，然后就可以运行成功了。
+打开7474端口，写cypher语言，查看。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-打断点调试&#34;&gt;2.打断点调试&lt;/h3&gt;
+
+&lt;p&gt;既然是源码分析，我们的办法就是先看，然后打断点调试，查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，后续我们慢慢来吧。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-代码结构查看&#34;&gt;3.代码结构查看&lt;/h3&gt;
+
+&lt;p&gt;看源码之前我们先大概过一下代码结构。我们主要看 community 模块的结构，里面有很多子模块。&lt;/p&gt;
+
+&lt;p&gt;我们可以大概根据名字猜测 ：io模块是用来处理读写数据的，kernel模块是我们需要着重查看的。bolt是处理bolt连接的，server是整个项目启动的。codegen是动态生成代码的。我们要从内核部分开始看。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-架构了解&#34;&gt;4.架构了解&lt;/h3&gt;
+
+&lt;p&gt;The node records contain only a pointer to their first property and their first relationship (in what is oftentermed the _relationship chain). From here, we can follow the (doubly) linked-list of relationships until we find the one we’re interested in, the LIKES relationship from Node 1 to Node 2 in this case. Once we’ve found the relationship record of interest, we can simply read its properties if there are any via the same singly-linked list structure as node properties, or we can examine the node records that it relates via its start node and end node IDs. These IDs, multiplied by the node record size, of course give the immediate offset of both nodes in the node store file.&lt;/p&gt;
+
+&lt;p&gt;这段话来自&lt;Graph Databases&gt;(作者：IanRobinson) 一书。描述了neo4j的存储方式。详情可以查阅其他资料。&lt;/p&gt;
+
+&lt;h3 id=&#34;5-源码查看&#34;&gt;5.源码查看&lt;/h3&gt;
+
+&lt;p&gt;参考下一篇&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>neo4j源码分析2-启动源码跟踪</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/</guid>
       
         <description>
 
@@ -2603,225 +2822,188 @@ start的过程启动了所有的 LifeCycle&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;ServerComponentsLifecycleAdapter.start()&lt;/code&gt;
 后续的程序&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
+
+&lt;p&gt;接下来我们就是一个一个分析
+1. &lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;
+2. &lt;code&gt;EditionModule edition = editionFactory.apply( platform );&lt;/code&gt;
+3. &lt;code&gt;final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );&lt;/code&gt;
+4. &lt;code&gt;platform.life.start();&lt;/code&gt;
+这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个&lt;code&gt;0 = {LifeSupport$LifecycleInstance@3583} &amp;quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&amp;quot;&lt;/code&gt;为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
+我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&amp;gt; &amp;hellip; -&amp;gt; new PlatformModule()，然后找到对应的代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
+life.add( new FileSystemLifecycleAdapter( fileSystem ) );
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。&lt;/p&gt;
+
+&lt;p&gt;另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
+例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
+以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。&lt;/p&gt;
 </description>
       
     </item>
     
     <item>
-      <title>neo4j存储结构分析</title>
-      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/</link>
+      <title>neo4j源码分析3-LifeCycle查看</title>
+      <link>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-lifecycle%E6%9F%A5%E7%9C%8B/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/</guid>
+      <guid>https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-lifecycle%E6%9F%A5%E7%9C%8B/</guid>
       
         <description>
 
-&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
+&lt;h2 id=&#34;一-复习&#34;&gt;一、复习&lt;/h2&gt;
 
-&lt;p&gt;待完成&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>neo4j导数据</title>
-      <link>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/</guid>
-      
-        <description>
+&lt;p&gt;上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法
+1. &lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;
+2. &lt;code&gt;EditionModule edition = editionFactory.apply( platform );&lt;/code&gt;
+3. &lt;code&gt;final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );&lt;/code&gt;
+4. &lt;code&gt;platform.life.start();&lt;/code&gt;
+这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个&lt;code&gt;0 = {LifeSupport$LifecycleInstance@3583} &amp;quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&amp;quot;&lt;/code&gt;为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
+我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&amp;gt; &amp;hellip; -&amp;gt; new PlatformModule()，然后找到对应的代码：&lt;/p&gt;
 
-&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
-
-&lt;p&gt;dbms.security.allow_csv_import_from_file_urls=true
-&amp;ndash; load csv 命令&lt;/p&gt;
-
-&lt;p&gt;dbms.directories.import=import&lt;/p&gt;
-
-&lt;p&gt;restart neo4j&lt;/p&gt;
-
-&lt;h3 id=&#34;2-导入数据方法1&#34;&gt;2.导入数据方法1&lt;/h3&gt;
-
-&lt;p&gt;load csv with headers from &amp;ldquo;file:///path/to/file&amp;rdquo; as row
-create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
-
-&lt;h3 id=&#34;3-导入数据方法2&#34;&gt;3. 导入数据方法2&lt;/h3&gt;
-
-&lt;p&gt;dbms.directories.import=/var/lib/neo4j/import/&lt;/p&gt;
-
-&lt;p&gt;注释：&lt;/p&gt;
-
-&lt;h1 id=&#34;dbms-security-allow-csv-import-from-file-urls-true&#34;&gt;dbms.security.allow_csv_import_from_file_urls=true&lt;/h1&gt;
-
-&lt;p&gt;将文件放入 ：/var/lib/neo4j/import/  文件夹下，直接输入文件名即可：&lt;/p&gt;
-
-&lt;p&gt;load csv with headers from &amp;ldquo;file:///filename&amp;rdquo; as row
-create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title });&lt;/p&gt;
-
-&lt;h3 id=&#34;4-初始化导数据&#34;&gt;4.初始化导数据&lt;/h3&gt;
-
-&lt;p&gt;新建每个节点和关系的header文件和数据文件：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# vertex header
-phone:ID(PHONE),isblack,ismedia,iscuishou
-# edge header
-:START_ID(USERID),:END_ID(PHONE)
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
+life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;然后导数据：&lt;/p&gt;
+&lt;p&gt;然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;neo4j-import \
- --into /data/neo4j/graph/all20180417.db \
- --skip-duplicate-nodes true \
- --skip-bad-relationships true \
- --ignore-extra-columns true \
- --ignore-empty-strings true \
- --bad-tolerance 10000000 \
-  --processors 56 \
- --id-type string \
- --max-memory 170G \
---nodes:LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_lbs.txt&amp;quot;  \
---nodes:IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_idcard.txt&amp;quot;  \
---nodes:GNHID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_gnhid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_gnhid.txt&amp;quot;  \
---nodes:QQ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_qq.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_qq.txt&amp;quot;  \
---nodes:WEIXIN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_weixin.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_weixin.txt&amp;quot;  \
---nodes:EMAIL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_email.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_email.txt&amp;quot;  \
---nodes:DEVICETOKEN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_devicetoken.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_devicetoken.txt&amp;quot;  \
---nodes:COMPANY &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_company.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_company.txt&amp;quot;  \
---nodes:IP &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_ip.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_ip.txt&amp;quot;  \
---nodes:ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_orderid.txt&amp;quot;  \
---nodes:USERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_userid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_userid.txt&amp;quot;  \
---nodes:PHONE &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_phone.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_phone.txt&amp;quot;  \
---nodes:WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_v_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_v_wifi.txt&amp;quot;  \
---relationships:USERID_PHONE_EMG &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_emg.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_emg.txt&amp;quot;  \
---relationships:USERID_PHONE_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_loan.txt&amp;quot;  \
---relationships:USERID_COMPANY_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_company_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_company_loan.txt&amp;quot;  \
---relationships:USERID_LBS_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_lbs_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_lbs_loan.txt&amp;quot;  \
---relationships:USERID_DEVICETOKEN_LOAN &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_devicetoken_loan.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_devicetoken_loan.txt&amp;quot;  \
---relationships:USERID_LBS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_lbs.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_lbs.txt&amp;quot;  \
---relationships:USERID_COMPANY_GJJ &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gjj.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gjj.txt&amp;quot;  \
---relationships:USERID_IDCARD &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_idcard.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_idcard.txt&amp;quot;  \
---relationships:USERID_COMPANY_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_gnh_users.txt&amp;quot;  \
---relationships:USERID_GNHID_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_gnhid_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_gnhid_users.txt&amp;quot;  \
---relationships:USERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_gnh_users.txt&amp;quot;  \
---relationships:USERID_PHONE_GNH_EMG_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_gnh_emg_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_gnh_emg_users.txt&amp;quot;  \
---relationships:USERID_QQ_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_gnh_users.txt&amp;quot;  \
---relationships:ORDERID_IP_GNH_USERS &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_ip_gnh_users.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_ip_gnh_users.txt&amp;quot;  \
---relationships:USERID_ORDERID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_orderid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_orderid.txt&amp;quot; \
---relationships:USERID_DEVICETOKEN_RISKBRAIN_UMID &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_riskbrain_umid.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_riskbrain_umid.txt&amp;quot; \
---relationships:USERID_DEVICETOKEN_USER_DEVICES &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_t_user_devices.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_t_user_devices.txt&amp;quot; \
---relationships:USERID_DEVICETOKEN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_devicetoken_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_devicetoken_user_event.txt&amp;quot; \
---relationships:USERID_COMPANY_USER_INFO_EXT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_company_user_info_ext.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_company_user_info_ext.txt&amp;quot; \
---relationships:USERID_IP_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_custinfo.txt&amp;quot; \
---relationships:USERID_IP_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_ip_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_ip_user_event.txt&amp;quot; \
---relationships:USERID_EMAIL_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_event.txt&amp;quot; \
---relationships:USERID_EMAIL_EXTMAIL_USER_MAILACCOUNT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_email_user_mailaccount.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_email_user_mailaccount.txt&amp;quot; \
---relationships:USERID_QQ_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_qq_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_qq_user_event.txt&amp;quot; \
---relationships:USERID_WEIXIN_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_weixin_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_weixin_user_event.txt&amp;quot; \
---relationships:USERID_PHONE_USER_EVENT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_event.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_event.txt&amp;quot; \
---relationships:USERID_PHONE_CUSTINFO &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_custinfo.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_custinfo.txt&amp;quot; \
---relationships:USERID_PHONE_USERCENTER &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_usercenter.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_usercenter.txt&amp;quot; \
---relationships:USERID_PHONE_USER_EMG_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_user_emg_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_user_emg_contact.txt&amp;quot; \
---relationships:USERID_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_userid_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_userid_phone_tel.txt&amp;quot; \
---relationships:USERID_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_phone_contact.txt&amp;quot; \
---relationships:PHONE_PHONE_TEL &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v3_e_phone_phone_tel.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v3_e_phone_phone_tel.txt&amp;quot; \
---relationships:PHONE_PHONE_CONTACT &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_phone_phone_contact.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_phone_phone_contact.txt&amp;quot; \
---relationships:USERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_userid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_userid_wifi.txt&amp;quot; \
---relationships:ORDERID_WIFI &amp;quot;/data1/neo4j/data/offline/graph_kg/header/kg_v2_e_orderid_wifi.txt,/data1/neo4j/data/offline/graph_kg/data/kg_v2_e_orderid_wifi.txt&amp;quot; \
-          &amp;gt; /data/neo4j/graph/all20180417.log 2&amp;gt;&amp;amp;1 &amp;amp;
-&lt;/code&gt;&lt;/pre&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>neo4j编译打包启动服务端</title>
-      <link>https://dengziming.github.io/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/neo4j/neo4j%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%AB%AF/</guid>
-      
-        <description>
+&lt;p&gt;另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
+例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
+以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。&lt;/p&gt;
 
-&lt;h2 id=&#34;1-打包&#34;&gt;1.打包&lt;/h2&gt;
+&lt;h2 id=&#34;二-datasourcemanager从新建到核心&#34;&gt;二、DataSourceManager从新建到核心&lt;/h2&gt;
 
-&lt;h3 id=&#34;1-打包community&#34;&gt;1.打包community&lt;/h3&gt;
+&lt;p&gt;从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。&lt;/p&gt;
 
-&lt;p&gt;进入community,neo4j-graphdb-api，
-注释掉common的：&lt;/p&gt;
+&lt;h3 id=&#34;1-准备工作&#34;&gt;1.准备工作&lt;/h3&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;&amp;lt;plugin&amp;gt;
-  &amp;lt;groupId&amp;gt;org.revapi&amp;lt;/groupId&amp;gt;
-  &amp;lt;artifactId&amp;gt;revapi-maven-plugin&amp;lt;/artifactId&amp;gt;
-&amp;lt;/plugin&amp;gt;
+&lt;p&gt;在DataSourceManager类的init和start方法打上断点，然后在 PlatformModule 的构造方法打上断点，在 CommunityEditionModule 上打断点，在 DataSourceModule打上断点。&lt;/p&gt;
+
+&lt;p&gt;另外我们的代码反复用到了 Dependencies 这个类，我们先大概知道一下它的方法，他有个 parent 属性，一个 resolveDependency 方法和一个 satisfyDependency 方法，
+satisfyDependency方法是将一个类的所有父类放进一个map中，resolveDependency方法是调用 parent的resolveDependency，实际上是 DataSourceManager中的dependencies，这里可以暂时忽略。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-开始调试&#34;&gt;2.开始调试&lt;/h3&gt;
+
+&lt;p&gt;先定位到 PlatformModule 的断点 this.dataSourceManager = new DataSourceManager();新建只是初始化几个属性：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;    private LifeSupport life = new LifeSupport();
+    private final Listeners&amp;lt;Listener&amp;gt; dsRegistrationListeners = new Listeners&amp;lt;&amp;gt;();
+    private NeoStoreDataSource dataSource;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;里面好像涉及到了版本检查，如果某个类的最新发布版本已经没有这个方法，打包会失败，反正对打包有影响，不删除可能会失败。&lt;/p&gt;
+&lt;p&gt;然后到 CommunityEditionModule 中，life.add( platformModule.dataSourceManager );将 dataSourceManager 添加到 LifeCycle 中。然后&lt;/p&gt;
 
-&lt;p&gt;还可能要在主项目的pom里面注释掉：&lt;code&gt;maven-checkstyle-plugin&lt;/code&gt;，代码风格检查可能会通不过。
-然后用maven命令：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;propertyKeyTokenHolder = life.add( dependencies.satisfyDependency( new DelegatingPropertyKeyTokenHolder(
+        createPropertyKeyCreator( config, dataSourceManager, idGeneratorFactory ) ) ) );
+labelTokenHolder = life.add( dependencies.satisfyDependency(new DelegatingLabelTokenHolder( createLabelIdCreator( config,
+        dataSourceManager, idGeneratorFactory ) ) ));
+relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new DelegatingRelationshipTypeTokenHolder(
+        createRelationshipTypeCreator( config, dataSourceManager, idGeneratorFactory ) ) ));
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;2-打包企业版&#34;&gt;2.打包企业版&lt;/h3&gt;
+&lt;p&gt;这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。&lt;/p&gt;
 
-&lt;p&gt;进入enterprise,ha目录
-进入management,注释掉 &lt;groupId&gt;org.revapi&lt;/groupId&gt;
-还有其他问题，比如java文件没有license，这里不一一列举。&lt;/p&gt;
+&lt;p&gt;然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。
+进入 NeoStoreDataSource 的构造方法，NeoStoreDataSource 也是 LifeCycle 的一个实现类，有start方法，它的构造方法好像就是做了很多赋值。
+然后是 dataSourceManager.register( neoStoreDataSource )，实际上也就是赋值 this.dataSource = dataSource;
+然后接下来是 ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );官方文档显示 ClassicCoreSPI 是 surface-layer-of-the-
+然后是 graphDatabaseFacade.init()
+然后进入到了关键的 platform.life.start(); 我们知道这里的life的start方法会遍历 life 的 instances 调用init和start，其中就包括我们进行要调试的 DataSourceManager 。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+&lt;h3 id=&#34;3-datasourcemanager的start方法&#34;&gt;3.DataSourceManager的start方法。&lt;/h3&gt;
+
+&lt;p&gt;我们已经在 DataSourceManager 中打好断点，我们已经知道他也是一个 Lifecycle ，先进入init方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void init() throws Throwable
+    {
+        life = new LifeSupport();
+        life.add( dataSource ); // 这个DataSource是 NeoStoreDataSource
+    }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;3-打包完整的tar包&#34;&gt;3. 打包完整的tar包&lt;/h3&gt;
+&lt;p&gt;然后是start方法：其实就是 life.start(),它的life里面只有 NeoStoreDataSource 一个 instance ，然后会调用它的init和start方法，然后进入 init和start，init是空的，我们在start调试。信息量比较大，做好准备。
+第一步是 life = new LifeSupport();
+第二步是 life.add( recoveryCleanupWorkCollector );
+然后 life.add( indexConfigStore ) 和 life.add( Lifecycles.multiple( indexProviders.values() ) );
+然后是 storageEngine = buildStorageEngine()， buildRecovery(), final NeoStoreKernelModule kernelModule = buildKernel(),
+然后是 life.start();这里的life工有13个instance：&lt;/p&gt;
 
-&lt;p&gt;进入项目路径&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mvn clean install -Dmaven.test.skip=true
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;instances = {ArrayList@5669}  size = 13
+ 0 = {LifeSupport$LifecycleInstance@5673} &amp;quot;org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector@3b0c9195: NONE&amp;quot;
+ 1 = {LifeSupport$LifecycleInstance@5674} &amp;quot;org.neo4j.kernel.impl.index.IndexConfigStore@5cdd09b1: NONE&amp;quot;
+ 2 = {LifeSupport$LifecycleInstance@5675} &amp;quot;org.neo4j.kernel.lifecycle.Lifecycles$CombinedLifecycle@681a8b4e: NONE&amp;quot;
+ 3 = {LifeSupport$LifecycleInstance@5676} &amp;quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&amp;quot;
+ 4 = {LifeSupport$LifecycleInstance@5677} &amp;quot;org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles@1bc715b8: NONE&amp;quot;
+ 5 = {LifeSupport$LifecycleInstance@5678} &amp;quot;org.neo4j.kernel.impl.transaction.log.BatchingTransactionAppender@24bdb479: NONE&amp;quot;
+ 6 = {LifeSupport$LifecycleInstance@5679} &amp;quot;org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl@7e3f95fe: NONE&amp;quot;
+ 7 = {LifeSupport$LifecycleInstance@5680} &amp;quot;org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointScheduler@34625ccd: NONE&amp;quot;
+ 8 = {LifeSupport$LifecycleInstance@5681} &amp;quot;org.neo4j.kernel.recovery.Recovery@39dcf4b0: NONE&amp;quot;
+ 9 = {LifeSupport$LifecycleInstance@5682} &amp;quot;org.neo4j.kernel.impl.api.KernelTransactions@21005f6c: NONE&amp;quot;
+ 10 = {LifeSupport$LifecycleInstance@5683} &amp;quot;org.neo4j.kernel.impl.api.KernelTransactionMonitorScheduler@32f0fba8: NONE&amp;quot;
+ 11 = {LifeSupport$LifecycleInstance@5684} &amp;quot;org.neo4j.kernel.impl.api.Kernel@545de5a4: NONE&amp;quot;
+ 12 = {LifeSupport$LifecycleInstance@5685} &amp;quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;要注意两个参数的异同点：&lt;/p&gt;
+&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。
+我们先看和存储有关的 &lt;code&gt;3 = {LifeSupport$LifecycleInstance@5676} &amp;quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&amp;quot;&lt;/code&gt;
+打好断点进入，这次终于没有 instance 了，感觉快进入了盗梦空间啊，直接看init：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code&gt;
--DskipTests，不执行测试用例，但编译测试用例类生成相应的class文件至target/test-classes下。
-
--Dmaven.test.skip=true，不执行测试用例，也不编译测试用例类。
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void init() throws Throwable
+{
+    indexingService.init();
+    labelScanStore.init();
+}
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;打包的输出文件：packaging/standalone/target/neo4j-community-3.4.0-SNAPSHOT-unix.tar.gz，这个就是我们的neo4j包。解压后，放到一个目录。一方面你可以选择执行 bin/neo4j start 启动neo4j，我们要分析源码，自然会是在本地启动。&lt;/p&gt;
+&lt;p&gt;IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。
+NativeLabelScanStore的init，我也先不跳进去了。&lt;/p&gt;
 
-&lt;h2 id=&#34;二-运行&#34;&gt;二、运行&lt;/h2&gt;
+&lt;p&gt;再看start：&lt;/p&gt;
 
-&lt;h3 id=&#34;1-启动&#34;&gt;1.启动&lt;/h3&gt;
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void start() throws Throwable
+{
+    neoStores.makeStoreOk();
 
-&lt;p&gt;我们在IDEA中，找到入口类：org.neo4j.server.CommunityEntryPoint，点击运行，然后会报错，我们需要添加运行参数：&lt;/p&gt;
+    propertyKeyTokenHolder.setInitialTokens(
+            neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
+    relationshipTypeTokenHolder.setInitialTokens(
+            neoStores.getRelationshipTypeTokenStore().getTokens( Integer.MAX_VALUE ) );
+    labelTokenHolder.setInitialTokens(
+            neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
 
-&lt;p&gt;-server &amp;ndash;home-dir=~/neo4j-community-3.2.6 &amp;ndash;config-dir=~/neo4j-community-3.2.6/conf&lt;/p&gt;
+    neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
+    loadSchemaCache();
+    indexingService.start();
+    labelScanStore.start();
+    idController.start();
+}
+&lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这里的参数是刚刚解压的neo4j目录和配置文件。然后运行成功，访问 &lt;a href=&#34;http://localhost:7474/browser/，会发现有问题。&#34;&gt;http://localhost:7474/browser/，会发现有问题。&lt;/a&gt;
-通过调试前端的js代码，我们发现版本有问题，这里我们稍作修改，找到 org.neo4j.kernel.internal.Version。最后的代码注释掉，换成我们的版本，也就是将Version.class.getPackage().getImplementationVersion() 换成 3.4，然后就可以运行成功了。
-打开7474端口，写cypher语言，查看。&lt;/p&gt;
+&lt;p&gt;neoStores.makeStoreOk(); 这个初始化就是读取本地存储，还是要重点查看一下：TODO
+然后是：&lt;/p&gt;
 
-&lt;h3 id=&#34;2-打断点调试&#34;&gt;2.打断点调试&lt;/h3&gt;
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;propertyKeyTokenHolder.setInitialTokens(
+        neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
+relationshipTypeTokenHolder.setInitialTokens(
+        neoStores.getRelationshipTypeTokenStore().getTokens( Integer.MAX_VALUE ) );
+labelTokenHolder.setInitialTokens(
+        neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
+&lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;既然是源码分析，我们的办法就是先看，然后打断点调试，查看调用栈，但是由于是多线程，其实还是很有难度的，容易跟丢，后续我们慢慢来吧。&lt;/p&gt;
+&lt;p&gt;这几段代码都可以直接用调试的估值功能直接看出具体的值。
+然后是：neoStores.rebuildCountStoreIfNeeded(); 跳进去： getCounts().start();
+然后是：&lt;/p&gt;
 
-&lt;h3 id=&#34;3-代码结构查看&#34;&gt;3.代码结构查看&lt;/h3&gt;
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
+loadSchemaCache();
+indexingService.start();
+labelScanStore.start();
+idController.start();
+&lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;看源码之前我们先大概过一下代码结构。我们主要看 community 模块的结构，里面有很多子模块。&lt;/p&gt;
-
-&lt;p&gt;我们可以大概根据名字猜测 ：io模块是用来处理读写数据的，kernel模块是我们需要着重查看的。bolt是处理bolt连接的，server是整个项目启动的。codegen是动态生成代码的。我们要从内核部分开始看。&lt;/p&gt;
-
-&lt;h3 id=&#34;4-架构了解&#34;&gt;4.架构了解&lt;/h3&gt;
-
-&lt;p&gt;The node records contain only a pointer to their first property and their first relationship (in what is oftentermed the _relationship chain). From here, we can follow the (doubly) linked-list of relationships until we find the one we’re interested in, the LIKES relationship from Node 1 to Node 2 in this case. Once we’ve found the relationship record of interest, we can simply read its properties if there are any via the same singly-linked list structure as node properties, or we can examine the node records that it relates via its start node and end node IDs. These IDs, multiplied by the node record size, of course give the immediate offset of both nodes in the node store file.&lt;/p&gt;
-
-&lt;p&gt;这段话来自&lt;Graph Databases&gt;(作者：IanRobinson) 一书。描述了neo4j的存储方式。详情可以查阅其他资料。&lt;/p&gt;
-
-&lt;h3 id=&#34;5-源码查看&#34;&gt;5.源码查看&lt;/h3&gt;
-
-&lt;p&gt;参考下一篇&lt;/p&gt;
+&lt;p&gt;后面再细看吧。&lt;/p&gt;
 </description>
       
     </item>
