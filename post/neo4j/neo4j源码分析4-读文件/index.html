@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>neo4j源码分析3-LifeCycle查看 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="neo4j源码分析3-LifeCycle查看" />
+<meta property="og:description" content="一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="neo4j源码分析3-LifeCycle查看">
+<meta itemprop="description" content="一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="2447">
+
+
+
+<meta itemprop="keywords" content="neo4j,图数据库," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j源码分析3-LifeCycle查看"/>
+<meta name="twitter:description" content="一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">neo4j源码分析3-LifeCycle查看</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+            
+          </div>
+        <span class="more-meta"> 2447 words </span>
+        <span class="more-meta"> 5 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-复习">一、复习</a></li>
+<li><a href="#二-id文件">二、Id文件</a></li>
+<li><a href="#三-文件读写api">三、文件读写API</a></li>
+<li><a href="#四-commonabstractstore-格式">四、CommonAbstractStore 格式</a></li>
+<li><a href="#四-abstractdynamicstore-文件格式">四、AbstractDynamicStore 文件格式</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h2 id="一-复习">一、复习</h2>
+
+<p>上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。</p>
+
+<p>然而我们可以先看看如何读数据，写数据的。第一是找到java类 <code>PhysicalLogCommandReaderV3_0_2</code>。我们可以看到里面有很多读文件处理的方法，主要是<code>neostore.transaction.db.0</code>这个文件，好像是日志文件。</p>
+
+<p>然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：
+new RecordStorageEngine()
+neoStores = factory.openAllNeoStores( true );
+return openNeoStores( createStoreIfNotExists, StoreType.values() );
+return new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );
+for ( StoreType type : storeTypes ) getOrCreateStore( type );
+store = openStore( storeType );
+Object store = type.open( this );
+return neoStores.createNodeStore( getStoreName() );
+return initialize( new NodeStore( storeFile, config, idGeneratorFactory, pageCache, logProvider,(DynamicArrayStore) getOrCreateStore( StoreType.NODE_LABEL ), recordFormats, openOptions ) );
+new CommonAbstractStore()</p>
+
+<p>同理，我们还可以在 RelationshipStore PropertyStore TokenStore AbstractDynamicStore 等store中打上断点，了解调用栈。所有的存储文件如下：</p>
+
+<pre><code class="language-java">CommonAbstractStore (org.neo4j.kernel.impl.store)
+RelationshipStore (org.neo4j.kernel.impl.store)
+RecordingRelationshipStore in WriteTransactionCommandOrderingTest (org.neo4j.kernel.impl.transaction.state)
+MyStore in CommonAbstractStoreBehaviourTest (org.neo4j.kernel.impl.store)
+MetaDataStore (org.neo4j.kernel.impl.store)
+AbstractDynamicStore (org.neo4j.kernel.impl.store)
+DynamicArrayStore (org.neo4j.kernel.impl.store)
+SchemaStore (org.neo4j.kernel.impl.store)
+DynamicStringStore (org.neo4j.kernel.impl.store)
+Anonymous in newTestableDynamicStore() in AbstractDynamicStoreTest (org.neo4j.kernel.impl.store)
+NodeStore (org.neo4j.kernel.impl.store)
+RecordingNodeStore in WriteTransactionCommandOrderingTest (org.neo4j.kernel.impl.transaction.state)
+RelationshipGroupStore (org.neo4j.kernel.impl.store)
+TokenStore (org.neo4j.kernel.impl.store)
+LabelTokenStore (org.neo4j.kernel.impl.store)
+UnusedLabelTokenStore in LabelTokenStoreTest (org.neo4j.kernel.impl.store)
+PropertyKeyTokenStore (org.neo4j.kernel.impl.store)
+RelationshipTypeTokenStore (org.neo4j.kernel.impl.store)
+TheStore in CommonAbstractStoreTest (org.neo4j.kernel.impl.store)
+PropertyStore (org.neo4j.kernel.impl.store)
+RecordingPropertyStore in WriteTransactionCommandOrderingTest (org.neo4j.kernel.impl.transaction.state)
+</code></pre>
+
+<p>对应20种存储格式：</p>
+
+<pre><code class="language-java">AbstractBaseRecord (org.neo4j.kernel.impl.store.record)
+PropertyRecord (org.neo4j.kernel.impl.store.record)
+IntRecord in CommonAbstractStoreBehaviourTest (org.neo4j.kernel.impl.store)
+TheRecord in CommonAbstractStoreTest (org.neo4j.kernel.impl.store)
+MyRecord in BaseHighLimitRecordFormatTest (org.neo4j.kernel.impl.store.format.highlimit)
+MetaDataRecord (org.neo4j.kernel.impl.store.record)
+SchemaRecord (org.neo4j.kernel.impl.store.record)
+DynamicRecord (org.neo4j.kernel.impl.store.record)
+IndexEntry (org.neo4j.consistency.store.synthetic)
+PrimitiveRecord (org.neo4j.kernel.impl.store.record)
+NodeRecord (org.neo4j.kernel.impl.store.record)
+NeoStoreRecord (org.neo4j.kernel.impl.store.record)
+RelationshipRecord (org.neo4j.kernel.impl.store.record)
+LabelScanDocument (org.neo4j.consistency.store.synthetic)
+RelationshipGroupRecord (org.neo4j.kernel.impl.store.record)
+RelationshipGroupCursor (org.neo4j.kernel.impl.newapi)
+TokenRecord (org.neo4j.kernel.impl.store.record)
+LabelTokenRecord (org.neo4j.kernel.impl.store.record)
+PropertyKeyTokenRecord (org.neo4j.kernel.impl.store.record)
+RelationshipTypeTokenRecord (org.neo4j.kernel.impl.store.record)
+CountsEntry (org.neo4j.consistency.store.synthetic)
+</code></pre>
+
+<p>在 StoreFactory 中可以找到对应的关系。</p>
+
+<h2 id="二-id文件">二、Id文件</h2>
+
+<p>打开代码 CommonAbstractStore ：</p>
+
+<pre><code class="language-java">/**
+ * Opens the {@link IdGenerator} used by this store.
+ * &lt;p&gt;
+ * Note: This method may be called both while the store has the store file mapped in the
+ * page cache, and while the store file is not mapped. Implementers must therefore
+ * map their own temporary PagedFile for the store file, and do their file IO through that,
+ * if they need to access the data in the store file.
+ */
+void openIdGenerator()
+{
+    idGenerator = idGeneratorFactory.open( getIdFileName(), getIdType(), () -&gt; scanForHighId(), recordFormat.getMaxId() );
+}
+</code></pre>
+
+<p>IdGenerator 的功能是分配id，每一种存储格式都有自己的id，所以在 CommonAbstractStore 中都有这个属性。idGenerator负责分配和释放id，所以它里面要有最大的id，已经已经释放的id。
+最大的id可以用到下一次分配id，已经释放的也可以用于分配。进一步了解功能可以在 IdGeneratorImplTest 中调试。我们可以用二进制文件编辑器打开<code>neostore.nodestore.db.id</code>看看。</p>
+
+<pre><code>0000 0000 0000 0000 0b00 0000 0000 0000
+0000 0000 0000 0000 0100 0000 0000 0000
+0200 0000 0000 0000 0300 0000 0000 0000
+0400 0000 0000 0000 0500 0000 0000 0000
+06
+</code></pre>
+
+<p>这里一共有 65 bytes ，第1bytes是文件头，然后8 bytes是最大的id，这里是 <code>00 0000 0000 0000 0b</code> ，然后每8Bytes就是一个释放的id，这里是从0到6。</p>
+
+<p>IdGeneratorImpl 的构造方法会有一个 IdContainer ，可以分配id，可以去 IdContainerTest 的 testNextId 调试 中查看功能。</p>
+
+<pre><code class="language-java">try
+{
+    IdGeneratorImpl.createGenerator( fs, idGeneratorFile(), 0, false );
+    IdGenerator idGenerator = new IdGeneratorImpl( fs, idGeneratorFile(), 3, 1000, false, IdType.NODE, () -&gt; 0L );
+    for ( long i = 0; i &lt; 7; i++ )
+    {
+        assertEquals( i, idGenerator.nextId() );
+    }
+    idGenerator.freeId( 1 );
+    idGenerator.freeId( 3 );
+    idGenerator.freeId( 5 );
+    assertEquals( 7L, idGenerator.nextId() );
+    idGenerator.freeId( 6 );
+    closeIdGenerator( idGenerator );
+    idGenerator = new IdGeneratorImpl( fs, idGeneratorFile(), 5, 1000, false, IdType.NODE, () -&gt; 0L );
+    idGenerator.freeId( 2 );
+    idGenerator.freeId( 4 );
+    assertEquals( 1L, idGenerator.nextId() );
+    idGenerator.freeId( 1 );
+    assertEquals( 3L, idGenerator.nextId() );
+    idGenerator.freeId( 3 );
+    assertEquals( 5L, idGenerator.nextId() );
+    idGenerator.freeId( 5 );
+    assertEquals( 6L, idGenerator.nextId() );
+    idGenerator.freeId( 6 );
+    assertEquals( 8L, idGenerator.nextId() );
+    idGenerator.freeId( 8 );
+    assertEquals( 9L, idGenerator.nextId() );
+    idGenerator.freeId( 9 );
+    closeIdGenerator( idGenerator );
+    idGenerator = new IdGeneratorImpl( fs, idGeneratorFile(), 3, 1000, false, IdType.NODE, () -&gt; 0L );
+    assertEquals( 6L, idGenerator.nextId() );
+    assertEquals( 8L, idGenerator.nextId() );
+    assertEquals( 9L, idGenerator.nextId() );
+    assertEquals( 1L, idGenerator.nextId() );
+    assertEquals( 3L, idGenerator.nextId() );
+    assertEquals( 5L, idGenerator.nextId() );
+    assertEquals( 2L, idGenerator.nextId() );
+    assertEquals( 4L, idGenerator.nextId() );
+    assertEquals( 10L, idGenerator.nextId() );
+    assertEquals( 11L, idGenerator.nextId() );
+    closeIdGenerator( idGenerator );
+}
+</code></pre>
+
+<h2 id="三-文件读写api">三、文件读写API</h2>
+
+<p>ne4j有 专用的API ，neo4j的文件有它自己的特点，不能直接使用java的API，需要定义自己的API，在 org.neo4j.io.pagecache 下。我们需要了解一下。从package-info看起。</p>
+
+<pre><code class="language-java">The purpose of a page cache is to cache data from files on a storage device, and keep the most often used data in
+memory where access is fast. This duplicates the most popular data from the file, into memory. Assuming that not all
+data can fit in memory (even though it sometimes can), the least used data will then be pushed out of memory, when
+we need data that is not already in the cache. This is called eviction, and choosing what to evict is the
+responsibility of the eviction algorithm that runs inside the page cache implementation.
+</code></pre>
+
+<p>pagecache的功能是从文件或者存储设备缓存数据，将最常用的放在访问最快的内存。我们最少用的数据会不在内存，当我们需要的时候，这个过程是  eviction ，选择哪个 eviction 是算法最重要的。</p>
+
+<pre><code>A file must first be &quot;mapped&quot; into the page cache, before the page cache can cache the contents of the files. When
+you no longer have an immediate use for the contents of the file, it can be &quot;unmapped.&quot;
+</code></pre>
+
+<p>文件要被 map 到cache中才能使用。</p>
+
+<p>通过 org.neo4j.io.pagecache.PageCache#map(java.io.File, int, java.nio.file.OpenOption&hellip;) 方法将得到一个 {@link org.neo4j.io.pagecache.PagedFile} 对象。</p>
+
+<p>一旦一个文件被映射到页面缓存，它就不再被直接通过文件系统访问，因为页面缓存将保持内存的变化，认为它正在管理唯一权威的副本。</p>
+
+<p>一个文件被map多次，返回的是同一个 PageCache，对应的 reference counter +1，
+Unmapping decrements the reference counter, discarding the PagedFile from the cache if the counter reaches zero.
+If the last reference was unmapped, then all dirty pages for that file will be flushed before the file is discarded from the cache。</p>
+
+<p>page 是一堆data的集合，可以是 file, or the memory allocated for the page cache。We refer to these two types of pages as &ldquo;file pages&rdquo; and &ldquo;cache pages&rdquo; respectively.</p>
+
+<p>Pages are the unit of what data is popular or not, and the unit of moving data into memory, and out to storage.</p>
+
+<p>When a cache page is holding the contents of a file page, the two are said to be &ldquo;bound&rdquo; to one another.</p>
+
+<p>每个 PagedFile 对象都有一个 translation table，逻辑上存储了page file到cache里，类似 Maps 结构，key是pageid，value是page内容。</p>
+
+<p>几个类的逻辑视图如下：</p>
+
+<pre><code class="language-java">*     +---------------[ PageCache ]-----------------------------------+
+ *     |                                                               |
+ *     |  * PageSwapperFactory{ FileSystemAbstraction }                |
+ *     |  * evictionThread                                             |
+ *     |  * a large collection of Page objects:                        |
+ *     |                                                               |
+ *     |  +---------------[ Page ]----------------------------------+  |
+ *     |  |                                                         |  |
+ *     |  |  * usageCounter                                         |  |
+ *     |  |  * some kind of read/write lock                         |  |
+ *     |  |  * a cache page sized buffer                            |  |
+ *     |  |  * binding metadata{ filePageId, PageSwapper }          |  |
+ *     |  |                                                         |  |
+ *     |  +---------------------------------------------------------+  |
+ *     |                                                               |
+ *     |  * linked list of mapped PagedFile instances:                 |
+ *     |                                                               |
+ *     |  +--------------[ PagedFile ]------------------------------+  |
+ *     |  |                                                         |  |
+ *     |  |  * referenceCounter                                     |  |
+ *     |  |  * PageSwapper{ StoreChannel, filePageSize }            |  |
+ *     |  |  * PageCursor freelists                                 |  |
+ *     |  |  * translation table:                                   |  |
+ *     |  |                                                         |  |
+ *     |  |  +--------------[ translation table ]----------------+  |  |
+ *     |  |  |                                                   |  |  |
+ *     |  |  |  A translation table is basically a map from      |  |  |
+ *     |  |  |  file page ids to Page objects. It is updated     |  |  |
+ *     |  |  |  concurrently by page faulters and the eviction   |  |  |
+ *     |  |  |  thread.                                          |  |  |
+ *     |  |  |                                                   |  |  |
+ *     |  |  +---------------------------------------------------+  |  |
+ *     |  +---------------------------------------------------------+  |
+ *     +---------------------------------------------------------------+
+ *
+ *     +--------------[ PageCursor ]-----------------------------------+
+ *     |                                                               |
+ *     |  * currentPage: Page                                          |
+ *     |  * page lock metadata                                         |
+ *     |                                                               |
+ *     +---------------------------------------------------------------+
+ 
+</code></pre>
+
+<p>这里有几个重要的类，我们需要大概了解一下用法，第一个是 PageCache ，可以查看 MuninnPageCacheTest 类的测试方法。</p>
+
+<pre><code class="language-java">try ( MuninnPageCache pageCache = createPageCache( fs, 2, blockCacheFlush( tracer ), cursorTracerSupplier );
+         PagedFile pagedFile = pageCache.map( file( &quot;a&quot; ), 8 ) )
+   {
+       try ( PageCursor cursor = pagedFile.io( 0, PF_SHARED_READ_LOCK ) )
+       {
+           assertTrue( cursor.next() );
+       }
+       cursorTracer.reportEvents();
+       assertNotNull( cursorTracer.observe( Fault.class ) );
+       assertEquals( 1, cursorTracer.faults() );
+       assertEquals( 1, tracer.faults() );
+
+       long clockArm = pageCache.evictPages( 1, 1, tracer.beginPageEvictions( 1 ) );
+       assertThat( clockArm, is( 1L ) );
+       assertNotNull( tracer.observe( Evict.class ) );
+    }
+</code></pre>
+
+<p>可以看出，第一步是创建 pageCache，第二步是 pageCache 的 map 方法得到 pagedFile，然后调用 io 方法得到 PageCursor ，然后cusor是一个迭代器。</p>
+
+<h2 id="四-commonabstractstore-格式">四、CommonAbstractStore 格式</h2>
+
+<p>这个是一个存储格式的基本实现类，我们现在任何一个Store上面打断点，然后在 CommonAbstractStore 中打断点，开始调试即可。以 NodeStore 为例，在构造方法打断点，在 CommonAbstractStore 的 checkAndLoadStorage 打断点。
+我们找到了调用栈：</p>
+
+<pre><code>neoStores = factory.openAllNeoStores( true );
+return openNeoStores( createStoreIfNotExists, StoreType.values() );
+new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );
+getOrCreateStore( type );
+store = openStore( storeType );
+Object store = type.open( this );
+return neoStores.createDynamicArrayStore( getStoreName(), IdType.NODE_LABELS, GraphDatabaseSettings.label_block_size );
+
+</code></pre>
+
+<p>在 checkAndLoadStorage 方法上停下来，此时的storeType是 <code>NODE_LABEL</code> ，也就是节点的Label,：</p>
+
+<pre><code class="language-java">// /Users/dengziming/opt/soft/neo4j-community-3.2.6/data/databases/graph.db/neostore.nodestore.db.labels
+try ( PagedFile pagedFile = pageCache.map( storageFileName, pageSize, ANY_PAGE_SIZE ) ) 
+
+extractHeaderRecord( pagedFile );
+createStore( pageSize );
+loadStorage( filePageSize );
+</code></pre>
+
+<h2 id="四-abstractdynamicstore-文件格式">四、AbstractDynamicStore 文件格式</h2>
+
+<p>neo4j 中对于字符串等变长值的保存策略是用一组定长的 block 来保存，block之间用单向链表链接。
+例如 neostore.propertystore.db.arrays 和 neostore.propertystore.db.strings 类 AbstractDynamicStore 实现了该功能，文件结构在 DynamicRecordFormat 中有解释。</p>
+
+<pre><code>private static final int RECORD_HEADER_SIZE = 1/*header byte*/ + 3/*# of bytes*/ + 8/*max size of next reference*/;
+</code></pre>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/neo4j/">neo4j</a>
+          
+          <a href="/tags/%E5%9B%BE%E6%95%B0%E6%8D%AE%E5%BA%93/">图数据库</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">neo4j源码分析3-LifeCycle查看</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/java/first/">
+            <span class="next-text nav-default">如何在github.io搭建Hugo博客</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'neo4j源码分析3-LifeCycle查看',
+    link: decodeURI(location.href),
+    desc: '一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

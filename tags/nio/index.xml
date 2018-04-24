@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Nio on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/nio/</link>
+    <description>Recent content in Nio on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/nio/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>JavaNIO</title>
+      <link>https://dengziming.github.io/post/java/javanio/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/java/javanio/</guid>
+      
+        <description>
+
+&lt;p&gt;// 参考资料
+&lt;a href=&#34;http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io&#34;&gt;http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-io和nio有什么区别&#34;&gt;一、IO和NIO有什么区别&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Stream Oriented vs. Buffer Oriented&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Blocking vs. Non-blocking IO&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。&lt;/p&gt;
+
+&lt;h2 id=&#34;二-channels-and-buffers&#34;&gt;二、Channels and Buffers&lt;/h2&gt;
+
+&lt;p&gt;Typically, all IO in NIO starts with a Channel.
+A Channel is a bit like a stream. From the Channel data can be read into a Buffer.
+Data can also be written from a Buffer into a Channel.&lt;/p&gt;
+
+&lt;p&gt;There are several Channel and Buffer types. Here is a list of the primary Channel implementations in Java NIO:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;FileChannel
+DatagramChannel
+SocketChannel
+ServerSocketChannel
+As you can see, these channels cover UDP + TCP network IO, and file IO.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here is a list of the core Buffer implementations in Java NIO:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;ByteBuffer
+CharBuffer
+DoubleBuffer
+FloatBuffer
+IntBuffer
+LongBuffer
+ShortBuffer
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;1-channel&#34;&gt;1. Channel&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;RandomAccessFile aFile = new RandomAccessFile(&amp;quot;data/nio-data.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+    FileChannel inChannel = aFile.getChannel();
+
+    ByteBuffer buf = ByteBuffer.allocate(48);
+
+    int bytesRead = inChannel.read(buf);
+    while (bytesRead != -1) {
+
+      System.out.println(&amp;quot;Read &amp;quot; + bytesRead);
+      buf.flip();
+
+      while(buf.hasRemaining()){
+          System.out.print((char) buf.get());
+      }
+
+      buf.clear();
+      bytesRead = inChannel.read(buf);
+    }
+    aFile.close();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Notice the buf.flip() call. First you read into a Buffer. Then you flip it. Then you read out of it.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-buffer&#34;&gt;2.Buffer&lt;/h3&gt;
+
+&lt;p&gt;Java NIO Buffers are used when interacting with NIO Channels. As you know, data is read from channels into buffers, and written from buffers into channels.&lt;/p&gt;
+
+&lt;p&gt;A buffer is essentially a block of memory into which you can write data, which you can then later read again.
+This memory block is wrapped in a NIO Buffer object, which provides a set of methods that makes it easier to work with the memory block.&lt;/p&gt;
+
+&lt;p&gt;Using a Buffer to read and write data typically follows this little 4-step process:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1. Write data into the Buffer
+2. Call buffer.flip()
+3. Read data out of the Buffer
+4. Call buffer.clear() or buffer.compact()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;When you write data into a buffer, the buffer keeps track of how much data you have written.
+Once you need to read the data, you need to switch the buffer from writing mode into reading mode using the flip() method call.
+In reading mode the buffer lets you read all the data written into the buffer.&lt;/p&gt;
+
+&lt;p&gt;Once you have read all the data, you need to clear the buffer, to make it ready for writing again.
+You can do this in two ways: By calling clear() or by calling compact(). The clear() method clears the whole buffer.
+The compact() method only clears the data which you have already read.
+Any unread data is moved to the beginning of the buffer, and data will now be written into the buffer after the unread data.&lt;/p&gt;
+
+&lt;p&gt;above had given a simple Buffer usage example, with the write, flip, read and clear operations maked in bold.&lt;/p&gt;
+
+&lt;h3 id=&#34;3-buffer-capacity-position-and-limit&#34;&gt;3. Buffer Capacity, Position and Limit&lt;/h3&gt;
+
+&lt;p&gt;A Buffer has three properties you need to be familiar with, in order to understand how a Buffer works. These are:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;capacity
+position
+limit
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The meaning of position and limit depends on whether the Buffer is in read or write mode. Capacity always means the same, no matter the buffer mode.&lt;/p&gt;
+
+&lt;p&gt;position and limit依赖于模式，而capacity在两种模式下都是一样的。&lt;/p&gt;
+
+&lt;p&gt;Being a memory block, a Buffer has a certain fixed size, also called its &amp;ldquo;capacity&amp;rdquo;.&lt;/p&gt;
+
+&lt;p&gt;When you write data into the Buffer, you do so at a certain position. Initially the position is 0.
+When a byte, long etc. has been written into the Buffer the position is advanced to point to the next cell in the buffer to insert data into.
+Position can maximally become capacity - 1.&lt;/p&gt;
+
+&lt;p&gt;When you read data from a Buffer you also do so from a given position.
+ When you flip a Buffer from writing mode to reading mode, the position is reset back to 0.
+As you read data from the Buffer you do so from position, and position is advanced to next position to read.&lt;/p&gt;
+
+&lt;p&gt;In write mode the limit of a Buffer is the limit of how much data you can write into the buffer. In write mode the limit = capacity&lt;/p&gt;
+
+&lt;p&gt;When flipping the Buffer into read mode, limit means the limit of how much data you can read from the data.
+Therefore, when flipping a Buffer into read mode, limit is set to write position of the write mode.&lt;/p&gt;
+
+&lt;h3 id=&#34;4-buffer-types&#34;&gt;4. Buffer Types&lt;/h3&gt;
+
+&lt;p&gt;Java NIO comes with the following Buffer types:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;ByteBuffer
+MappedByteBuffer
+CharBuffer
+DoubleBuffer
+FloatBuffer
+IntBuffer
+LongBuffer
+ShortBuffer
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As you can see, these Buffer types represent different data types. In other words, they let you work with the bytes in the buffer as char, short, int, long, float or double instead.&lt;/p&gt;
+
+&lt;p&gt;The MappedByteBuffer is a bit special, and will be covered in its own text.&lt;/p&gt;
+
+&lt;h3 id=&#34;5-allocating-a-buffer&#34;&gt;5. Allocating a Buffer&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;ByteBuffer buf = ByteBuffer.allocate(48);
+
+CharBuffer buf = CharBuffer.allocate(1024);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;6-writing-data-to-a-buffer&#34;&gt;6. Writing Data to a Buffer&lt;/h3&gt;
+
+&lt;p&gt;You can write data into a Buffer in two ways:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;// Write data from a Channel into a Buffer
+int bytesRead = inChannel.read(buf); //read into buffer.
+//
+Write data into the Buffer yourself, via the buffer&#39;s put() methods.
+buf.put(127);    
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;7-flip&#34;&gt;7. flip&lt;/h3&gt;
+
+&lt;p&gt;The flip() method switches a Buffer from writing mode to reading mode.
+Calling flip() sets the position back to 0, and sets the limit to where position just was.&lt;/p&gt;
+
+&lt;h3 id=&#34;8-reading-data-from-a-buffer&#34;&gt;8. Reading Data from a Buffer&lt;/h3&gt;
+
+&lt;p&gt;There are two ways you can read data from a Buffer.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Read data from the buffer into a channel.
+//read from buffer into channel.
+int bytesWritten = inChannel.write(buf);
+
+Read data from the buffer yourself, using one of the get() methods.
+byte aByte = buf.get();    
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;9-rewind&#34;&gt;9. rewind&lt;/h3&gt;
+
+&lt;p&gt;The Buffer.rewind() sets the position back to 0, so you can reread all the data in the buffer.&lt;/p&gt;
+
+&lt;p&gt;The limit remains untouched, thus still marking how many elements (bytes, chars etc.) that can be read from the Buffer.&lt;/p&gt;
+
+&lt;h3 id=&#34;10-clear-and-compact&#34;&gt;10. clear() and compact()&lt;/h3&gt;
+
+&lt;p&gt;Once you are done reading data out of the Buffer you have to make the Buffer ready for writing again. You can do so either by calling clear() or by calling compact().&lt;/p&gt;
+
+&lt;p&gt;If you call clear() the position is set back to 0 and the limit to capacity. In other words, the Buffer is cleared.
+The data in the Buffer is not cleared. Only the markers telling where you can write data into the Buffer are.&lt;/p&gt;
+
+&lt;p&gt;compact() copies all unread data to the beginning of the Buffer. Then it sets position to right after the last unread element.
+The limit property is still set to capacity, just like clear() does. Now the Buffer is ready for writing, but you will not overwrite the unread data.&lt;/p&gt;
+
+&lt;h3 id=&#34;11-mark-and-reset&#34;&gt;11. mark() and reset()&lt;/h3&gt;
+
+&lt;p&gt;You can mark a given position in a Buffer by calling the Buffer.mark() method. You can then later reset the position back to the marked position by calling the Buffer.reset() method. Here is an example:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;buffer.mark();
+
+//call buffer.get() a couple of times, e.g. during parsing.
+
+buffer.reset();  //set position back to mark.    
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;五-java-nio-scatter-gather&#34;&gt;五、Java NIO Scatter / Gather&lt;/h2&gt;
+
+&lt;p&gt;javaNIO自带了Scatter/gather的支持，用于从Channel读数据和写数据。&lt;/p&gt;
+
+&lt;p&gt;scattering read from a channel：从channel读数据到不止一个Buffer，所以会 &amp;ldquo;scatters&amp;rdquo; the data from the channel into multiple buffers.&lt;/p&gt;
+
+&lt;p&gt;gathering write to a channel: 从多个 buffer 写到一个Channel，多疑 &amp;ldquo;gathers&amp;rdquo; the data from multiple buffers into one channel。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-scattering-reads&#34;&gt;1. Scattering Reads&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;ByteBuffer header = ByteBuffer.allocate(128);
+ByteBuffer body   = ByteBuffer.allocate(1024);
+
+ByteBuffer[] bufferArray = { header, body };
+
+channel.read(bufferArray);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public static void scatter() throws Exception {
+
+        RandomAccessFile aFile = new RandomAccessFile(&amp;quot;src/main/resources/data/nio-data.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+
+        FileChannel inChannel = aFile.getChannel();
+
+
+        ByteBuffer header = ByteBuffer.allocate(128);
+        ByteBuffer body   = ByteBuffer.allocate(1028);
+
+        ByteBuffer[] bufferArray = { header, body };
+
+        long bytesRead = inChannel.read(bufferArray);
+
+        System.out.println(&amp;quot;Read &amp;quot; + bytesRead);
+        header.flip();
+        body.flip();
+
+        while(header.hasRemaining()){
+            System.out.print((char) header.get());
+        }
+        while(body.hasRemaining()){
+            System.out.print((char) body.get());
+        }
+
+        header.clear();
+        body.clear();
+
+
+        aFile.close();
+
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The fact that scattering reads fill up one buffer before moving on to the next, means that it is not suited for dynamically sized message parts.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-gathering-writes&#34;&gt;2. Gathering Writes&lt;/h3&gt;
+
+&lt;p&gt;Here is a code example that shows how to perform a gathering write:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;ByteBuffer header = ByteBuffer.allocate(128);
+ByteBuffer body   = ByteBuffer.allocate(1024);
+
+//write data into buffers
+
+ByteBuffer[] bufferArray = { header, body };
+
+channel.write(bufferArray);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;运行下面的代码，会得到一个文件，里面是 header+body&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static void gather() throws Exception {
+
+        RandomAccessFile aFile = new RandomAccessFile(&amp;quot;src/main/resources/data/nio-in.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+
+        FileChannel inChannel = aFile.getChannel();
+
+        ByteBuffer header = ByteBuffer.allocate(12);
+
+        header.put(&amp;quot;header&amp;quot;.getBytes());
+        header.put(&amp;quot;body&amp;quot;.getBytes());
+        ByteBuffer body   = ByteBuffer.allocate(120);
+
+        ByteBuffer[] bufferArray = { header, body };
+
+        header.flip();
+        body.flip();
+        inChannel.write(bufferArray);
+
+        inChannel.force(true);
+        inChannel.close();
+        header.clear();
+        body.clear();
+
+        aFile.close();
+
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;四-java-nio-channel-to-channel-transfers&#34;&gt;四、Java NIO Channel to Channel Transfers&lt;/h2&gt;
+
+&lt;p&gt;channel的传输工具，类似IOUtils&lt;/p&gt;
+
+&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
+
+&lt;p&gt;The FileChannel.transferFrom() method transfers data from a source channel into the FileChannel. Here is a simple example: transferFrom()&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+RandomAccessFile fromFile = new RandomAccessFile(&amp;quot;fromFile.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+FileChannel      fromChannel = fromFile.getChannel();
+
+RandomAccessFile toFile = new RandomAccessFile(&amp;quot;toFile.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+FileChannel      toChannel = toFile.getChannel();
+
+long position = 0;
+long count    = fromChannel.size();
+
+toChannel.transferFrom(fromChannel, position, count);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The parameters position and count, tell where in the destination file to start writing (position), and how many bytes to transfer maximally (count). If the source channel has fewer than count bytes, less is transfered.&lt;/p&gt;
+
+&lt;p&gt;Additionally, some SocketChannel implementations may transfer only the data the SocketChannel has ready in its internal buffer here and now - even if the SocketChannel may later have more data available. Thus, it may not transfer the entire data requested (count) from the SocketChannel into FileChannel.&lt;/p&gt;
+
+&lt;h3 id=&#34;2&#34;&gt;2.&lt;/h3&gt;
+
+&lt;p&gt;The transferTo() method transfer from a FileChannel into some other channel. Here is a simple example:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;RandomAccessFile fromFile = new RandomAccessFile(&amp;quot;fromFile.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+FileChannel      fromChannel = fromFile.getChannel();
+
+RandomAccessFile toFile = new RandomAccessFile(&amp;quot;toFile.txt&amp;quot;, &amp;quot;rw&amp;quot;);
+FileChannel      toChannel = toFile.getChannel();
+
+long position = 0;
+long count    = fromChannel.size();
+
+fromChannel.transferTo(position, count, toChannel);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Notice how similar the example is to the previous. The only real difference is the which FileChannel object the method is called on. The rest is the same.&lt;/p&gt;
+
+&lt;p&gt;The issue with SocketChannel is also present with the transferTo() method. The SocketChannel implementation may only transfer bytes from the FileChannel until the send buffer is full, and then stop.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://tutorials.jenkov.com/java-nio/selectors.html&#34;&gt;http://tutorials.jenkov.com/java-nio/selectors.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;四-selectors&#34;&gt;四、Selectors&lt;/h2&gt;
+
+&lt;p&gt;NIO&amp;rsquo;s Selectors 允许一个 a single thread 去 monitor multiple channels of input。
+你可以注册 multiple channels with a selector，然后用一个线程去 &amp;ldquo;select&amp;rdquo; the channels that have input available for processing,
+或者 or select the channels that are ready for writing。
+This selector mechanism makes it easy for a single thread to manage multiple channels.&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

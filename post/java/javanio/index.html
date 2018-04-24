@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>JavaNIO - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="// 参考资料 http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io 一、IO和NIO有什么区别 Stream Oriented vs. Buffer Oriented Blocking vs. Non-blocking IO IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。 二、Chan" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/java/javanio/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="JavaNIO" />
+<meta property="og:description" content="// 参考资料 http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io 一、IO和NIO有什么区别 Stream Oriented vs. Buffer Oriented Blocking vs. Non-blocking IO IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。 二、Chan" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/java/javanio/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="JavaNIO">
+<meta itemprop="description" content="// 参考资料 http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io 一、IO和NIO有什么区别 Stream Oriented vs. Buffer Oriented Blocking vs. Non-blocking IO IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。 二、Chan">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="1907">
+
+
+
+<meta itemprop="keywords" content="java,NIO," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="JavaNIO"/>
+<meta name="twitter:description" content="// 参考资料 http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io 一、IO和NIO有什么区别 Stream Oriented vs. Buffer Oriented Blocking vs. Non-blocking IO IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。 二、Chan"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">JavaNIO</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/java%E5%9F%BA%E7%A1%80/"> Java基础 </a>
+            
+          </div>
+        <span class="more-meta"> 1907 words </span>
+        <span class="more-meta"> 4 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-io和nio有什么区别">一、IO和NIO有什么区别</a></li>
+<li><a href="#二-channels-and-buffers">二、Channels and Buffers</a>
+<ul>
+<li><a href="#1-channel">1. Channel</a></li>
+<li><a href="#2-buffer">2.Buffer</a></li>
+<li><a href="#3-buffer-capacity-position-and-limit">3. Buffer Capacity, Position and Limit</a></li>
+<li><a href="#4-buffer-types">4. Buffer Types</a></li>
+<li><a href="#5-allocating-a-buffer">5. Allocating a Buffer</a></li>
+<li><a href="#6-writing-data-to-a-buffer">6. Writing Data to a Buffer</a></li>
+<li><a href="#7-flip">7. flip</a></li>
+<li><a href="#8-reading-data-from-a-buffer">8. Reading Data from a Buffer</a></li>
+<li><a href="#9-rewind">9. rewind</a></li>
+<li><a href="#10-clear-and-compact">10. clear() and compact()</a></li>
+<li><a href="#11-mark-and-reset">11. mark() and reset()</a></li>
+</ul></li>
+<li><a href="#五-java-nio-scatter-gather">五、Java NIO Scatter / Gather</a>
+<ul>
+<li><a href="#1-scattering-reads">1. Scattering Reads</a></li>
+<li><a href="#2-gathering-writes">2. Gathering Writes</a></li>
+</ul></li>
+<li><a href="#四-java-nio-channel-to-channel-transfers">四、Java NIO Channel to Channel Transfers</a>
+<ul>
+<li><a href="#1">1.</a></li>
+<li><a href="#2">2.</a></li>
+</ul></li>
+<li><a href="#四-selectors">四、Selectors</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<p>// 参考资料
+<a href="http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io">http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io</a></p>
+
+<h2 id="一-io和nio有什么区别">一、IO和NIO有什么区别</h2>
+
+<ol>
+<li><p>Stream Oriented vs. Buffer Oriented</p></li>
+
+<li><p>Blocking vs. Non-blocking IO</p></li>
+</ol>
+
+<p>IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。</p>
+
+<h2 id="二-channels-and-buffers">二、Channels and Buffers</h2>
+
+<p>Typically, all IO in NIO starts with a Channel.
+A Channel is a bit like a stream. From the Channel data can be read into a Buffer.
+Data can also be written from a Buffer into a Channel.</p>
+
+<p>There are several Channel and Buffer types. Here is a list of the primary Channel implementations in Java NIO:</p>
+
+<pre><code>FileChannel
+DatagramChannel
+SocketChannel
+ServerSocketChannel
+As you can see, these channels cover UDP + TCP network IO, and file IO.
+</code></pre>
+
+<p>Here is a list of the core Buffer implementations in Java NIO:</p>
+
+<pre><code>ByteBuffer
+CharBuffer
+DoubleBuffer
+FloatBuffer
+IntBuffer
+LongBuffer
+ShortBuffer
+</code></pre>
+
+<h3 id="1-channel">1. Channel</h3>
+
+<pre><code class="language-java">RandomAccessFile aFile = new RandomAccessFile(&quot;data/nio-data.txt&quot;, &quot;rw&quot;);
+    FileChannel inChannel = aFile.getChannel();
+
+    ByteBuffer buf = ByteBuffer.allocate(48);
+
+    int bytesRead = inChannel.read(buf);
+    while (bytesRead != -1) {
+
+      System.out.println(&quot;Read &quot; + bytesRead);
+      buf.flip();
+
+      while(buf.hasRemaining()){
+          System.out.print((char) buf.get());
+      }
+
+      buf.clear();
+      bytesRead = inChannel.read(buf);
+    }
+    aFile.close();
+</code></pre>
+
+<p>Notice the buf.flip() call. First you read into a Buffer. Then you flip it. Then you read out of it.</p>
+
+<h3 id="2-buffer">2.Buffer</h3>
+
+<p>Java NIO Buffers are used when interacting with NIO Channels. As you know, data is read from channels into buffers, and written from buffers into channels.</p>
+
+<p>A buffer is essentially a block of memory into which you can write data, which you can then later read again.
+This memory block is wrapped in a NIO Buffer object, which provides a set of methods that makes it easier to work with the memory block.</p>
+
+<p>Using a Buffer to read and write data typically follows this little 4-step process:</p>
+
+<pre><code>1. Write data into the Buffer
+2. Call buffer.flip()
+3. Read data out of the Buffer
+4. Call buffer.clear() or buffer.compact()
+</code></pre>
+
+<p>When you write data into a buffer, the buffer keeps track of how much data you have written.
+Once you need to read the data, you need to switch the buffer from writing mode into reading mode using the flip() method call.
+In reading mode the buffer lets you read all the data written into the buffer.</p>
+
+<p>Once you have read all the data, you need to clear the buffer, to make it ready for writing again.
+You can do this in two ways: By calling clear() or by calling compact(). The clear() method clears the whole buffer.
+The compact() method only clears the data which you have already read.
+Any unread data is moved to the beginning of the buffer, and data will now be written into the buffer after the unread data.</p>
+
+<p>above had given a simple Buffer usage example, with the write, flip, read and clear operations maked in bold.</p>
+
+<h3 id="3-buffer-capacity-position-and-limit">3. Buffer Capacity, Position and Limit</h3>
+
+<p>A Buffer has three properties you need to be familiar with, in order to understand how a Buffer works. These are:</p>
+
+<pre><code>capacity
+position
+limit
+</code></pre>
+
+<p>The meaning of position and limit depends on whether the Buffer is in read or write mode. Capacity always means the same, no matter the buffer mode.</p>
+
+<p>position and limit依赖于模式，而capacity在两种模式下都是一样的。</p>
+
+<p>Being a memory block, a Buffer has a certain fixed size, also called its &ldquo;capacity&rdquo;.</p>
+
+<p>When you write data into the Buffer, you do so at a certain position. Initially the position is 0.
+When a byte, long etc. has been written into the Buffer the position is advanced to point to the next cell in the buffer to insert data into.
+Position can maximally become capacity - 1.</p>
+
+<p>When you read data from a Buffer you also do so from a given position.
+ When you flip a Buffer from writing mode to reading mode, the position is reset back to 0.
+As you read data from the Buffer you do so from position, and position is advanced to next position to read.</p>
+
+<p>In write mode the limit of a Buffer is the limit of how much data you can write into the buffer. In write mode the limit = capacity</p>
+
+<p>When flipping the Buffer into read mode, limit means the limit of how much data you can read from the data.
+Therefore, when flipping a Buffer into read mode, limit is set to write position of the write mode.</p>
+
+<h3 id="4-buffer-types">4. Buffer Types</h3>
+
+<p>Java NIO comes with the following Buffer types:</p>
+
+<pre><code>ByteBuffer
+MappedByteBuffer
+CharBuffer
+DoubleBuffer
+FloatBuffer
+IntBuffer
+LongBuffer
+ShortBuffer
+</code></pre>
+
+<p>As you can see, these Buffer types represent different data types. In other words, they let you work with the bytes in the buffer as char, short, int, long, float or double instead.</p>
+
+<p>The MappedByteBuffer is a bit special, and will be covered in its own text.</p>
+
+<h3 id="5-allocating-a-buffer">5. Allocating a Buffer</h3>
+
+<pre><code>ByteBuffer buf = ByteBuffer.allocate(48);
+
+CharBuffer buf = CharBuffer.allocate(1024);
+</code></pre>
+
+<h3 id="6-writing-data-to-a-buffer">6. Writing Data to a Buffer</h3>
+
+<p>You can write data into a Buffer in two ways:</p>
+
+<pre><code>// Write data from a Channel into a Buffer
+int bytesRead = inChannel.read(buf); //read into buffer.
+//
+Write data into the Buffer yourself, via the buffer's put() methods.
+buf.put(127);    
+</code></pre>
+
+<h3 id="7-flip">7. flip</h3>
+
+<p>The flip() method switches a Buffer from writing mode to reading mode.
+Calling flip() sets the position back to 0, and sets the limit to where position just was.</p>
+
+<h3 id="8-reading-data-from-a-buffer">8. Reading Data from a Buffer</h3>
+
+<p>There are two ways you can read data from a Buffer.</p>
+
+<pre><code>Read data from the buffer into a channel.
+//read from buffer into channel.
+int bytesWritten = inChannel.write(buf);
+
+Read data from the buffer yourself, using one of the get() methods.
+byte aByte = buf.get();    
+</code></pre>
+
+<h3 id="9-rewind">9. rewind</h3>
+
+<p>The Buffer.rewind() sets the position back to 0, so you can reread all the data in the buffer.</p>
+
+<p>The limit remains untouched, thus still marking how many elements (bytes, chars etc.) that can be read from the Buffer.</p>
+
+<h3 id="10-clear-and-compact">10. clear() and compact()</h3>
+
+<p>Once you are done reading data out of the Buffer you have to make the Buffer ready for writing again. You can do so either by calling clear() or by calling compact().</p>
+
+<p>If you call clear() the position is set back to 0 and the limit to capacity. In other words, the Buffer is cleared.
+The data in the Buffer is not cleared. Only the markers telling where you can write data into the Buffer are.</p>
+
+<p>compact() copies all unread data to the beginning of the Buffer. Then it sets position to right after the last unread element.
+The limit property is still set to capacity, just like clear() does. Now the Buffer is ready for writing, but you will not overwrite the unread data.</p>
+
+<h3 id="11-mark-and-reset">11. mark() and reset()</h3>
+
+<p>You can mark a given position in a Buffer by calling the Buffer.mark() method. You can then later reset the position back to the marked position by calling the Buffer.reset() method. Here is an example:</p>
+
+<pre><code>buffer.mark();
+
+//call buffer.get() a couple of times, e.g. during parsing.
+
+buffer.reset();  //set position back to mark.    
+</code></pre>
+
+<h2 id="五-java-nio-scatter-gather">五、Java NIO Scatter / Gather</h2>
+
+<p>javaNIO自带了Scatter/gather的支持，用于从Channel读数据和写数据。</p>
+
+<p>scattering read from a channel：从channel读数据到不止一个Buffer，所以会 &ldquo;scatters&rdquo; the data from the channel into multiple buffers.</p>
+
+<p>gathering write to a channel: 从多个 buffer 写到一个Channel，多疑 &ldquo;gathers&rdquo; the data from multiple buffers into one channel。</p>
+
+<h3 id="1-scattering-reads">1. Scattering Reads</h3>
+
+<pre><code class="language-java">ByteBuffer header = ByteBuffer.allocate(128);
+ByteBuffer body   = ByteBuffer.allocate(1024);
+
+ByteBuffer[] bufferArray = { header, body };
+
+channel.read(bufferArray);
+</code></pre>
+
+<pre><code class="language-java">
+public static void scatter() throws Exception {
+
+        RandomAccessFile aFile = new RandomAccessFile(&quot;src/main/resources/data/nio-data.txt&quot;, &quot;rw&quot;);
+
+        FileChannel inChannel = aFile.getChannel();
+
+
+        ByteBuffer header = ByteBuffer.allocate(128);
+        ByteBuffer body   = ByteBuffer.allocate(1028);
+
+        ByteBuffer[] bufferArray = { header, body };
+
+        long bytesRead = inChannel.read(bufferArray);
+
+        System.out.println(&quot;Read &quot; + bytesRead);
+        header.flip();
+        body.flip();
+
+        while(header.hasRemaining()){
+            System.out.print((char) header.get());
+        }
+        while(body.hasRemaining()){
+            System.out.print((char) body.get());
+        }
+
+        header.clear();
+        body.clear();
+
+
+        aFile.close();
+
+    }
+</code></pre>
+
+<p>The fact that scattering reads fill up one buffer before moving on to the next, means that it is not suited for dynamically sized message parts.</p>
+
+<h3 id="2-gathering-writes">2. Gathering Writes</h3>
+
+<p>Here is a code example that shows how to perform a gathering write:</p>
+
+<pre><code>ByteBuffer header = ByteBuffer.allocate(128);
+ByteBuffer body   = ByteBuffer.allocate(1024);
+
+//write data into buffers
+
+ByteBuffer[] bufferArray = { header, body };
+
+channel.write(bufferArray);
+</code></pre>
+
+<p>运行下面的代码，会得到一个文件，里面是 header+body</p>
+
+<pre><code class="language-java">public static void gather() throws Exception {
+
+        RandomAccessFile aFile = new RandomAccessFile(&quot;src/main/resources/data/nio-in.txt&quot;, &quot;rw&quot;);
+
+        FileChannel inChannel = aFile.getChannel();
+
+        ByteBuffer header = ByteBuffer.allocate(12);
+
+        header.put(&quot;header&quot;.getBytes());
+        header.put(&quot;body&quot;.getBytes());
+        ByteBuffer body   = ByteBuffer.allocate(120);
+
+        ByteBuffer[] bufferArray = { header, body };
+
+        header.flip();
+        body.flip();
+        inChannel.write(bufferArray);
+
+        inChannel.force(true);
+        inChannel.close();
+        header.clear();
+        body.clear();
+
+        aFile.close();
+
+    }
+</code></pre>
+
+<h2 id="四-java-nio-channel-to-channel-transfers">四、Java NIO Channel to Channel Transfers</h2>
+
+<p>channel的传输工具，类似IOUtils</p>
+
+<h3 id="1">1.</h3>
+
+<p>The FileChannel.transferFrom() method transfers data from a source channel into the FileChannel. Here is a simple example: transferFrom()</p>
+
+<pre><code class="language-java">
+RandomAccessFile fromFile = new RandomAccessFile(&quot;fromFile.txt&quot;, &quot;rw&quot;);
+FileChannel      fromChannel = fromFile.getChannel();
+
+RandomAccessFile toFile = new RandomAccessFile(&quot;toFile.txt&quot;, &quot;rw&quot;);
+FileChannel      toChannel = toFile.getChannel();
+
+long position = 0;
+long count    = fromChannel.size();
+
+toChannel.transferFrom(fromChannel, position, count);
+</code></pre>
+
+<p>The parameters position and count, tell where in the destination file to start writing (position), and how many bytes to transfer maximally (count). If the source channel has fewer than count bytes, less is transfered.</p>
+
+<p>Additionally, some SocketChannel implementations may transfer only the data the SocketChannel has ready in its internal buffer here and now - even if the SocketChannel may later have more data available. Thus, it may not transfer the entire data requested (count) from the SocketChannel into FileChannel.</p>
+
+<h3 id="2">2.</h3>
+
+<p>The transferTo() method transfer from a FileChannel into some other channel. Here is a simple example:</p>
+
+<pre><code class="language-java">RandomAccessFile fromFile = new RandomAccessFile(&quot;fromFile.txt&quot;, &quot;rw&quot;);
+FileChannel      fromChannel = fromFile.getChannel();
+
+RandomAccessFile toFile = new RandomAccessFile(&quot;toFile.txt&quot;, &quot;rw&quot;);
+FileChannel      toChannel = toFile.getChannel();
+
+long position = 0;
+long count    = fromChannel.size();
+
+fromChannel.transferTo(position, count, toChannel);
+</code></pre>
+
+<p>Notice how similar the example is to the previous. The only real difference is the which FileChannel object the method is called on. The rest is the same.</p>
+
+<p>The issue with SocketChannel is also present with the transferTo() method. The SocketChannel implementation may only transfer bytes from the FileChannel until the send buffer is full, and then stop.</p>
+
+<p><a href="http://tutorials.jenkov.com/java-nio/selectors.html">http://tutorials.jenkov.com/java-nio/selectors.html</a></p>
+
+<h2 id="四-selectors">四、Selectors</h2>
+
+<p>NIO&rsquo;s Selectors 允许一个 a single thread 去 monitor multiple channels of input。
+你可以注册 multiple channels with a selector，然后用一个线程去 &ldquo;select&rdquo; the channels that have input available for processing,
+或者 or select the channels that are ready for writing。
+This selector mechanism makes it easy for a single thread to manage multiple channels.</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/java/">java</a>
+          
+          <a href="/tags/nio/">NIO</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/project/hadoop/hadoop/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">hadoop网站日志分析项目架构</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/titan/first/">
+            <span class="next-text nav-default">janusgraph源码分析1-下载编译启动</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'JavaNIO',
+    link: decodeURI(location.href),
+    desc: '\/\/ 参考资料 http:\/\/tutorials.jenkov.com\/java-nio\/nio-vs-io.html#main-differences-between-java-nio-and-io 一、IO和NIO有什么区别 Stream Oriented vs. Buffer Oriented Blocking vs. Non-blocking IO IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。 二、Chan',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

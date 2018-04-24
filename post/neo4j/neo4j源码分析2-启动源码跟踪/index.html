@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="4400">
+<meta itemprop="wordCount" content="4396">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 4400 words </span>
+        <span class="more-meta"> 4396 words </span>
         <span class="more-meta"> 9 min read </span>
       </div>
     </header>
@@ -731,12 +731,19 @@ start的过程启动了所有的 LifeCycle</p></li>
 后续的程序</p></li>
 </ol>
 
-<p>接下来我们就是一个一个分析
-1. <code>PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );</code>
-2. <code>EditionModule edition = editionFactory.apply( platform );</code>
-3. <code>final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );</code>
-4. <code>platform.life.start();</code>
-这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个<code>0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;</code>为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
+<p>接下来我们就是一个一个分析</p>
+
+<ol>
+<li><p><code>PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );</code></p></li>
+
+<li><p><code>EditionModule edition = editionFactory.apply( platform );</code></p></li>
+
+<li><p><code>final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );</code></p></li>
+
+<li><p><code>platform.life.start();</code></p></li>
+</ol>
+
+<p>这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个<code>0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;</code>为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
 我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&gt; &hellip; -&gt; new PlatformModule()，然后找到对应的代码：</p>
 
 <pre><code class="language-java">fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
@@ -807,7 +814,7 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-lifecycle%E6%9F%A5%E7%9C%8B/">
+          <a class="next" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/">
             <span class="next-text nav-default">neo4j源码分析3-LifeCycle查看</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>

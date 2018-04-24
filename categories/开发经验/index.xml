@@ -165,9 +165,15 @@ phone:ID(PHONE),isblack,ismedia,iscuishou
 &lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;maven-checkstyle-plugin
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
+&lt;h3 id=&#34;2-常见异常&#34;&gt;2.常见异常&lt;/h3&gt;
 
-&lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
+&lt;p&gt;cached in local repository &amp;hellip;
+这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/p&gt;
+
+&lt;p&gt;can&amp;rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
+例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 &lt;code&gt;mvn clean install -DskipTests=true -rf :janusgraph-es&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;3&#34;&gt;3.&lt;/h3&gt;
 </description>
       
     </item>

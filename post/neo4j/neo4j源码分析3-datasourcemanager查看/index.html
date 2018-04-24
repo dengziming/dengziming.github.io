@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>neo4j源码分析3-LifeCycle查看 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="neo4j源码分析3-LifeCycle查看" />
+<meta property="og:description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="neo4j源码分析3-LifeCycle查看">
+<meta itemprop="description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="4506">
+
+
+
+<meta itemprop="keywords" content="neo4j,图数据库," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j源码分析3-LifeCycle查看"/>
+<meta name="twitter:description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">neo4j源码分析3-LifeCycle查看</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+            
+          </div>
+        <span class="more-meta"> 4506 words </span>
+        <span class="more-meta"> 9 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-复习">一、复习</a></li>
+<li><a href="#二-datasourcemanager-预览">二、DataSourceManager 预览</a>
+<ul>
+<li><a href="#1-准备工作">1.准备工作</a></li>
+<li><a href="#2-开始调试">2.开始调试</a></li>
+<li><a href="#3-datasourcemanager的start方法">3.DataSourceManager的start方法。</a></li>
+</ul></li>
+<li><a href="#三-datasourcemanager-剖析">三、dataSourceManager 剖析</a>
+<ul>
+<li><a href="#1-recordstorageengine-分析">1. RecordStorageEngine 分析</a>
+<ul>
+<li><a href="#1-storageengine-预览">(1). StorageEngine 预览</a></li>
+<li><a href="#2-recordstorageengine-属性查看">(2). RecordStorageEngine 属性查看</a></li>
+<li><a href="#3-recordstorageengine-属性分析">(3). RecordStorageEngine 属性分析</a></li>
+<li><a href="#3-recordstorageengine-init和start">(3). RecordStorageEngine init和start</a></li>
+</ul></li>
+<li><a href="#2-recordstorageengine-分析">2. RecordStorageEngine 分析</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h2 id="一-复习">一、复习</h2>
+
+<p>上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法</p>
+
+<ol>
+<li><p><code>PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );</code></p></li>
+
+<li><p><code>EditionModule edition = editionFactory.apply( platform );</code></p></li>
+
+<li><p><code>final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );</code></p></li>
+
+<li><p><code>platform.life.start();</code></p></li>
+</ol>
+
+<p>这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个<code>0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;</code>为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
+我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&gt; &hellip; -&gt; new PlatformModule()，然后找到对应的代码：</p>
+
+<pre><code class="language-java">fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
+life.add( new FileSystemLifecycleAdapter( fileSystem ) );
+</code></pre>
+
+<p>然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。</p>
+
+<p>另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
+例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
+以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。</p>
+
+<h2 id="二-datasourcemanager-预览">二、DataSourceManager 预览</h2>
+
+<p>从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。</p>
+
+<h3 id="1-准备工作">1.准备工作</h3>
+
+<p>在DataSourceManager类的init和start方法打上断点，然后在 PlatformModule 的构造方法打上断点，在 CommunityEditionModule 上打断点，在 DataSourceModule打上断点。</p>
+
+<p>另外我们的代码反复用到了 Dependencies 这个类，我们先大概知道一下它的方法，他有个 parent 属性，一个 resolveDependency 方法和一个 satisfyDependency 方法，
+satisfyDependency方法是将一个类的所有父类放进一个map中，resolveDependency方法是调用 parent的resolveDependency，实际上是 DataSourceManager中的dependencies，这里可以暂时忽略。</p>
+
+<h3 id="2-开始调试">2.开始调试</h3>
+
+<p>先定位到 PlatformModule 的断点 this.dataSourceManager = new DataSourceManager();新建只是初始化几个属性：</p>
+
+<pre><code class="language-java">    private LifeSupport life = new LifeSupport();
+    private final Listeners&lt;Listener&gt; dsRegistrationListeners = new Listeners&lt;&gt;();
+    private NeoStoreDataSource dataSource;
+</code></pre>
+
+<p>然后到 CommunityEditionModule 中，life.add( platformModule.dataSourceManager );将 dataSourceManager 添加到 LifeCycle 中。然后</p>
+
+<pre><code class="language-java">propertyKeyTokenHolder = life.add( dependencies.satisfyDependency( new DelegatingPropertyKeyTokenHolder(
+        createPropertyKeyCreator( config, dataSourceManager, idGeneratorFactory ) ) ) );
+labelTokenHolder = life.add( dependencies.satisfyDependency(new DelegatingLabelTokenHolder( createLabelIdCreator( config,
+        dataSourceManager, idGeneratorFactory ) ) ));
+relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new DelegatingRelationshipTypeTokenHolder(
+        createRelationshipTypeCreator( config, dataSourceManager, idGeneratorFactory ) ) ));
+</code></pre>
+
+<p>这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。</p>
+
+<p>然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。
+进入 NeoStoreDataSource 的构造方法，NeoStoreDataSource 也是 LifeCycle 的一个实现类，有start方法，它的构造方法好像就是做了很多赋值。
+然后是 dataSourceManager.register( neoStoreDataSource )，实际上也就是赋值 this.dataSource = dataSource;
+然后接下来是 ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );官方文档显示 ClassicCoreSPI 是 surface-layer-of-the-database
+然后是 graphDatabaseFacade.init()
+然后进入到了关键的 platform.life.start(); 我们知道这里的life的start方法会遍历 life 的 instances 调用init和start，其中就包括我们进行要调试的 DataSourceManager 。</p>
+
+<h3 id="3-datasourcemanager的start方法">3.DataSourceManager的start方法。</h3>
+
+<p>我们已经在 DataSourceManager 中打好断点，我们已经知道他也是一个 Lifecycle ，先进入init方法：</p>
+
+<pre><code class="language-java">public void init() throws Throwable
+    {
+        life = new LifeSupport();
+        life.add( dataSource ); // 这个DataSource是 NeoStoreDataSource
+    }
+</code></pre>
+
+<p>然后是start方法：其实就是 life.start(),它的life里面只有 NeoStoreDataSource 一个 instance ，然后会调用它的init和start方法，然后进入 init和start，init是空的，我们在start调试。信息量比较大，做好准备。
+第一步是 life = new LifeSupport();
+第二步是 life.add( recoveryCleanupWorkCollector );
+然后 life.add( indexConfigStore ) 和 life.add( Lifecycles.multiple( indexProviders.values() ) );
+然后是 storageEngine = buildStorageEngine()， buildRecovery(), final NeoStoreKernelModule kernelModule = buildKernel(),
+然后是 life.start();这里的life工有13个instance：</p>
+
+<pre><code class="language-java">instances = {ArrayList@5669}  size = 13
+ 0 = {LifeSupport$LifecycleInstance@5673} &quot;org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector@3b0c9195: NONE&quot;
+ 1 = {LifeSupport$LifecycleInstance@5674} &quot;org.neo4j.kernel.impl.index.IndexConfigStore@5cdd09b1: NONE&quot;
+ 2 = {LifeSupport$LifecycleInstance@5675} &quot;org.neo4j.kernel.lifecycle.Lifecycles$CombinedLifecycle@681a8b4e: NONE&quot;
+ 3 = {LifeSupport$LifecycleInstance@5676} &quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&quot;
+ 4 = {LifeSupport$LifecycleInstance@5677} &quot;org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles@1bc715b8: NONE&quot;
+ 5 = {LifeSupport$LifecycleInstance@5678} &quot;org.neo4j.kernel.impl.transaction.log.BatchingTransactionAppender@24bdb479: NONE&quot;
+ 6 = {LifeSupport$LifecycleInstance@5679} &quot;org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl@7e3f95fe: NONE&quot;
+ 7 = {LifeSupport$LifecycleInstance@5680} &quot;org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointScheduler@34625ccd: NONE&quot;
+ 8 = {LifeSupport$LifecycleInstance@5681} &quot;org.neo4j.kernel.recovery.Recovery@39dcf4b0: NONE&quot;
+ 9 = {LifeSupport$LifecycleInstance@5682} &quot;org.neo4j.kernel.impl.api.KernelTransactions@21005f6c: NONE&quot;
+ 10 = {LifeSupport$LifecycleInstance@5683} &quot;org.neo4j.kernel.impl.api.KernelTransactionMonitorScheduler@32f0fba8: NONE&quot;
+ 11 = {LifeSupport$LifecycleInstance@5684} &quot;org.neo4j.kernel.impl.api.Kernel@545de5a4: NONE&quot;
+ 12 = {LifeSupport$LifecycleInstance@5685} &quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&quot;
+</code></pre>
+
+<p>这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。
+我们先看和存储有关的 <code>3 = {LifeSupport$LifecycleInstance@5676} &quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&quot;</code>
+打好断点进入，这次终于没有 instance 了，感觉快进入了盗梦空间啊，直接看init：</p>
+
+<pre><code class="language-java">public void init() throws Throwable
+{
+    indexingService.init();
+    labelScanStore.init();
+}
+</code></pre>
+
+<p>IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。
+NativeLabelScanStore的init，我也先不跳进去了。</p>
+
+<p>再看start：</p>
+
+<pre><code class="language-java">public void start() throws Throwable
+{
+    neoStores.makeStoreOk();
+
+    propertyKeyTokenHolder.setInitialTokens(
+            neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
+    relationshipTypeTokenHolder.setInitialTokens(
+            neoStores.getRelationshipTypeTokenStore().getTokens( Integer.MAX_VALUE ) );
+    labelTokenHolder.setInitialTokens(
+            neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
+
+    neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
+    loadSchemaCache();
+    indexingService.start();
+    labelScanStore.start();
+    idController.start();
+}
+</code></pre>
+
+<p>neoStores.makeStoreOk(); 这个初始化就是读取本地存储，还是要重点查看一下：TODO
+然后是：</p>
+
+<pre><code class="language-java">propertyKeyTokenHolder.setInitialTokens(
+        neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
+relationshipTypeTokenHolder.setInitialTokens(
+        neoStores.getRelationshipTypeTokenStore().getTokens( Integer.MAX_VALUE ) );
+labelTokenHolder.setInitialTokens(
+        neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
+</code></pre>
+
+<p>这几段代码都可以直接用调试的估值功能直接看出具体的值。
+然后是：neoStores.rebuildCountStoreIfNeeded(); 跳进去： getCounts().start();
+然后是：</p>
+
+<pre><code class="language-java">neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
+loadSchemaCache();
+indexingService.start();
+labelScanStore.start();
+idController.start();
+</code></pre>
+
+<p>后面再细看吧。</p>
+
+<h2 id="三-datasourcemanager-剖析">三、dataSourceManager 剖析</h2>
+
+<p>上面我们已经看出了，AbstractNeoServer 包含两个 LifeCycle ，其中一个是 LifecycleManagingDatabase ，
+LifecycleManagingDatabase  包含 22个 LifeCycle，其中一个是 dataSourceManager ，
+dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，
+NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。
+RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。
+这就是整个盗梦空间的五层梦，接下来我们只能从最深的一层反着往回查看了。</p>
+
+<h3 id="1-recordstorageengine-分析">1. RecordStorageEngine 分析</h3>
+
+<p>首先它的父类是 StorageEngine ： A StorageEngine provides the functionality to durably store data, and read it back.负责持久化和读数据，里面的抽象方法注释可以好好阅读。</p>
+
+<h4 id="1-storageengine-预览">(1). StorageEngine 预览</h4>
+
+<p>storeReadLayer() , return an interface for accessing data previously applied to this storage. 返回读取之前放进storage的数据的接口。
+allocateCommandCreationContext(), 保存需要多次执行的命令的上下文
+createCommands(),返回一系列在当前的事务状态下进行改变的<code>StorageCommand</code>命令，CommandsToApply 命令可以通过调用apply方法放进存储中。
+apply()，执行一系列的命令到存储，
+其他的暂时忽略。</p>
+
+<h4 id="2-recordstorageengine-属性查看">(2). RecordStorageEngine 属性查看</h4>
+
+<pre><code class="language-java">private final StoreReadLayer storeLayer;
+private final IndexingService indexingService;
+private final NeoStores neoStores;
+private final PropertyKeyTokenHolder propertyKeyTokenHolder;
+private final RelationshipTypeTokenHolder relationshipTypeTokenHolder;
+private final LabelTokenHolder labelTokenHolder;
+private final DatabaseHealth databaseHealth;
+private final IndexConfigStore indexConfigStore;
+private final SchemaCache schemaCache;
+private final IntegrityValidator integrityValidator;
+private final CacheAccessBackDoor cacheAccess;
+private final LabelScanStore labelScanStore;
+private final SchemaIndexProviderMap schemaIndexProviderMap;
+private final ExplicitIndexApplierLookup explicitIndexApplierLookup;
+private final SchemaState schemaState;
+private final SchemaStorage schemaStorage;
+private final ConstraintSemantics constraintSemantics;
+private final IdOrderingQueue explicitIndexTransactionOrdering;
+private final LockService lockService;
+private final WorkSync&lt;Supplier&lt;LabelScanWriter&gt;,LabelUpdateWork&gt; labelScanStoreSync;
+private final CommandReaderFactory commandReaderFactory;
+private final WorkSync&lt;IndexingUpdateService,IndexUpdatesWork&gt; indexUpdatesSync;
+private final IndexStoreView indexStoreView;
+private final ExplicitIndexProviderLookup explicitIndexProviderLookup;
+private final PropertyPhysicalToLogicalConverter indexUpdatesConverter;
+private final Supplier&lt;StorageStatement&gt; storeStatementSupplier;
+private final IdController idController;
+private final int denseNodeThreshold;
+private final int recordIdBatchSize;
+</code></pre>
+
+<p>这些field赋值是在 NeoStoreDataSource#buildStorageEngine ：</p>
+
+<pre><code class="language-java">    private StorageEngine buildStorageEngine(
+            PropertyKeyTokenHolder propertyKeyTokenHolder, LabelTokenHolder labelTokens,
+            RelationshipTypeTokenHolder relationshipTypeTokens,
+            ExplicitIndexProviderLookup explicitIndexProviderLookup, IndexConfigStore indexConfigStore,
+            SchemaState schemaState, SynchronizedArrayIdOrderingQueue explicitIndexTransactionOrdering, OperationalMode operationalMode )
+    {
+        RecordStorageEngine storageEngine =
+                new RecordStorageEngine( storeDir, config, pageCache, fs, logProvider, propertyKeyTokenHolder,
+                        labelTokens, relationshipTypeTokens, schemaState, constraintSemantics, scheduler,
+                        tokenNameLookup, lockService, schemaIndexProviderMap, indexingServiceMonitor, databaseHealth,
+                        explicitIndexProviderLookup, indexConfigStore,
+                        explicitIndexTransactionOrdering, idGeneratorFactory, idController, monitors, recoveryCleanupWorkCollector,
+                        operationalMode );
+
+        // We pretend that the storage engine abstract hides all details within it. Whereas that's mostly
+        // true it's not entirely true for the time being. As long as we need this call below, which
+        // makes available one or more internal things to the outside world, there are leaks to plug.
+        storageEngine.satisfyDependencies( dependencies );
+
+        return life.add( storageEngine );
+    }
+</code></pre>
+
+<p>调试得到初始值：</p>
+
+<pre><code class="language-java">storeDir = {File@1774} &quot;/Users/dengziming/opt/soft/neo4j-community-3.2.6/data/databases/graph.db&quot;
+config = {Config@1362} &quot;dbms.connector.bolt.enabled=true, dbms.connector.http.enabled=true, dbms.connector.https.enabled=true, dbms.connectors.default_listen_address=localhost, dbms.directories.import=import, dbms.jvm.additional=-Dunsupported.dbms.udc.source=tarball, dbms.security.auth_enabled=true, dbms.tx_log.rotation.retention_policy=1 days, dbms.windows_service_name=neo4j, unsupported.dbms.block_size.array_properties=120, unsupported.dbms.block_size.labels=56, unsupported.dbms.block_size.strings=120, unsupported.dbms.directories.neo4j_home=/Users/dengziming/opt/soft/neo4j-community-3.2.6, unsupported.dbms.edition=community&quot;
+pageCache = {MuninnPageCache@1773} &quot;MuninnPageCache[ \n Page[ id = 0, address = 4516331520, filePageId = 0, swapperId = 1, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 1, address = 4516339712, filePageId = 0, swapperId = 2, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 2, address = 4516347904, filePageId = 0, swapperId = 3, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 3, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 4, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 5, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 6, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 7&quot;
+fs = {DefaultFileSystemAbstraction@1772} 
+logProvider = {FormattedLogProvider@3221} 
+propertyKeyTokenHolder = {DelegatingPropertyKeyTokenHolder@2506} 
+labelTokens = {DelegatingLabelTokenHolder@2495} 
+relationshipTypeTokens = {DelegatingRelationshipTypeTokenHolder@2480} 
+schemaState = {DatabaseSchemaState@3478} 
+constraintSemantics = {StandardConstraintSemantics@2499} 
+scheduler = {Neo4jJobScheduler@1778} 
+tokenNameLookup = {NonTransactionalTokenNameLookup@2487} 
+lockService = {ReentrantLockService@3222} 
+indexProviderMap = {DefaultSchemaIndexProviderMap@3483} 
+indexingServiceMonitor = {$Proxy16@3223} &quot;null&quot;
+databaseHealth = {DatabaseHealth@2485} 
+explicitIndexProviderLookup = {NeoStoreDataSource$1@3226} 
+indexConfigStore = {IndexConfigStore@3473} 
+explicitIndexTransactionOrdering = {SynchronizedArrayIdOrderingQueue@3479} 
+idGeneratorFactory = {BufferingIdGeneratorFactory@2494} 
+idController = {BufferedIdController@2493} 
+monitors = {Monitors@2498} 
+recoveryCleanupWorkCollector = {GroupingRecoveryCleanupWorkCollector@2501} 
+operationalMode = {OperationalMode@2489} &quot;single&quot;
+</code></pre>
+
+<p>然后构造方法走完了：</p>
+
+<pre><code class="language-java">storeDir = {File@1774} &quot;/Users/dengziming/opt/soft/neo4j-community-3.2.6/data/databases/graph.db&quot;
+config = {Config@1362} &quot;dbms.connector.bolt.enabled=true, dbms.connector.http.enabled=true, dbms.connector.https.enabled=true, dbms.connectors.default_listen_address=localhost, dbms.directories.import=import, dbms.jvm.additional=-Dunsupported.dbms.udc.source=tarball, dbms.security.auth_enabled=true, dbms.tx_log.rotation.retention_policy=1 days, dbms.windows_service_name=neo4j, unsupported.dbms.block_size.array_properties=120, unsupported.dbms.block_size.labels=56, unsupported.dbms.block_size.strings=120, unsupported.dbms.directories.neo4j_home=/Users/dengziming/opt/soft/neo4j-community-3.2.6, unsupported.dbms.edition=community&quot;
+pageCache = {MuninnPageCache@1773} Method threw 'java.lang.OutOfMemoryError' exception. Cannot evaluate org.neo4j.io.pagecache.impl.muninn.MuninnPageCache.toString()
+fs = {DefaultFileSystemAbstraction@1772} 
+logProvider = {FormattedLogProvider@3221} 
+propertyKeyTokenHolder = {DelegatingPropertyKeyTokenHolder@2506} 
+labelTokens = {DelegatingLabelTokenHolder@2495} 
+relationshipTypeTokens = {DelegatingRelationshipTypeTokenHolder@2480} 
+schemaState = {DatabaseSchemaState@3478} 
+constraintSemantics = {StandardConstraintSemantics@2499} 
+scheduler = {Neo4jJobScheduler@1778} 
+tokenNameLookup = {NonTransactionalTokenNameLookup@2487} 
+lockService = {ReentrantLockService@3222} 
+indexProviderMap = {DefaultSchemaIndexProviderMap@3483} 
+indexingServiceMonitor = {$Proxy16@3223} &quot;null&quot;
+databaseHealth = {DatabaseHealth@2485} 
+explicitIndexProviderLookup = {NeoStoreDataSource$1@3226} 
+indexConfigStore = {IndexConfigStore@3473} 
+explicitIndexTransactionOrdering = {SynchronizedArrayIdOrderingQueue@3479} 
+idGeneratorFactory = {BufferingIdGeneratorFactory@2494} 
+idController = {BufferedIdController@2493} 
+monitors = {Monitors@2498} 
+recoveryCleanupWorkCollector = {GroupingRecoveryCleanupWorkCollector@2501} 
+operationalMode = {OperationalMode@2489} &quot;single&quot;
+factory = {StoreFactory@3550} 
+neoStoreIndexStoreView = {NeoStoreIndexStoreView@3785} 
+readOnly = {Boolean@3786} &quot;false&quot;
+neoStores = {NeoStores@3549} 
+</code></pre>
+
+<p>然后会调用 init 和 start 方法。</p>
+
+<h4 id="3-recordstorageengine-属性分析">(3). RecordStorageEngine 属性分析</h4>
+
+<ol>
+<li>storeDir</li>
+</ol>
+
+<p>File类型，一开始启动参数设置的路径</p>
+
+<ol>
+<li>Config</li>
+</ol>
+
+<p>配置</p>
+
+<ol>
+<li>pageCache = {MuninnPageCache@1773}</li>
+</ol>
+
+<p>pageCache = {MuninnPageCache@1773} &ldquo;MuninnPageCache[ \n Page[ id = 0, address = 4516331520, filePageId = 0, swapperId = 1, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 1, address = 4516339712, filePageId = 0, swapperId = 2, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 2, address = 4516347904, filePageId = 0, swapperId = 3, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 3, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 4, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 5, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 6, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 7&rdquo;
+通过一个 re-usable cursor 来缓存和读取 cache 的内容，可以通过运行 MuninnPageCacheTest 的单元测试查看功能。</p>
+
+<ol>
+<li>fs = {DefaultFileSystemAbstraction@1772}</li>
+</ol>
+
+<p>基于java的NIO 文件系统进行一个封装，。</p>
+
+<ol>
+<li>logProvider = {FormattedLogProvider@3221}</li>
+</ol>
+
+<p>进行日志打印</p>
+
+<ol>
+<li>TokenHolder</li>
+</ol>
+
+<p>propertyKeyTokenHolder = {DelegatingPropertyKeyTokenHolder@2506}
+labelTokens = {DelegatingLabelTokenHolder@2495}
+relationshipTypeTokens = {DelegatingRelationshipTypeTokenHolder@2480}
+后面的 cacheAccess storeLayer 会用到这三个 。</p>
+
+<ol>
+<li>schemaState = {DatabaseSchemaState@3478}</li>
+</ol>
+
+<p>存储一些状态，例如 cypher 的执行计划</p>
+
+<ol>
+<li>constraintSemantics = {StandardConstraintSemantics@2499}</li>
+</ol>
+
+<p>里面的方法都是抛异常。
+schemaCache 和后面的 txStateVisitor 用到了他</p>
+
+<ol>
+<li>scheduler = {Neo4jJobScheduler@1778}</li>
+</ol>
+
+<p>里面是一个 synchronizedSet ，用于放任务。
+indexingService 用到了他</p>
+
+<ol>
+<li>tokenNameLookup = {NonTransactionalTokenNameLookup@2487}</li>
+</ol>
+
+<p>包含了上面的三个 TokenHolder
+indexingService 用到了他</p>
+
+<ol>
+<li>lockService = {ReentrantLockService@3222}</li>
+</ol>
+
+<p>一个读写锁，通过不区分读写实现同步
+indexStoreView 用到了他</p>
+
+<ol>
+<li>indexProviderMap = {DefaultSchemaIndexProviderMap@3483}</li>
+</ol>
+
+<p>提供索引
+indexingService 用到了他</p>
+
+<ol>
+<li>indexingServiceMonitor = {$Proxy16@3223} &ldquo;null&rdquo;</li>
+</ol>
+
+<p>indexingService 用到了他</p>
+
+<ol>
+<li>databaseHealth = {DatabaseHealth@2485}</li>
+</ol>
+
+<p>集群健康状态</p>
+
+<ol>
+<li>explicitIndexProviderLookup = {NeoStoreDataSource$1@3226}</li>
+</ol>
+
+<p>貌似是查找索引用的。NeoStoreDataSource$1 是啥意思还没搞懂。。</p>
+
+<ol>
+<li>indexConfigStore = {IndexConfigStore@3473}</li>
+</ol>
+
+<p>索引属性</p>
+
+<ol>
+<li>explicitIndexTransactionOrdering = {SynchronizedArrayIdOrderingQueue@3479}</li>
+</ol>
+
+<p>和上面两个合作，</p>
+
+<ol>
+<li>idGeneratorFactory = {BufferingIdGeneratorFactory@2494}</li>
+</ol>
+
+<p>封装 IdGenerator</p>
+
+<p>StoreFactory factory = new StoreFactory( storeDir, config, idGeneratorFactory, pageCache, fs, logProvider );</p>
+
+<ol>
+<li>idController = {BufferedIdController@2493}</li>
+</ol>
+
+<p>BufferedIdController safely free and reuse ids.</p>
+
+<ol>
+<li>monitors = {Monitors@2498}</li>
+</ol>
+
+<p>监控</p>
+
+<ol>
+<li>recoveryCleanupWorkCollector = {GroupingRecoveryCleanupWorkCollector@2501}</li>
+</ol>
+
+<p>略</p>
+
+<ol>
+<li>operationalMode = {OperationalMode@2489} &ldquo;single&rdquo;</li>
+</ol>
+
+<p>略</p>
+
+<ol>
+<li>factory = {StoreFactory@3550}</li>
+</ol>
+
+<p>StoreFactory factory = new StoreFactory( storeDir, config, idGeneratorFactory, pageCache, fs, logProvider );</p>
+
+<pre><code class="language-java">    {
+        this.config = config;
+        this.idGeneratorFactory = idGeneratorFactory;
+        this.fileSystemAbstraction = fileSystemAbstraction;
+        this.recordFormats = recordFormats;
+        this.openOptions = openOptions;
+        new RecordFormatPropertyConfigurator( recordFormats, config ).configure();
+
+        this.logProvider = logProvider;
+        this.neoStoreFileName = new File( storeDir, storeName );
+        this.pageCache = pageCache;
+    }
+</code></pre>
+
+<p>存储工厂实现，也可以用来创建空工厂。</p>
+
+<ol>
+<li><p>neoStoreIndexStoreView = {NeoStoreIndexStoreView@3785}</p></li>
+
+<li><p>neoStores = {NeoStores@3549}</p></li>
+</ol>
+
+<p>neoStores = factory.openAllNeoStores( true );</p>
+
+<pre><code class="language-java">new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,
+                fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );
+</code></pre>
+
+<h4 id="3-recordstorageengine-init和start">(3). RecordStorageEngine init和start</h4>
+
+<p>上面我们已经大概明白了每个类的作用，首先我们：<code>StoreFactory factory = new StoreFactory( storeDir, config, idGeneratorFactory, pageCache, fs, logProvider );</code></p>
+
+<p>然后是： <code>neoStores = factory.openAllNeoStores( true );</code></p>
+
+<p>然后是从 neoStores 出发，新建一系列和存储有关的属性。</p>
+
+<pre><code class="language-java">indexUpdatesConverter = new PropertyPhysicalToLogicalConverter( neoStores.getPropertyStore() );
+schemaStorage = new SchemaStorage( neoStores.getSchemaStore() );
+NeoStoreIndexStoreView neoStoreIndexStoreView = new NeoStoreIndexStoreView( lockService, neoStores );
+indexStoreView = new DynamicIndexStoreView( neoStoreIndexStoreView, labelScanStore, lockService, neoStores, logProvider );
+schemaIndexProviderMap = indexProviderMap;
+indexingService = IndexingServiceFactory.createIndexingService( config, scheduler, schemaIndexProviderMap,
+        indexStoreView, tokenNameLookup,
+        Iterators.asList( new SchemaStorage( neoStores.getSchemaStore() ).indexesGetAll() ), logProvider,
+        indexingServiceMonitor, schemaState );
+
+integrityValidator = new IntegrityValidator( neoStores, indexingService );
+storeStatementSupplier = storeStatementSupplier( neoStores );
+            storeLayer = new StorageLayer(
+                    propertyKeyTokenHolder, labelTokens, relationshipTypeTokens,
+                    schemaStorage, neoStores, indexingService,
+                    storeStatementSupplier, schemaCache );
+</code></pre>
+
+<p>构造方法完了就是init和start</p>
+
+<pre><code class="language-java">@Override
+public void init() throws Throwable
+{
+    indexingService.init(); -- 所以服务
+    labelScanStore.init();  -- Label存储
+}
+
+@Override
+public void start() throws Throwable
+{
+    neoStores.makeStoreOk();
+
+    propertyKeyTokenHolder.setInitialTokens(
+            neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
+    relationshipTypeTokenHolder.setInitialTokens(
+            neoStores.getRelationshipTypeTokenStore().getTokens( Integer.MAX_VALUE ) );
+    labelTokenHolder.setInitialTokens(
+            neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
+
+    neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
+    loadSchemaCache();
+    indexingService.start();
+    labelScanStore.start();
+    idController.start();
+}
+</code></pre>
+
+<p>一步一步看：
+1. indexingService.init();</p>
+
+<pre><code class="language-java">// Each index has an {@link org.neo4j.kernel.impl.store.record.IndexRule}
+// 遍历每一个 IndexRule ，
+IndexProxy indexProxy;
+
+long indexId = indexRule.getId();
+IndexDescriptor descriptor = indexRule.getIndexDescriptor();
+SchemaIndexProvider.Descriptor providerDescriptor = indexRule.getProviderDescriptor();
+SchemaIndexProvider provider = providerMap.apply( providerDescriptor );
+InternalIndexState initialState = provider.getInitialState( indexId, descriptor );
+indexStates.computeIfAbsent( initialState, internalIndexState -&gt; new ArrayList&lt;&gt;() )
+.add( new IndexLogRecord( indexId, descriptor ) );
+
+log.debug( indexStateInfo( &quot;init&quot;, indexId, initialState, descriptor ) );
+switch ( initialState )
+{
+case ONLINE:
+    indexProxy =
+    indexProxyCreator.createOnlineIndexProxy( indexId, descriptor, providerDescriptor );
+    break;
+case POPULATING:
+    // The database was shut down during population, or a crash has occurred, or some other sad thing.
+    indexProxy = indexProxyCreator.createRecoveringIndexProxy( descriptor, providerDescriptor );
+    break;
+case FAILED:
+    IndexPopulationFailure failure = failure( provider.getPopulationFailure( indexId ) );
+    indexProxy = indexProxyCreator
+            .createFailedIndexProxy( indexId, descriptor, providerDescriptor, failure );
+    break;
+default:
+    throw new IllegalArgumentException( &quot;&quot; + initialState );
+}
+indexMap.putIndexProxy( indexId, indexProxy );
+</code></pre>
+
+<p>由于我的数据库没有建索引，所以这里就不调试了，接下来建了索引再说。</p>
+
+<ol>
+<li><code>labelScanStore.init();</code></li>
+</ol>
+
+<p>通过 GBPTree 实现</p>
+
+<pre><code class="language-java">-- which is implemented using {@link GBPTree}
+@link GBPTree 是一种算法，减少树结构合并时候的冲突。
+</code></pre>
+
+<ol>
+<li><p>indexingService.start();</p></li>
+
+<li><p>labelScanStore.start();</p></li>
+
+<li><p>idController.start();</p></li>
+</ol>
+
+<h3 id="2-recordstorageengine-分析">2. RecordStorageEngine 分析</h3>
+
+<p>上一节我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。
+我看了一下 先不看了，剩下的12个重要性稍微低一点。我们先看我们最感兴趣的。</p>
+
+<p>PageCache</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/neo4j/">neo4j</a>
+          
+          <a href="/tags/%E5%9B%BE%E6%95%B0%E6%8D%AE%E5%BA%93/">图数据库</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">neo4j源码分析2-启动源码跟踪</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/">
+            <span class="next-text nav-default">neo4j源码分析3-LifeCycle查看</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'neo4j源码分析3-LifeCycle查看',
+    link: decodeURI(location.href),
+    desc: '一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>
