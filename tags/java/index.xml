@@ -864,6 +864,8 @@ This selector mechanism makes it easy for a single thread to manage multiple cha
 java的bin目录下处理java和javac是常用工具，但是还有一些其他的工具。jdk官方说的是这些不一定可靠，但是实际上这些最可靠了。&lt;/p&gt;
 
 &lt;h2 id=&#34;一-介绍&#34;&gt;一、介绍&lt;/h2&gt;
+
+&lt;p&gt;工具都在bin 目录下，&lt;/p&gt;
 </description>
       
     </item>

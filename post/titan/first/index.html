@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 一、下载编译" />
+  <meta name="description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -50,7 +50,7 @@
 
 
 <meta property="og:title" content="janusgraph源码分析1-下载编译启动" />
-<meta property="og:description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 一、下载编译" />
+<meta property="og:description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/titan/first/" />
 
@@ -70,17 +70,17 @@
 
 
 <meta itemprop="name" content="janusgraph源码分析1-下载编译启动">
-<meta itemprop="description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 一、下载编译">
+<meta itemprop="description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="59">
+<meta itemprop="wordCount" content="1754">
 
 
 
 <meta itemprop="keywords" content="源码,janusgraph," />
 <meta name="twitter:card" content="summary"/><meta name="twitter:title" content="janusgraph源码分析1-下载编译启动"/>
-<meta name="twitter:description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 一、下载编译"/>
+<meta name="twitter:description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -179,8 +179,8 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 59 words </span>
-        <span class="more-meta"> 1 min read </span>
+        <span class="more-meta"> 1754 words </span>
+        <span class="more-meta"> 4 min read </span>
       </div>
     </header>
 
@@ -206,9 +206,153 @@
       
 
 <p>#
-研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了</p>
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+<code>https://github.com/JanusGraph/janusgraph</code>和<code>http://janusgraph.org/</code></p>
 
 <h2 id="一-下载编译">一、下载编译</h2>
+
+<p>我直接使用github desktop打开了 janusgraph 的源码，使用IDEA打开，然后编译：</p>
+
+<pre><code class="language-bash"># 编译完整的
+mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+# 只编译core部分
+mvn -pl janusgraph-core -am clean install -Dlicense.skip=true -DskipTests -P prod
+</code></pre>
+
+<p>我们在 <code>janusgraph-test</code> 下面编写一个例子 <code>FirstTest</code>：</p>
+
+<pre><code class="language-java">public class FirstTest {
+
+    public static void main(String[] args) {
+
+        /*
+         * The example below will open a JanusGraph graph instance and load The Graph of the Gods dataset diagrammed above.
+         * JanusGraphFactory provides a set of static open methods,
+         * each of which takes a configuration as its argument and returns a graph instance.
+         * This tutorial calls one of these open methods on a configuration
+         * that uses the BerkeleyDB storage backend and the Elasticsearch index backend,
+         * then loads The Graph of the Gods using the helper class GraphOfTheGodsFactory.
+         * This section skips over the configuration details, but additional information about storage backends,
+         * index backends, and their configuration are available in
+         * Part III, “Storage Backends”, Part IV, “Index Backends”, and Chapter 13, Configuration Reference.
+         */
+
+        // Loading the Graph of the Gods Into JanusGraph
+        JanusGraph graph = JanusGraphFactory
+                .open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;);
+
+        GraphOfTheGodsFactory.load(graph);
+        GraphTraversalSource g = graph.traversal();
+
+        /*
+         * The typical pattern for accessing data in a graph database is to first locate the entry point into the graph
+         * using a graph index. That entry point is an element (or set of elements) 
+         * — i.e. a vertex or edge. From the entry elements,
+         * a Gremlin path description describes how to traverse to other elements in the graph via the explicit graph structure.
+         * Given that there is a unique index on name property, the Saturn vertex can be retrieved.
+         * The property map (i.e. the key/value pairs of Saturn) can then be examined.
+         * As demonstrated, the Saturn vertex has a name of &quot;saturn, &quot; an age of 10000, and a type of &quot;titan.&quot;
+         * The grandchild of Saturn can be retrieved with a traversal that expresses:
+         * &quot;Who is Saturn’s grandchild?&quot; (the inverse of &quot;father&quot; is &quot;child&quot;). The result is Hercules.
+         */
+        // Global Graph Indices
+        Vertex saturn = g.V().has(&quot;name&quot;, &quot;saturn&quot;).next();
+        GraphTraversal&lt;Vertex, Map&lt;String, Object&gt;&gt; vertexMapGraphTraversal = g.V(saturn).valueMap();
+
+        GraphTraversal&lt;Vertex, Object&gt; values = g.V(saturn).in(&quot;father&quot;).in(&quot;father&quot;).values(&quot;name&quot;);
+
+        /*
+         * The property place is also in a graph index. The property place is an edge property.
+         * Therefore, JanusGraph can index edges in a graph index.
+         * It is possible to query The Graph of the Gods for all events that have happened within 50 kilometers of Athens
+          * (latitude:37.97 and long:23.72).
+          * Then, given that information, which vertices were involved in those events.
+         */
+		System.out.println(g.E().has(&quot;place&quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50))));
+        System.out.println(g.E().has(&quot;place&quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&quot;source&quot;).inV()
+                .as(&quot;god2&quot;)
+                .select(&quot;source&quot;).outV()
+                .as(&quot;god1&quot;).select(&quot;god1&quot;, &quot;god2&quot;)
+                .by(&quot;name&quot;));
+    }
+
+}
+</code></pre>
+
+<p>然后在&rdquo;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&rdquo; 文件中，将注释掉的内容取消注释。</p>
+
+<p>运行发现依赖挺麻烦。
+首先运行报错了：</p>
+
+<pre><code>Exception in thread &quot;main&quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.berkeleyje.BerkeleyJEStoreManager
+</code></pre>
+
+<p>找到报错处的代码，我们发现 <code>janusgraph-core</code> 中通过反射创建一个类，但是这个类在 <code>janusgraph-berkeleyje</code> 中，而前者不依赖后者，所以找不到这个类，我们可以将后者加到前者的依赖，
+但是我们发现后者依赖前者，如果加了依赖两个就相互依赖了，这是 Janus 官方设计的问题。我们只好在 FirstTest 所在的module中把两个依赖都加进来试试。
+（注意，如果我们将所有的都打进一个包，这个问题就不存在了，但是在本地运行是不一样的，各自模块的编译输出文件在不同的地方。）在 <code>janusgraph-test</code> 中添加：</p>
+
+<pre><code class="language-xml">        &lt;dependency&gt;
+            &lt;groupId&gt;org.janusgraph&lt;/groupId&gt;
+            &lt;artifactId&gt;janusgraph-berkeleyje&lt;/artifactId&gt;
+            &lt;version&gt;0.3.0-SNAPSHOT&lt;/version&gt;
+        &lt;/dependency&gt;
+</code></pre>
+
+<p>发现 <code>janusgraph-berkeleyje</code>也依赖了 <code>janusgraph-test</code>,又相互依赖了，好麻烦。我们写写代码一定要注意这个问题。这里我的解决方法是直接把 代码放到 <code>janusgraph-berkeleyje</code> 中运行。</p>
+
+<pre><code>Exception in thread &quot;main&quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.es.ElasticSearchIndex
+</code></pre>
+
+<p>和上面一样，还依赖了 <code>janusgraph-es</code>,我只好吧代码复制到 <code>janusgraph-es</code> 的test代码块中运行（注意一点是test代码中），顺便在 <code>janusgraph-es</code> 中 添加上<code>janusgraph-berkeleyje</code>的依赖。
+运行成功了，但是报了连接失败，是因为我本地没有启动es，我启动一下es：<code>elasticsearch</code>
+然后在运行：</p>
+
+<pre><code class="language-java">Exception in thread &quot;main&quot; org.janusgraph.core.SchemaViolationException: Adding this property for key [~T$SchemaName] and value [rtname] violates a uniqueness constraint [SystemIndex#~T$SchemaName]
+</code></pre>
+
+<p>经过google查到原因： <a href="https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k">https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k</a></p>
+
+<pre><code>This exception is thrown only when you already have added property key to index. So &quot;name&quot; is already added and next time when you run your program somewhere it is again adding &quot;name&quot; property key. So check if that particular code is running twice
+</code></pre>
+
+<p>然后我们可以在我们传入的配置文件找到：storage.directory=../db/berkeley  ，直接删除这个目录，再重新运行，就成功了：</p>
+
+<pre><code>11:20:17,051  INFO GraphDatabaseConfiguration:1285 - Set default timestamp provider MICRO
+11:20:17,296  INFO GraphDatabaseConfiguration:1492 - Generated unique-instance-id=c0a815a789637-dengzimings-MacBook-Pro-local1
+11:20:17,547  INFO Backend:462 - Configuring index [search]
+11:20:19,279  INFO Backend:177 - Initiated backend operations thread pool of size 8
+11:20:19,461  INFO KCVSLog:753 - Loaded unidentified ReadMarker start time 2018-04-26T03:20:19.408Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@73cd37c0
+[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])]
+[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])@[source], EdgeVertexStep(IN)@[god2], SelectOneStep(last,source), EdgeVertexStep(OUT)@[god1], SelectStep(last,[god1, god2],[value(name)])]
+11:20:29,578  INFO ManagementLogger:192 - Received all acknowledgements for eviction [1]
+</code></pre>
+
+<p>然后我们可以去 ../db/berkeley  目录查看，多了一些文件，这些文件的作用我们后续再分析。
+然后我们取es查看：<code>curl -XGET 'localhost:9200/_cat/indices?v&amp;pretty'</code> ，发现多了两个index:</p>
+
+<pre><code>yellow open   janusgraph_edges    QT-E7AV6SMWr8Cu_ywKsXg   5   1          6            0     13.7kb         13.7kb
+yellow open   janusgraph_vertices gE4TSXFATnSZUWYdAf46Xg   5   1          6            0     10.9kb         10.9kb
+</code></pre>
+
+<p>还可以具体查看内容。例如名字是titan的内容：<code>curl -XGET 'localhost:9200/janusgraph_vertices/_search?q=name:titan&amp;pretty'</code></p>
+
+<p>到现在我们第一个案例就结束了。</p>
+
+<pre><code class="language-java">g.E().has(&quot;place&quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&quot;source&quot;).inV()
+                .as(&quot;god2&quot;)
+                .select(&quot;source&quot;).outV()
+                .as(&quot;god1&quot;).select(&quot;god1&quot;, &quot;god2&quot;)
+                .by(&quot;name&quot;)
+</code></pre>
+
+<p>这种风格的代码实际上是groovy语言的代码，大家可以研究一下groovy语言。</p>
+
+<p>注意事项：
+上述第一次运行问题的原因是 <code>janusgraph-core</code>需要用到 <code>janusgraph-berkeleyje</code>的类，
+但是<code>janusgraph-berkeleyje</code>是依赖 <code>janusgraph-core</code>的，所以两个相互依赖了。
+janus的做法是在core中使用反射，所以编译通过了，打包到了一起就没问题了。但是本地运行没法成功。</p>
 
     </div>
 
@@ -262,9 +406,9 @@
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/java/javanio/">
+          <a class="prev" href="/post/es/es%E6%9E%B6%E6%9E%84-2/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">JavaNIO</span>
+            <span class="prev-text nav-default">es架构-2</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
@@ -289,7 +433,7 @@
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
     title: 'janusgraph源码分析1-下载编译启动',
     link: decodeURI(location.href),
-    desc: '# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 一、下载编译',
+    desc: '# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https:\/\/github.co',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

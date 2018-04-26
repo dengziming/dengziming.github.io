@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>es架构-2 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="es架构-2" />
+<meta property="og:description" content="es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="es架构-2">
+<meta itemprop="description" content="es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="1938">
+
+
+
+<meta itemprop="keywords" content="架构,大数据," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="es架构-2"/>
+<meta name="twitter:description" content="es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">es架构-2</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/es/"> es </a>
+            
+          </div>
+        <span class="more-meta"> 1938 words </span>
+        <span class="more-meta"> 4 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-anatomy-of-an-elasticsearch-cluster-2">一、Anatomy of an Elasticsearch Cluster -2</a>
+<ul>
+<li><a href="#1-consensus-split-brain-problem-and-importance-of-quorum">1. Consensus- Split-brain problem and importance of quorum</a></li>
+<li><a href="#2-concurrency">2. Concurrency</a></li>
+<li><a href="#3-consistency-ensuring-consistent-writes-and-reads">3. Consistency — Ensuring consistent writes and reads</a></li>
+<li><a href="#2-translog">2. Translog</a></li>
+<li><a href="#3-lucene-segments">3.Lucene Segments</a></li>
+</ul></li>
+<li><a href="#what-next">What next?</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<p>es设计架构，良心参考资料：
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db</a>
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571</a>
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d</a></p>
+
+<h2 id="一-anatomy-of-an-elasticsearch-cluster-2">一、Anatomy of an Elasticsearch Cluster -2</h2>
+
+<p>上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这一节的内容主要包括：
+Consensus — split-brain problem and importance of quorum
+Concurrency
+Consistency: Ensuring consistent writes and reads
+Translog (Write Ahead Log — WAL)
+Lucene segments</p>
+
+<h3 id="1-consensus-split-brain-problem-and-importance-of-quorum">1. Consensus- Split-brain problem and importance of quorum</h3>
+
+<p>Consensus 算法包括 Raft、Paxos等，为了解决一致性问题，es的一致性算法有两个部分：</p>
+
+<p>Ping: The process nodes use to discover each other
+Unicast: The module that contains a list of hostnames to control which nodes to ping</p>
+
+<p>es是一个P2P的系统，所有节点都和其他节点沟通，有一个主节点，控制和更新集群操作。一个新的集群需要经过选举，一个节点被选为master，其他的加入master。
+As nodes join, they send a join request to the master with a default join_timeout which is 20 times the ping_timeout.
+如果mster节点挂了，cluster重新开始ping，开始新的选举。这种ping过程也帮忙解决脑裂（某个节点突然觉得maste挂了，开始寻找新master）</p>
+
+<p>为了容错，master会ping 所有的 节点去检查是否 alive然后节点会ping master进行response。
+默认配置下，es可能会有脑裂， 由于 network partition,a node 觉得 master 已经 failed然后自己当上master，导致连个master。
+This may result in data loss and it may not be possible to merge the data correctly.
+This can be avoided by setting the following property to a quorum of master eligible nodes.
+<code>discovery.zen.minimum_master_nodes = int(# of master eligible nodes/2)+1</code></p>
+
+<p>设置这个配置之后，需要有 quorum of active master eligible nodes 参加完成master选举过程，并接受他的master身份。
+This is an extremely important property to ensure cluster stability and can be dynamically updated if the cluster size changes.
+NOTE: For a production cluster, it is recommended to have 3 dedicated master nodes, which do not serve any client requests, out of which 1 is active at any given time.</p>
+
+<p>这就是 Consensus 的内容</p>
+
+<h3 id="2-concurrency">2. Concurrency</h3>
+
+<p>对于高并发，es使用 optimistic concurrency control 乐冠锁进行控制，保证新纪录不被就记录覆盖。
+每个document indexed 有一个 version number which is incremented with every change applied to that document。保证每次更新都能按照顺序。
+为了保证数据不丢失，es可以让你自己指定id，如果你指定的id比present的小，更新就失败了。
+How failed requests are handled can be controlled at the application level.
+There are also other locking options available and you can read about them：<a href="https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html">https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html</a>.</p>
+
+<h3 id="3-consistency-ensuring-consistent-writes-and-reads">3. Consistency — Ensuring consistent writes and reads</h3>
+
+<p>写一致
+对于怎样算写成功，可以设置 available的 shards 数量
+The available options are quorum, one and all. By default it is set to quorum and that means that a write operation will be permitted only if a majority of the shards are available.</p>
+
+<p>尽管大多数available，也有可能出错。the replica is said to be faulty and the shard would be rebuilt on a different node.</p>
+
+<p>读一致：
+new documents are not available for search until after the refresh interval.
+为了保证读到最新的document，replication can be set to sync (default) 。这样只有 primary and replica shards 都写完了才会返回 write request 。
+这样，从任何一个shard查询，都将返回最新的document。
+Even if your application requires replication=async for higher indexing rate, there is a _preference parameter which can be set to primary for search requests.
+这样，查询都走 primary shard ，保证结果都来自最新版本。</p>
+
+<h3 id="2-translog">2. Translog</h3>
+
+<p>WAL来自关系型数据库的世界，translog保证事件失败时候的数据完整性，通过底层的原则 :在将数据提交到磁盘的实际更改之前，必须记录并提交预期的更改。</p>
+
+<p>当新 document被index，或者旧的更改，Lucene index会改变，然后改变会被提交到磁盘进行持久化。每次update都进行提交很expensive，更好地办法是一次性提交很多。
+上一节提到的，flush操作默认30min一次或者translog太大，这样的话，有可能丢失30min的数据。为了避免这个问题，es使用translog，update操作都将被写到translog，
+translog is fsync’ed after every index/delete/update operation (or every 5 sec by default) 保证改变被持久化。
+The client receives acknowledgement for writes after the translog is fsync’ed on both primary and replica shards.</p>
+
+<p>当两次flush之间出现问题，translog将会重新执行，从而恢复丢失的change，
+NOTE: It is recommended to explicitly flush the translog before restarting Elasticsearch instances,
+as the startup will be faster because the translog to be replayed will be empty.
+POST /_all/_flush command can be used to flush all indices in the cluster.</p>
+
+<p>上面已经说了translog的flush操作，segments文件会被提交到磁盘来保证改变持久化。接下来我们看看什么是lucene的 segment。</p>
+
+<h3 id="3-lucene-segments">3.Lucene Segments</h3>
+
+<p>Lucene索引由多个段组成，并且段本身是一个全功能倒置索引。
+是不可变的，它允许Lucene在不从头开始重建索引的情况下增量地向索引添加新文档。
+对于每一个搜索请求，索引中的所有段都被搜索，并且每个段消耗CPU周期、文件句柄和内存。这意味着段数越高，搜索性能就越低。
+为了解决这个问题，es将小的段合并成更大的段，将新合并的段提交到磁盘并删除旧的较小的段。
+对于搜索请求，搜索给定的弹性搜索索引碎片中的所有Lucene段，但是，在排名结果中提取所有匹配的文档或文档对于弹性搜索集群是危险的。</p>
+
+<h2 id="what-next">What next?</h2>
+
+<p>在后续文章中，我们将看到这一点，并回顾下面的主题，其中包括在弹性搜索中进行的一些权衡，以在低延迟下服务相关搜索结果。</p>
+
+<p>lit brain problem in Elasticsearch and how to avoid it
+Transaction log
+Lucene segments
+Why deep pagination during search is dangerous?
+Difficulties and trade-offs in calculating search relevance
+Concurrency control
+Why is Elasticsearch near real-time?
+How to ensure consistent writes and reads?</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/%E6%9E%B6%E6%9E%84/">架构</a>
+          
+          <a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/">大数据</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/es/es%E6%9E%B6%E6%9E%84-1/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">es架构-1</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/titan/first/">
+            <span class="next-text nav-default">janusgraph源码分析1-下载编译启动</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'es架构-2',
+    link: decodeURI(location.href),
+    desc: 'es设计架构，良心参考资料： https:\/\/blog.insightdatascience.com\/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https:\/\/blog.insightdatascience.com\/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https:\/\/blog.insightdatascience.com\/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

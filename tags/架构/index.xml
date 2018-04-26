@@ -767,5 +767,280 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
       
     </item>
     
+    <item>
+      <title>es架构-1</title>
+      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</guid>
+      
+        <description>
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster&#34;&gt;一、Anatomy of an Elasticsearch Cluster&lt;/h2&gt;
+
+&lt;p&gt;很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要覆盖了es的底层结构、数据原型、读写过程。es的功能主要有：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;全文搜索
+例如：怎么找到Wikipedia上面和某个名字最相关的文章&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;聚合&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;例如 显示广告网络上面的词条出价直方图&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;地理空间API&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;例如：设计一个能找到和骑手最近司机的骑行分享平台&lt;/p&gt;
+
+&lt;p&gt;接下来就是内容，主要有以下几个方面：
+1. 是主从架构还是无主架构
+2. 存储模型
+3. 读写工作流程
+4. 搜索结果怎么相关&lt;/p&gt;
+
+&lt;h3 id=&#34;1-the-confusion-between-elasticsearch-index-and-lucene-index-other-common-terms&#34;&gt;1.The confusion between Elasticsearch Index and Lucene Index + other common terms…&lt;/h3&gt;
+
+&lt;p&gt;es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。
+每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-types-of-nodes&#34;&gt;2. Types of nodes&lt;/h3&gt;
+
+&lt;h4 id=&#34;1-master-node&#34;&gt;（1）Master Node&lt;/h4&gt;
+
+&lt;p&gt;控制集群，负责集群的操作，例如创建删除index，和集群的nodes联系，给节点分配shards。主节点一次处理一个集群状态，并将状态广播到所有节点，收到广播的节点对主节点进行确认回复。
+an be configured to be eligible to become a master node by setting the node.master property to be true (default) in elasticsearch.yml.
+大集群最好有专门的master node，去空值集群，不用处理任何用户请求&lt;/p&gt;
+
+&lt;h4 id=&#34;2-data-node&#34;&gt;（2） Data Node&lt;/h4&gt;
+
+&lt;p&gt;保存数据和倒排索引，By default, every node is configured to be a data node and the property node.data is set to true in elasticsearch.yml.
+If you would like to have a dedicated master node, then change the node.data property to false.&lt;/p&gt;
+
+&lt;h4 id=&#34;3-client-node&#34;&gt;（3）Client Node:&lt;/h4&gt;
+
+&lt;p&gt;If you set both node.master and node.data to false, then the node gets configured as a client node and acts as a load balancer routing incoming requests to different nodes in the cluster.&lt;/p&gt;
+
+&lt;h4 id=&#34;4-coordinating-node&#34;&gt;（4）coordinating node&lt;/h4&gt;
+
+&lt;p&gt;通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-storage-model&#34;&gt;2. Storage Model&lt;/h3&gt;
+
+&lt;p&gt;Elasticsearch uses Apache Lucene, a full-text search library written in Java and developed by Doug Cutting (creator of Apache Hadoop)。
+es内部通过倒排索引的数据结构，从而处理可能延迟的查询。es中 document 是数据的存储 unit，通过将document的词进行分词创建 inverted index ，倒排索引能够创建排序的term并将和这个term相关的document进行管理。
+和每本书背后的index类似，包含了很多词和那一页可以找到这些词，例如下面的两个document。&lt;/p&gt;
+
+&lt;p&gt;Doc 1: Insight Data Engineering Fellows Program
+Doc 2: Insight Data Science Fellows Program&lt;/p&gt;
+
+&lt;p&gt;If we want to find documents which contain the term “insight”, we can scan the inverted index (where words are sorted), find the word “insight” and return the document IDs which contain this word, which in this case would be Doc 1 and Doc 2.&lt;/p&gt;
+
+&lt;p&gt;为了更好的搜索性，文档先被分析。一般就是分词+标准化。&lt;/p&gt;
+
+&lt;p&gt;综上，我们知道每个document存储模型，存储了document，以及对他们分词后的倒排索引。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-anatomy-of-a-write&#34;&gt;3.Anatomy of a Write&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&amp;copy;reate&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;When you send a request to the coordinating node to index a new document, the following set of operations take place:&lt;/p&gt;
+
+&lt;p&gt;es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shardroute起来，
+es再通过murmur3 hash算法将documentId进行取值，得到shard。&lt;code&gt;shard = hash(document_id) % (num_of_primary_shards)&lt;/code&gt;。
+当节点收到 coordinating node 的reques，request会被写入到 translog中，document会被放进 memory buffer（&lt;a href=&#34;http://www.linfo.org/buffer.html），&#34;&gt;http://www.linfo.org/buffer.html），&lt;/a&gt;
+如果在primary shard上执行成功，reques也会被发送到 replica shard上，
+当 translog fsynced （&lt;a href=&#34;https://linux.die.net/man/2/fsync）&#34;&gt;https://linux.die.net/man/2/fsync）&lt;/a&gt; on all primary and replica shards.client receives acknowledgement that the request was successful。&lt;/p&gt;
+
+&lt;p&gt;memory buffer会周期性更新，contents会被写到一个 a new segment in filesystem cache ，
+This segment is not yet fsync’ed, however, the segment is open and the contents are available for search.&lt;/p&gt;
+
+&lt;p&gt;The translog is emptied and filesystem cache is fsync’ed every 30 minutes or when the translog gets too big. 这个过程称为flush
+the in-memory buffer is cleared and the contents are written to a new segment.
+A new commit point is created with the segments fsync’ed and flushed to disk. The old translog is deleted and a fresh one begins.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;(U)pdate and (D)elete&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;es的记录是无法更改的，删除和update实际上是新建，更改版本号。每个segment 都有一个 .del  file。
+When a delete request is sent, the document is not really deleted, but marked as deleted in the .del file.
+This document may still match a search query but is filtered out of the results.
+When segments are merged, the documents marked as deleted in the .del file are not included in the new merged segment.&lt;/p&gt;
+
+&lt;p&gt;update则是新建+删除，es给每个document一个version，每次改变，version都+增加，旧版本会被.del 文件标记为删除，
+和删除一样，This older document may still match a search query but is filtered out of the results.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Anatomy of a &amp;reg;ead
+Read operations consist of two parts:&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Query Phase
+Fetch Phase&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Query Phase
+coordinating node route the search request to all the shards (primary or replica) in the index.
+每个shard单独search，然后将结果放进一个优先队列，根据 relevance score (we’ll cover relevance score later in the post).
+所有 shards将结果汇总，创建一个新的优先队列，取出相关度最高的一部分。这个过程类似spark的topn&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Fetch Phase
+coordinating node 排好序之后，
+it then requests the original documents from all the shards. All the shards enrich the documents and return them to the coordinating node.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;相关度：tf/idf （term frequency/inverse document frequency）算法。
+tf 词频，在某文档出现的频率
+idf 出现过得所有文档数&lt;/p&gt;
+
+&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
+
+&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
+Transaction log
+Lucene segments
+Why deep pagination during search is dangerous?
+Difficulties and trade-offs in calculating search relevance
+Concurrency control
+Why is Elasticsearch near real-time?
+How to ensure consistent writes and reads?&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>es架构-2</title>
+      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</guid>
+      
+        <description>
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-2&#34;&gt;一、Anatomy of an Elasticsearch Cluster -2&lt;/h2&gt;
+
+&lt;p&gt;上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这一节的内容主要包括：
+Consensus — split-brain problem and importance of quorum
+Concurrency
+Consistency: Ensuring consistent writes and reads
+Translog (Write Ahead Log — WAL)
+Lucene segments&lt;/p&gt;
+
+&lt;h3 id=&#34;1-consensus-split-brain-problem-and-importance-of-quorum&#34;&gt;1. Consensus- Split-brain problem and importance of quorum&lt;/h3&gt;
+
+&lt;p&gt;Consensus 算法包括 Raft、Paxos等，为了解决一致性问题，es的一致性算法有两个部分：&lt;/p&gt;
+
+&lt;p&gt;Ping: The process nodes use to discover each other
+Unicast: The module that contains a list of hostnames to control which nodes to ping&lt;/p&gt;
+
+&lt;p&gt;es是一个P2P的系统，所有节点都和其他节点沟通，有一个主节点，控制和更新集群操作。一个新的集群需要经过选举，一个节点被选为master，其他的加入master。
+As nodes join, they send a join request to the master with a default join_timeout which is 20 times the ping_timeout.
+如果mster节点挂了，cluster重新开始ping，开始新的选举。这种ping过程也帮忙解决脑裂（某个节点突然觉得maste挂了，开始寻找新master）&lt;/p&gt;
+
+&lt;p&gt;为了容错，master会ping 所有的 节点去检查是否 alive然后节点会ping master进行response。
+默认配置下，es可能会有脑裂， 由于 network partition,a node 觉得 master 已经 failed然后自己当上master，导致连个master。
+This may result in data loss and it may not be possible to merge the data correctly.
+This can be avoided by setting the following property to a quorum of master eligible nodes.
+&lt;code&gt;discovery.zen.minimum_master_nodes = int(# of master eligible nodes/2)+1&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;设置这个配置之后，需要有 quorum of active master eligible nodes 参加完成master选举过程，并接受他的master身份。
+This is an extremely important property to ensure cluster stability and can be dynamically updated if the cluster size changes.
+NOTE: For a production cluster, it is recommended to have 3 dedicated master nodes, which do not serve any client requests, out of which 1 is active at any given time.&lt;/p&gt;
+
+&lt;p&gt;这就是 Consensus 的内容&lt;/p&gt;
+
+&lt;h3 id=&#34;2-concurrency&#34;&gt;2. Concurrency&lt;/h3&gt;
+
+&lt;p&gt;对于高并发，es使用 optimistic concurrency control 乐冠锁进行控制，保证新纪录不被就记录覆盖。
+每个document indexed 有一个 version number which is incremented with every change applied to that document。保证每次更新都能按照顺序。
+为了保证数据不丢失，es可以让你自己指定id，如果你指定的id比present的小，更新就失败了。
+How failed requests are handled can be controlled at the application level.
+There are also other locking options available and you can read about them：&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&#34;3-consistency-ensuring-consistent-writes-and-reads&#34;&gt;3. Consistency — Ensuring consistent writes and reads&lt;/h3&gt;
+
+&lt;p&gt;写一致
+对于怎样算写成功，可以设置 available的 shards 数量
+The available options are quorum, one and all. By default it is set to quorum and that means that a write operation will be permitted only if a majority of the shards are available.&lt;/p&gt;
+
+&lt;p&gt;尽管大多数available，也有可能出错。the replica is said to be faulty and the shard would be rebuilt on a different node.&lt;/p&gt;
+
+&lt;p&gt;读一致：
+new documents are not available for search until after the refresh interval.
+为了保证读到最新的document，replication can be set to sync (default) 。这样只有 primary and replica shards 都写完了才会返回 write request 。
+这样，从任何一个shard查询，都将返回最新的document。
+Even if your application requires replication=async for higher indexing rate, there is a _preference parameter which can be set to primary for search requests.
+这样，查询都走 primary shard ，保证结果都来自最新版本。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-translog&#34;&gt;2. Translog&lt;/h3&gt;
+
+&lt;p&gt;WAL来自关系型数据库的世界，translog保证事件失败时候的数据完整性，通过底层的原则 :在将数据提交到磁盘的实际更改之前，必须记录并提交预期的更改。&lt;/p&gt;
+
+&lt;p&gt;当新 document被index，或者旧的更改，Lucene index会改变，然后改变会被提交到磁盘进行持久化。每次update都进行提交很expensive，更好地办法是一次性提交很多。
+上一节提到的，flush操作默认30min一次或者translog太大，这样的话，有可能丢失30min的数据。为了避免这个问题，es使用translog，update操作都将被写到translog，
+translog is fsync’ed after every index/delete/update operation (or every 5 sec by default) 保证改变被持久化。
+The client receives acknowledgement for writes after the translog is fsync’ed on both primary and replica shards.&lt;/p&gt;
+
+&lt;p&gt;当两次flush之间出现问题，translog将会重新执行，从而恢复丢失的change，
+NOTE: It is recommended to explicitly flush the translog before restarting Elasticsearch instances,
+as the startup will be faster because the translog to be replayed will be empty.
+POST /_all/_flush command can be used to flush all indices in the cluster.&lt;/p&gt;
+
+&lt;p&gt;上面已经说了translog的flush操作，segments文件会被提交到磁盘来保证改变持久化。接下来我们看看什么是lucene的 segment。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-lucene-segments&#34;&gt;3.Lucene Segments&lt;/h3&gt;
+
+&lt;p&gt;Lucene索引由多个段组成，并且段本身是一个全功能倒置索引。
+是不可变的，它允许Lucene在不从头开始重建索引的情况下增量地向索引添加新文档。
+对于每一个搜索请求，索引中的所有段都被搜索，并且每个段消耗CPU周期、文件句柄和内存。这意味着段数越高，搜索性能就越低。
+为了解决这个问题，es将小的段合并成更大的段，将新合并的段提交到磁盘并删除旧的较小的段。
+对于搜索请求，搜索给定的弹性搜索索引碎片中的所有Lucene段，但是，在排名结果中提取所有匹配的文档或文档对于弹性搜索集群是危险的。&lt;/p&gt;
+
+&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
+
+&lt;p&gt;在后续文章中，我们将看到这一点，并回顾下面的主题，其中包括在弹性搜索中进行的一些权衡，以在低延迟下服务相关搜索结果。&lt;/p&gt;
+
+&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
+Transaction log
+Lucene segments
+Why deep pagination during search is dangerous?
+Difficulties and trade-offs in calculating search relevance
+Concurrency control
+Why is Elasticsearch near real-time?
+How to ensure consistent writes and reads?&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>数据库底层原理</title>
+      <link>https://dengziming.github.io/post/%E6%95%B0%E6%8D%AE%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E6%95%B0%E6%8D%AE%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/</guid>
+      
+        <description>&lt;p&gt;我不太喜欢一直把技术当黑箱使用，需要花时间理解底层原理。参考资料：&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;You can google by yourself “how does a relational database work” to see how few results there are. Moreover, those articles are short.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://coding-geek.com/how-does-a-hashmap-work-in-java/&#34;&gt;http://coding-geek.com/how-does-a-hashmap-work-in-java/&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
+    
   </channel>
 </rss>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>资料 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/%E8%B5%84%E6%96%99/</link>
+    <description>Recent content in 资料 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/%E8%B5%84%E6%96%99/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>资料地址</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;常用&#34;&gt;常用&lt;/h2&gt;
+
+&lt;p&gt;kafka reset offset
+&lt;a href=&#34;https://gist.github.com/marwei/cd40657c481f94ebe273ecc16601674b&#34;&gt;https://gist.github.com/marwei/cd40657c481f94ebe273ecc16601674b&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;数据库底层原理
+&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;hashMap
+&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

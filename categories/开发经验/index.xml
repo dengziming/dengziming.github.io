@@ -319,6 +319,69 @@ percentile_rank&lt;/p&gt;
 
 -- 得到的sssa
 &lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;4-scala-匹配写法&#34;&gt;4.scala 匹配写法&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;val relation1_1: Regex = &amp;quot;.*(宝贝|亲爱).*&amp;quot;.r
+  val relation1_2 = &amp;quot;^[老]?[爸|妈|爹|娘].*&amp;quot;.r
+  val relation1_3 = &amp;quot;^(老婆|妻子|媳妇|老公|丈夫|儿子|女儿|老[头爷]子|丈母娘|丈人|婆婆|内人|内子|太太|夫人|外子|爱人).*&amp;quot;.r
+  val relation2_1 = &amp;quot;^[大小二三四五六七八九十]?[哥兄弟姐妹伯叔姑婶舅姨].*&amp;quot;.r
+  val relation2_2 = &amp;quot;^[爷奶].*&amp;quot;.r
+  val relation2_3 = &amp;quot;^老[大二三四五六七八九十].*&amp;quot;.r
+  val relation3_1 = &amp;quot;.*(先生|老板|老板娘|小姐|女士|总$|经理$).*&amp;quot;.r
+  val relation4_1 = &amp;quot;.*(老师).*&amp;quot;.r
+  val relation5_1 = &amp;quot;.*(同学).*&amp;quot;.r
+  val relation6_1 = &amp;quot;^老.*&amp;quot;.r
+  val relation7_1 = &amp;quot;.*(提额|大额|高额|白户|黑户|额度|面签|信用|消费|金融|融资|款|借|POS|套现).*&amp;quot;.r
+  val relation7_2 = &amp;quot;.*(贷|中介).*&amp;quot;.r
+  val relation7_3 = &amp;quot;.*(办|刷|养).*&amp;quot;.r
+  val relation7_4 = &amp;quot;.*(代).*&amp;quot;.r
+
+  def getRelationByName(name:String): Int ={
+
+    name match {
+
+      case relation1_1(_) =&amp;gt; 1
+      case relation1_2() =&amp;gt; 1
+      case relation1_3(_) =&amp;gt; if (name.contains(&amp;quot;的&amp;quot;)) 0 else 1
+      case relation2_1() =&amp;gt; 2
+      case relation2_2() =&amp;gt; 2
+      case relation2_3() =&amp;gt; 2
+      case relation3_1(_) =&amp;gt; 3
+      case relation4_1(_) =&amp;gt; 4
+      case relation5_1(_) =&amp;gt; 5
+      case relation6_1() =&amp;gt; 6
+      case relation7_1(_) =&amp;gt; 7
+      case relation7_2(_) =&amp;gt; if (name.contains(&amp;quot;房&amp;quot;)) 0 else 7
+      case relation7_3(_) =&amp;gt; if (name.contains(&amp;quot;卡&amp;quot;)) 7 else 0
+      case relation7_4() =&amp;gt; if (name.contains(&amp;quot;办&amp;quot;)) 7 else 0
+      case _ =&amp;gt; 0
+    }
+  }
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>资料地址</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;常用&#34;&gt;常用&lt;/h2&gt;
+
+&lt;p&gt;kafka reset offset
+&lt;a href=&#34;https://gist.github.com/marwei/cd40657c481f94ebe273ecc16601674b&#34;&gt;https://gist.github.com/marwei/cd40657c481f94ebe273ecc16601674b&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;数据库底层原理
+&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;hashMap
+&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
 </description>
       
     </item>
