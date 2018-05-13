@@ -236,8 +236,9 @@
 <li><p><code>platform.life.start();</code></p></li>
 </ol>
 
-<p>这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个<code>0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;</code>为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
-我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&gt; &hellip; -&gt; new PlatformModule()，然后找到对应的代码：</p>
+<p>这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个<code>0 = {LifeSupport$LifecycleInstance@3583} &quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&quot;</code>为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。</p>
+
+<p>我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&gt; &hellip; -&gt; new PlatformModule()，然后找到对应的代码：</p>
 
 <pre><code class="language-java">fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
 life.add( new FileSystemLifecycleAdapter( fileSystem ) );
@@ -245,9 +246,11 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 <p>然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。</p>
 
-<p>另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
-例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
-以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。</p>
+<p>另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。</p>
+
+<p>例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，</p>
+
+<p>以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。</p>
 
 <h2 id="二-datasourcemanager-预览">二、DataSourceManager 预览</h2>
 
@@ -257,8 +260,9 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 <p>在DataSourceManager类的init和start方法打上断点，然后在 PlatformModule 的构造方法打上断点，在 CommunityEditionModule 上打断点，在 DataSourceModule打上断点。</p>
 
-<p>另外我们的代码反复用到了 Dependencies 这个类，我们先大概知道一下它的方法，他有个 parent 属性，一个 resolveDependency 方法和一个 satisfyDependency 方法，
-satisfyDependency方法是将一个类的所有父类放进一个map中，resolveDependency方法是调用 parent的resolveDependency，实际上是 DataSourceManager中的dependencies，这里可以暂时忽略。</p>
+<p>另外我们的代码反复用到了 Dependencies 这个类，我们先大概知道一下它的方法，他有个 parent 属性，一个 resolveDependency 方法和一个 satisfyDependency 方法，</p>
+
+<p>satisfyDependency方法是将一个类的所有父类放进一个map中，resolveDependency方法是调用 parent的resolveDependency，实际上是 DataSourceManager中的dependencies，这里可以暂时忽略。</p>
 
 <h3 id="2-开始调试">2.开始调试</h3>
 
@@ -281,12 +285,17 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 
 <p>这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。</p>
 
-<p>然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。
-进入 NeoStoreDataSource 的构造方法，NeoStoreDataSource 也是 LifeCycle 的一个实现类，有start方法，它的构造方法好像就是做了很多赋值。
-然后是 dataSourceManager.register( neoStoreDataSource )，实际上也就是赋值 this.dataSource = dataSource;
-然后接下来是 ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );官方文档显示 ClassicCoreSPI 是 surface-layer-of-the-database
-然后是 graphDatabaseFacade.init()
-然后进入到了关键的 platform.life.start(); 我们知道这里的life的start方法会遍历 life 的 instances 调用init和start，其中就包括我们进行要调试的 DataSourceManager 。</p>
+<p>然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。</p>
+
+<p>进入 NeoStoreDataSource 的构造方法，NeoStoreDataSource 也是 LifeCycle 的一个实现类，有start方法，它的构造方法好像就是做了很多赋值。</p>
+
+<p>然后是 dataSourceManager.register( neoStoreDataSource )，实际上也就是赋值 this.dataSource = dataSource;</p>
+
+<p>然后接下来是 ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );官方文档显示 ClassicCoreSPI 是 surface-layer-of-the-database</p>
+
+<p>然后是 graphDatabaseFacade.init()</p>
+
+<p>然后进入到了关键的 platform.life.start(); 我们知道这里的life的start方法会遍历 life 的 instances 调用init和start，其中就包括我们进行要调试的 DataSourceManager 。</p>
 
 <h3 id="3-datasourcemanager的start方法">3.DataSourceManager的start方法。</h3>
 
@@ -299,12 +308,17 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
     }
 </code></pre>
 
-<p>然后是start方法：其实就是 life.start(),它的life里面只有 NeoStoreDataSource 一个 instance ，然后会调用它的init和start方法，然后进入 init和start，init是空的，我们在start调试。信息量比较大，做好准备。
-第一步是 life = new LifeSupport();
-第二步是 life.add( recoveryCleanupWorkCollector );
-然后 life.add( indexConfigStore ) 和 life.add( Lifecycles.multiple( indexProviders.values() ) );
-然后是 storageEngine = buildStorageEngine()， buildRecovery(), final NeoStoreKernelModule kernelModule = buildKernel(),
-然后是 life.start();这里的life工有13个instance：</p>
+<p>然后是start方法：其实就是 life.start(),它的life里面只有 NeoStoreDataSource 一个 instance ，然后会调用它的init和start方法，然后进入 init和start，init是空的，我们在start调试。信息量比较大，做好准备。</p>
+
+<p>第一步是 life = new LifeSupport();</p>
+
+<p>第二步是 life.add( recoveryCleanupWorkCollector );</p>
+
+<p>然后 life.add( indexConfigStore ) 和 life.add( Lifecycles.multiple( indexProviders.values() ) );</p>
+
+<p>然后是 storageEngine = buildStorageEngine()， buildRecovery(), final NeoStoreKernelModule kernelModule = buildKernel(),</p>
+
+<p>然后是 life.start();这里的life工有13个instance：</p>
 
 <pre><code class="language-java">instances = {ArrayList@5669}  size = 13
  0 = {LifeSupport$LifecycleInstance@5673} &quot;org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector@3b0c9195: NONE&quot;
@@ -322,9 +336,11 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
  12 = {LifeSupport$LifecycleInstance@5685} &quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&quot;
 </code></pre>
 
-<p>这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。
-我们先看和存储有关的 <code>3 = {LifeSupport$LifecycleInstance@5676} &quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&quot;</code>
-打好断点进入，这次终于没有 instance 了，感觉快进入了盗梦空间啊，直接看init：</p>
+<p>这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。</p>
+
+<p>我们先看和存储有关的 <code>3 = {LifeSupport$LifecycleInstance@5676} &quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&quot;</code></p>
+
+<p>打好断点进入，这次终于没有 instance 了，感觉快进入了盗梦空间啊，直接看init：</p>
 
 <pre><code class="language-java">public void init() throws Throwable
 {
@@ -333,8 +349,9 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 }
 </code></pre>
 
-<p>IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。
-NativeLabelScanStore的init，我也先不跳进去了。</p>
+<p>IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。</p>
+
+<p>NativeLabelScanStore的init，我也先不跳进去了。</p>
 
 <p>再看start：</p>
 
@@ -357,8 +374,9 @@ NativeLabelScanStore的init，我也先不跳进去了。</p>
 }
 </code></pre>
 
-<p>neoStores.makeStoreOk(); 这个初始化就是读取本地存储，还是要重点查看一下：TODO
-然后是：</p>
+<p>neoStores.makeStoreOk(); 这个初始化就是读取本地存储，还是要重点查看一下：TODO</p>
+
+<p>然后是：</p>
 
 <pre><code class="language-java">propertyKeyTokenHolder.setInitialTokens(
         neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
@@ -368,9 +386,11 @@ labelTokenHolder.setInitialTokens(
         neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
 </code></pre>
 
-<p>这几段代码都可以直接用调试的估值功能直接看出具体的值。
-然后是：neoStores.rebuildCountStoreIfNeeded(); 跳进去： getCounts().start();
-然后是：</p>
+<p>这几段代码都可以直接用调试的估值功能直接看出具体的值。</p>
+
+<p>然后是：neoStores.rebuildCountStoreIfNeeded(); 跳进去： getCounts().start();</p>
+
+<p>然后是：</p>
 
 <pre><code class="language-java">neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
 loadSchemaCache();
@@ -383,12 +403,17 @@ idController.start();
 
 <h2 id="三-datasourcemanager-剖析">三、dataSourceManager 剖析</h2>
 
-<p>上面我们已经看出了，AbstractNeoServer 包含两个 LifeCycle ，其中一个是 LifecycleManagingDatabase ，
-LifecycleManagingDatabase  包含 22个 LifeCycle，其中一个是 dataSourceManager ，
-dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，
-NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。
-RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。
-这就是整个盗梦空间的五层梦，接下来我们只能从最深的一层反着往回查看了。</p>
+<p>上面我们已经看出了，AbstractNeoServer 包含两个 LifeCycle ，其中一个是 LifecycleManagingDatabase ，</p>
+
+<p>LifecycleManagingDatabase  包含 22个 LifeCycle，其中一个是 dataSourceManager ，</p>
+
+<p>dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，</p>
+
+<p>NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。</p>
+
+<p>RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。</p>
+
+<p>这就是整个盗梦空间的五层梦，接下来我们只能从最深的一层反着往回查看了。</p>
 
 <h3 id="1-recordstorageengine-分析">1. RecordStorageEngine 分析</h3>
 
@@ -396,11 +421,15 @@ RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构
 
 <h4 id="1-storageengine-预览">(1). StorageEngine 预览</h4>
 
-<p>storeReadLayer() , return an interface for accessing data previously applied to this storage. 返回读取之前放进storage的数据的接口。
-allocateCommandCreationContext(), 保存需要多次执行的命令的上下文
-createCommands(),返回一系列在当前的事务状态下进行改变的<code>StorageCommand</code>命令，CommandsToApply 命令可以通过调用apply方法放进存储中。
-apply()，执行一系列的命令到存储，
-其他的暂时忽略。</p>
+<p>storeReadLayer() , return an interface for accessing data previously applied to this storage. 返回读取之前放进storage的数据的接口。</p>
+
+<p>allocateCommandCreationContext(), 保存需要多次执行的命令的上下文</p>
+
+<p>createCommands(),返回一系列在当前的事务状态下进行改变的<code>StorageCommand</code>命令，CommandsToApply 命令可以通过调用apply方法放进存储中。</p>
+
+<p>apply()，执行一系列的命令到存储，</p>
+
+<p>其他的暂时忽略。</p>
 
 <h4 id="2-recordstorageengine-属性查看">(2). RecordStorageEngine 属性查看</h4>
 
@@ -540,8 +569,9 @@ neoStores = {NeoStores@3549}
 <li>pageCache = {MuninnPageCache@1773}</li>
 </ol>
 
-<p>pageCache = {MuninnPageCache@1773} &ldquo;MuninnPageCache[ \n Page[ id = 0, address = 4516331520, filePageId = 0, swapperId = 1, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 1, address = 4516339712, filePageId = 0, swapperId = 2, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 2, address = 4516347904, filePageId = 0, swapperId = 3, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 3, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 4, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 5, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 6, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 7&rdquo;
-通过一个 re-usable cursor 来缓存和读取 cache 的内容，可以通过运行 MuninnPageCacheTest 的单元测试查看功能。</p>
+<p>pageCache = {MuninnPageCache@1773} &ldquo;MuninnPageCache[ \n Page[ id = 0, address = 4516331520, filePageId = 0, swapperId = 1, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 1, address = 4516339712, filePageId = 0, swapperId = 2, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 2, address = 4516347904, filePageId = 0, swapperId = 3, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 3, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 4, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 5, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 6, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 7&rdquo;</p>
+
+<p>通过一个 re-usable cursor 来缓存和读取 cache 的内容，可以通过运行 MuninnPageCacheTest 的单元测试查看功能。</p>
 
 <ol>
 <li>fs = {DefaultFileSystemAbstraction@1772}</li>

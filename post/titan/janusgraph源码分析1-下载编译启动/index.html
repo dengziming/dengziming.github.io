@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>janusgraph源码分析1-下载编译启动 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="janusgraph源码分析1-下载编译启动" />
+<meta property="og:description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/" />
+
+
+
+<meta property="article:published_time" content="2018-04-26T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-04-26T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="janusgraph源码分析1-下载编译启动">
+<meta itemprop="description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co">
+
+
+<meta itemprop="dateModified" content="2018-04-26T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="1754">
+
+
+
+<meta itemprop="keywords" content="源码,janusgraph," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="janusgraph源码分析1-下载编译启动"/>
+<meta name="twitter:description" content="# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">janusgraph源码分析1-下载编译启动</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-04-26 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+            
+          </div>
+        <span class="more-meta"> 1754 words </span>
+        <span class="more-meta"> 4 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-下载编译">一、下载编译</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<p>#
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+<code>https://github.com/JanusGraph/janusgraph</code>和<code>http://janusgraph.org/</code></p>
+
+<h2 id="一-下载编译">一、下载编译</h2>
+
+<p>我直接使用github desktop打开了 janusgraph 的源码，使用IDEA打开，然后编译：</p>
+
+<pre><code class="language-bash"># 编译完整的
+mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+# 只编译core部分
+mvn -pl janusgraph-core -am clean install -Dlicense.skip=true -DskipTests -P prod
+</code></pre>
+
+<p>我们在 <code>janusgraph-test</code> 下面编写一个例子 <code>FirstTest</code>：</p>
+
+<pre><code class="language-java">public class FirstTest {
+
+    public static void main(String[] args) {
+
+        /*
+         * The example below will open a JanusGraph graph instance and load The Graph of the Gods dataset diagrammed above.
+         * JanusGraphFactory provides a set of static open methods,
+         * each of which takes a configuration as its argument and returns a graph instance.
+         * This tutorial calls one of these open methods on a configuration
+         * that uses the BerkeleyDB storage backend and the Elasticsearch index backend,
+         * then loads The Graph of the Gods using the helper class GraphOfTheGodsFactory.
+         * This section skips over the configuration details, but additional information about storage backends,
+         * index backends, and their configuration are available in
+         * Part III, “Storage Backends”, Part IV, “Index Backends”, and Chapter 13, Configuration Reference.
+         */
+
+        // Loading the Graph of the Gods Into JanusGraph
+        JanusGraph graph = JanusGraphFactory
+                .open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;);
+
+        GraphOfTheGodsFactory.load(graph);
+        GraphTraversalSource g = graph.traversal();
+
+        /*
+         * The typical pattern for accessing data in a graph database is to first locate the entry point into the graph
+         * using a graph index. That entry point is an element (or set of elements) 
+         * — i.e. a vertex or edge. From the entry elements,
+         * a Gremlin path description describes how to traverse to other elements in the graph via the explicit graph structure.
+         * Given that there is a unique index on name property, the Saturn vertex can be retrieved.
+         * The property map (i.e. the key/value pairs of Saturn) can then be examined.
+         * As demonstrated, the Saturn vertex has a name of &quot;saturn, &quot; an age of 10000, and a type of &quot;titan.&quot;
+         * The grandchild of Saturn can be retrieved with a traversal that expresses:
+         * &quot;Who is Saturn’s grandchild?&quot; (the inverse of &quot;father&quot; is &quot;child&quot;). The result is Hercules.
+         */
+        // Global Graph Indices
+        Vertex saturn = g.V().has(&quot;name&quot;, &quot;saturn&quot;).next();
+        GraphTraversal&lt;Vertex, Map&lt;String, Object&gt;&gt; vertexMapGraphTraversal = g.V(saturn).valueMap();
+
+        GraphTraversal&lt;Vertex, Object&gt; values = g.V(saturn).in(&quot;father&quot;).in(&quot;father&quot;).values(&quot;name&quot;);
+
+        /*
+         * The property place is also in a graph index. The property place is an edge property.
+         * Therefore, JanusGraph can index edges in a graph index.
+         * It is possible to query The Graph of the Gods for all events that have happened within 50 kilometers of Athens
+          * (latitude:37.97 and long:23.72).
+          * Then, given that information, which vertices were involved in those events.
+         */
+		System.out.println(g.E().has(&quot;place&quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50))));
+        System.out.println(g.E().has(&quot;place&quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&quot;source&quot;).inV()
+                .as(&quot;god2&quot;)
+                .select(&quot;source&quot;).outV()
+                .as(&quot;god1&quot;).select(&quot;god1&quot;, &quot;god2&quot;)
+                .by(&quot;name&quot;));
+    }
+
+}
+</code></pre>
+
+<p>然后在&rdquo;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&rdquo; 文件中，将注释掉的内容取消注释。</p>
+
+<p>运行发现依赖挺麻烦。
+首先运行报错了：</p>
+
+<pre><code>Exception in thread &quot;main&quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.berkeleyje.BerkeleyJEStoreManager
+</code></pre>
+
+<p>找到报错处的代码，我们发现 <code>janusgraph-core</code> 中通过反射创建一个类，但是这个类在 <code>janusgraph-berkeleyje</code> 中，而前者不依赖后者，所以找不到这个类，我们可以将后者加到前者的依赖，
+但是我们发现后者依赖前者，如果加了依赖两个就相互依赖了，这是 Janus 官方设计的问题。我们只好在 FirstTest 所在的module中把两个依赖都加进来试试。
+（注意，如果我们将所有的都打进一个包，这个问题就不存在了，但是在本地运行是不一样的，各自模块的编译输出文件在不同的地方。）在 <code>janusgraph-test</code> 中添加：</p>
+
+<pre><code class="language-xml">        &lt;dependency&gt;
+            &lt;groupId&gt;org.janusgraph&lt;/groupId&gt;
+            &lt;artifactId&gt;janusgraph-berkeleyje&lt;/artifactId&gt;
+            &lt;version&gt;0.3.0-SNAPSHOT&lt;/version&gt;
+        &lt;/dependency&gt;
+</code></pre>
+
+<p>发现 <code>janusgraph-berkeleyje</code>也依赖了 <code>janusgraph-test</code>,又相互依赖了，好麻烦。我们写写代码一定要注意这个问题。这里我的解决方法是直接把 代码放到 <code>janusgraph-berkeleyje</code> 中运行。</p>
+
+<pre><code>Exception in thread &quot;main&quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.es.ElasticSearchIndex
+</code></pre>
+
+<p>和上面一样，还依赖了 <code>janusgraph-es</code>,我只好吧代码复制到 <code>janusgraph-es</code> 的test代码块中运行（注意一点是test代码中），顺便在 <code>janusgraph-es</code> 中 添加上<code>janusgraph-berkeleyje</code>的依赖。
+运行成功了，但是报了连接失败，是因为我本地没有启动es，我启动一下es：<code>elasticsearch</code>
+然后在运行：</p>
+
+<pre><code class="language-java">Exception in thread &quot;main&quot; org.janusgraph.core.SchemaViolationException: Adding this property for key [~T$SchemaName] and value [rtname] violates a uniqueness constraint [SystemIndex#~T$SchemaName]
+</code></pre>
+
+<p>经过google查到原因： <a href="https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k">https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k</a></p>
+
+<pre><code>This exception is thrown only when you already have added property key to index. So &quot;name&quot; is already added and next time when you run your program somewhere it is again adding &quot;name&quot; property key. So check if that particular code is running twice
+</code></pre>
+
+<p>然后我们可以在我们传入的配置文件找到：storage.directory=../db/berkeley  ，直接删除这个目录，再重新运行，就成功了：</p>
+
+<pre><code>11:20:17,051  INFO GraphDatabaseConfiguration:1285 - Set default timestamp provider MICRO
+11:20:17,296  INFO GraphDatabaseConfiguration:1492 - Generated unique-instance-id=c0a815a789637-dengzimings-MacBook-Pro-local1
+11:20:17,547  INFO Backend:462 - Configuring index [search]
+11:20:19,279  INFO Backend:177 - Initiated backend operations thread pool of size 8
+11:20:19,461  INFO KCVSLog:753 - Loaded unidentified ReadMarker start time 2018-04-26T03:20:19.408Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@73cd37c0
+[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])]
+[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])@[source], EdgeVertexStep(IN)@[god2], SelectOneStep(last,source), EdgeVertexStep(OUT)@[god1], SelectStep(last,[god1, god2],[value(name)])]
+11:20:29,578  INFO ManagementLogger:192 - Received all acknowledgements for eviction [1]
+</code></pre>
+
+<p>然后我们可以去 ../db/berkeley  目录查看，多了一些文件，这些文件的作用我们后续再分析。
+然后我们取es查看：<code>curl -XGET 'localhost:9200/_cat/indices?v&amp;pretty'</code> ，发现多了两个index:</p>
+
+<pre><code>yellow open   janusgraph_edges    QT-E7AV6SMWr8Cu_ywKsXg   5   1          6            0     13.7kb         13.7kb
+yellow open   janusgraph_vertices gE4TSXFATnSZUWYdAf46Xg   5   1          6            0     10.9kb         10.9kb
+</code></pre>
+
+<p>还可以具体查看内容。例如名字是titan的内容：<code>curl -XGET 'localhost:9200/janusgraph_vertices/_search?q=name:titan&amp;pretty'</code></p>
+
+<p>到现在我们第一个案例就结束了。</p>
+
+<pre><code class="language-java">g.E().has(&quot;place&quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&quot;source&quot;).inV()
+                .as(&quot;god2&quot;)
+                .select(&quot;source&quot;).outV()
+                .as(&quot;god1&quot;).select(&quot;god1&quot;, &quot;god2&quot;)
+                .by(&quot;name&quot;)
+</code></pre>
+
+<p>这种风格的代码实际上是groovy语言的代码，大家可以研究一下groovy语言。</p>
+
+<p>注意事项：
+上述第一次运行问题的原因是 <code>janusgraph-core</code>需要用到 <code>janusgraph-berkeleyje</code>的类，
+但是<code>janusgraph-berkeleyje</code>是依赖 <code>janusgraph-core</code>的，所以两个相互依赖了。
+janus的做法是在core中使用反射，所以编译通过了，打包到了一起就没问题了。但是本地运行没法成功。</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-04-26</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/%E6%BA%90%E7%A0%81/">源码</a>
+          
+          <a href="/tags/janusgraph/">janusgraph</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/%E7%90%86%E8%AE%BA/first/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">分布式算法理论</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/">
+            <span class="next-text nav-default">janusgraph源码分析1-下载编译启动</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-04-26 00:00:00 \x2b0000 UTC',
+    title: 'janusgraph源码分析1-下载编译启动',
+    link: decodeURI(location.href),
+    desc: '# 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https:\/\/github.co',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

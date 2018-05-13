@@ -35,6 +35,1911 @@
     </item>
     
     <item>
+      <title>yarn-api使用</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-api%E4%BD%BF%E7%94%A8/</link>
+      <pubDate>Wed, 23 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-api%E4%BD%BF%E7%94%A8/</guid>
+      
+        <description>
+
+&lt;p&gt;参考： &lt;a href=&#34;https://ieevee.com/tech/2015/05/05/yarn-dist-shell.html&#34;&gt;https://ieevee.com/tech/2015/05/05/yarn-dist-shell.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;distributeshell&#34;&gt;distributeshell&lt;/h1&gt;
+
+&lt;h2 id=&#34;client解析&#34;&gt;Client解析&lt;/h2&gt;
+
+&lt;p&gt;distShell主要有2个类组成，Client和ApplicationMaster。两个类都带有main入口。Client的主要工作是启动AM，真正要做的任务由AM来调度。 Client的简化框架如下。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static void main(String[] args) {
+    boolean result = false;
+    try {
+      Client client = new Client();  //1 创建Client对象
+      try {
+        boolean doRun = client.init(args);  //2 初始化
+        if (!doRun) {
+          System.exit(0);
+        }
+      }
+      result = client.run();   //3 运行
+    }
+    if (result) {
+      System.exit(0);
+    }
+    System.exit(2);
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;1-创建client对象&#34;&gt;1 创建Client对象&lt;/h3&gt;
+
+&lt;p&gt;创建时会指定本Client要用到的AM。 创建yarnClient。yarn将client与RM的交互抽象出了编程库YarnClient，用以应用程序提交、状态查询和控制等，简化应用程序。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;  public Client(Configuration conf) throws Exception  {
+    this(		//指定AM
+      &amp;quot;org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster&amp;quot;,
+      conf);
+  Client(String appMasterMainClass, Configuration conf) {
+    this.conf = conf;
+    this.appMasterMainClass = appMasterMainClass;
+    yarnClient = YarnClient.createYarnClient();		//创建yarnClient
+    yarnClient.init(conf);
+    opts = new Options();	//创建opts，后面解析参数的时候用
+    opts.addOption(&amp;quot;appname&amp;quot;, true, &amp;quot;Application Name. Default value - DistributedShell&amp;quot;);
+    opts.addOption(&amp;quot;priority&amp;quot;, true, &amp;quot;Application Priority. Default 0&amp;quot;);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;2-初始化&#34;&gt;2 初始化&lt;/h3&gt;
+
+&lt;p&gt;init会解析命令行传入的参数，例如使用的jar包、内存大小、cpu个数等。 代码里使用GnuParser解析：init时定义所有的参数opts（可以认为是一个模板），
+然后将opts和实际的args传入解析后得到一个CommnadLine对象，后面查询选项直接操作该CommnadLine对象即可，如cliParser.hasOption(&amp;ldquo;help&amp;rdquo;)和cliParser.getOptionValue(&amp;ldquo;jar&amp;rdquo;)。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt; public boolean init(String[] args) throws ParseException {
+    CommandLine cliParser = new GnuParser().parse(opts, args);
+    amMemory = Integer.parseInt(cliParser.getOptionValue(&amp;quot;master_memory&amp;quot;, &amp;quot;10&amp;quot;));
+    amVCores = Integer.parseInt(cliParser.getOptionValue(&amp;quot;master_vcores&amp;quot;, &amp;quot;1&amp;quot;));
+    shellCommand = cliParser.getOptionValue(&amp;quot;shell_command&amp;quot;);
+    appMasterJar = cliParser.getOptionValue(&amp;quot;jar&amp;quot;);
+    ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;3-运行&#34;&gt;3 运行&lt;/h3&gt;
+
+&lt;p&gt;先启动yarnClient，会建立跟RM的RPC连接，之后就跟调用本地方法一样。通过此yarnClient查询NM个数、NM详细信息（ID/地址/Container个数等）、Queue info（其实没用到，示例里只是打印了下调试用）。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public class Client {
+  public boolean run() throws IOException, YarnException {
+    yarnClient.start();
+    YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
+    List&amp;lt;NodeReport&amp;gt; clusterNodeReports = yarnClient.getNodeReports(
+收集提交AM所需的信息。
+    YarnClientApplication app = yarnClient.createApplication();	//创建app
+    GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
+...
+    ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
+    //AM需要的本地资源，如jar包、log文件
+    Map&amp;lt;String, LocalResource&amp;gt; localResources = new HashMap&amp;lt;String, LocalResource&amp;gt;();
+
+    FileSystem fs = FileSystem.get(conf);
+    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
+        localResources, null);
+    ...	//添加localResource
+
+    vargs.add(Environment.JAVA_HOME.$$() + &amp;quot;/bin/java&amp;quot;);
+    vargs.add(&amp;quot;-Xmx&amp;quot; + amMemory + &amp;quot;m&amp;quot;);
+    vargs.add(appMasterMainClass);
+...
+    for (CharSequence str : vargs) {
+      command.append(str).append(&amp;quot; &amp;quot;);	//重新组织命令行
+    }
+	//创建Container加载上下文，包含本地资源，环境变量，实际命令。
+    ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
+      localResources, env, commands, null, null, null);
+
+    Resource capability = Resource.newInstance(amMemory, amVCores);
+    appContext.setResource(capability);		//请求使用的内存、cpu
+
+    appContext.setAMContainerSpec(amContainer);
+    appContext.setQueue(amQueue);
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;重新组织出来的commands如下：&lt;/p&gt;
+
+&lt;p&gt;$JAVA_HOME/bin/java -Xmx10m org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster &amp;ndash;container_memory 10
+提交AM（即appContext），并启动监控。 Client只关心自己提交到RM的AM是否正常运行，而AM内部的多个task，由AM管理。如果Client要查询应用程序的任务信息，需要自己设计与AM的交互。
+    yarnClient.submitApplication(appContext);   //客户端提交AM到RM
+    return monitorApplication(appId);
+总的来说，Client做的事情比较简单，即建立与RM的连接，提交AM，监控AM运行状态。&lt;/p&gt;
+
+&lt;p&gt;有个疑问，走读代码没有看到jar包是怎么送到NM上去的。&lt;/p&gt;
+
+&lt;h2 id=&#34;application-master解析&#34;&gt;Application Master解析&lt;/h2&gt;
+
+&lt;p&gt;AM简化框架如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+
+      boolean doRun = appMaster.init(args);
+      if (!doRun) {
+        System.exit(0);
+      }
+      appMaster.run();
+      result = appMaster.finish();
+// yarn抽象了两个编程库，AMRMClient和NMClient(AM和RM都可以用)，简化AM编程。
+
+// 1 设置RM、NM消息的异步处理方法
+    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
+    amRMClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
+    amRMClient.init(conf);
+    amRMClient.start();
+
+    containerListener = createNMCallbackHandler();
+    nmClientAsync = new NMClientAsyncImpl(containerListener);
+    nmClientAsync.init(conf);
+    nmClientAsync.start();
+// 2 向RM注册
+    RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname,
+        appMasterRpcPort, appMasterTrackingUrl);
+// 3 计算需要的Container，向RM发起请求
+    // Setup ask for containers from RM
+    // Send request for containers to RM
+    // Until we get our fully allocated quota, we keep on polling RM for
+    // containers
+    // Keep looping until all the containers are launched and shell script
+    // executed on them ( regardless of success/failure).
+    for (int i = 0; i &amp;lt; numTotalContainersToRequest; ++i) {
+      ContainerRequest containerAsk = setupContainerAskForRM();
+      amRMClient.addContainerRequest(containerAsk);		//请求指定个数的Container
+    }
+
+  private ContainerRequest setupContainerAskForRM() {
+    Resource capability = Resource.newInstance(containerMemory,
+      containerVirtualCores);		//指定需要的memory/cpu能力
+    ContainerRequest request = new ContainerRequest(capability, null, null,
+        pri);
+
+
+4 // RM分配Container给AM，AM启动任务RMCallbackHandler RM消息的响应，由RMCallbackHandler处理。示例中主要对前两种消息进行了处理。
+
+  private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
+    //处理消息：Container执行完毕。在RM返回的心跳应答中携带。如果心跳应答中有已完成和新分配两种Container，先处理已完成
+    public void onContainersCompleted(List&amp;lt;ContainerStatus&amp;gt; completedContainers) {
+...
+    //处理消息：RM新分配Container。在RM返回的心跳应答中携带
+    public void onContainersAllocated(List&amp;lt;Container&amp;gt; allocatedContainers) {
+
+    public void onShutdownRequest() {done = true;}
+
+    //节点状态变化
+    public void onNodesUpdated(List&amp;lt;NodeReport&amp;gt; updatedNodes) {}
+
+    public float getProgress() {
+onContainersAllocated收到分配的Container之后，会提交任务到NM。
+
+    public void onContainersAllocated(List&amp;lt;Container&amp;gt; allocatedContainers) {
+        LaunchContainerRunnable runnableLaunchContainer =   //创建runnable容器
+            new LaunchContainerRunnable(allocatedContainer, containerListener);
+        Thread launchThread = new Thread(runnableLaunchContainer);	//新建线程
+
+        // launch and start the container on a separate thread to keep
+        // the main thread unblocked
+        // as all containers may not be allocated at one go.
+        launchThreads.add(launchThread);
+        launchThread.start();	//线程中提交Container到NM，不影响主流程
+
+//简单分析下LaunchContainerRunnable。该类实现自Runnable，其run方法准备任务命令（本例即为date）。
+
+  private class LaunchContainerRunnable implements Runnable {
+    public LaunchContainerRunnable(
+        Container lcontainer, NMCallbackHandler containerListener) {
+      this.container = lcontainer;		//创建时记录待使用的Container
+      this.containerListener = containerListener;
+    }
+    public void run() {
+      vargs.add(shellCommand);		//待执行的shell命令
+      vargs.add(shellArgs);			//shell命令参数
+      List&amp;lt;String&amp;gt; commands = new ArrayList&amp;lt;String&amp;gt;();
+      commands.add(command.toString());	//转为commands
+
+      //根据命令、环境变量、本地资源等创建Container加载上下文
+      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(
+              localResources, shellEnv, commands, null, allTokens.duplicate(), null);
+      containerListener.addContainer(container.getId(), container);
+      //异步启动Container
+      nmClientAsync.startContainerAsync(container, ctx);
+// onContainersCompleted的功能比较简单，收到Container执行完毕的消息，检查其执行结果，如果执行失败，则重新发起请求，直到全部完成。
+
+// NMCallbackHandler NM消息的响应，由NMCallbackHandler处理。
+
+//在distShell示例里，回调句柄对NM通知过来的各种事件的处理比较简单，只是修改AM维护的Container执行完成、失败的个数。这样等到有Container执行完毕后，可以重启发起请求。失败处理和上面Container执行完毕消息的处理类似，达到了上面问题里所说的loopback效果。
+
+  static class NMCallbackHandler
+    implements NMClientAsync.CallbackHandler {
+
+    @Override
+    public void onContainerStopped(ContainerId containerId) {
+
+    @Override
+    public void onContainerStatusReceived(ContainerId containerId,
+
+    @Override
+    public void onContainerStarted(ContainerId containerId,
+...
+总的来说，AM做的事就是向RM/NM注册回调函数，然后请求Container；得到Container后提交任务，并跟踪这些任务的执行情况，如果失败了则重新提交，直到全部任务完成。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;unmanagedam&#34;&gt;UnmanagedAM&lt;/h1&gt;
+
+&lt;p&gt;distShell的Client提交AM到RM后，由RM将AM分配到某一个NM上的Container，这样给AM调试带来了困难。yarn提供了一个参数，Client可以设置为Unmanaged，提交AM后，会在客户端本地起一个单独的进程来运行AM。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public class UnmanagedAMLauncher {
+  public void launchAM(ApplicationAttemptId attemptId)
+    //创建新进程
+    Process amProc = Runtime.getRuntime().exec(amCmd, envAMList.toArray(envAM));
+    try {
+      int exitCode = amProc.waitFor();  //等待AM进程结束
+    } finally {
+      amCompleted = true;
+    }
+
+  public boolean run() throws IOException, YarnException {
+      appContext.setUnmanagedAM(true);		//设置为Unmanaged
+      rmClient.submitApplication(appContext);	//提交AM
+
+      ApplicationReport appReport =		//监控AM状态，如果状态变为ACCEPTED，则跳出循环，launchAM。
+          monitorApplication(appId, EnumSet.of(YarnApplicationState.ACCEPTED,
+            YarnApplicationState.KILLED, YarnApplicationState.FAILED,
+            YarnApplicationState.FINISHED));
+
+      if (appReport.getYarnApplicationState() == YarnApplicationState.ACCEPTED) {
+        launchAM(attemptId);
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>Hadoop基础库-</title>
+      <link>https://dengziming.github.io/post/hadoop/first/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/first/</guid>
+      
+        <description>&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&#34;&gt;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>yarn-nodemanager-剖析</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-nodemanager-1/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-nodemanager-1/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;架构&#34;&gt;架构&lt;/h1&gt;
+
+&lt;p&gt;ContainerManagementImpl&lt;/p&gt;
+
+&lt;h1 id=&#34;container-生命周期&#34;&gt;Container 生命周期&lt;/h1&gt;
+
+&lt;p&gt;第一步是 RM 的 applicationMasterLauncher ，创建 ApplicationMasterLauncher 后，遇到 launch 时间 ，
+case LAUNCH: launch(application); =&amp;gt; new AMLauncher(context, application, event, getConfig());&lt;/p&gt;
+
+&lt;p&gt;这个任务放进 队列里面等待执行，一旦执行会调用 launch() 方法，然后调用 containerMgrProxy.startContainers(allRequests); 这是 RPC 调用&lt;/p&gt;
+
+&lt;p&gt;实际上就是 ContainerManagementImpl ，然后会调用 startContainerInternal ，然后就是 new ContainerImpl 。&lt;/p&gt;
+
+&lt;p&gt;这是 APPMaster 启动需要的 container ，实际上还有 APPMaster 调度任务需要更多的 Container ，继续向 ContainerManagementImpl 请求&lt;/p&gt;
+
+&lt;h2 id=&#34;1-资源本地化&#34;&gt;1. 资源本地化&lt;/h2&gt;
+
+&lt;p&gt;实际上就是 ContainerManagementImpl ，然后会调用 startContainerInternal ，然后就是 new ContainerImpl 。
+然后通过 if (null == context.getApplications().putIfAbsent(applicationID,application)) 判断是否是该 NodeManager 第一个 Container ，如果是的话，new ApplicationImpl
+向 ApplicationImpl 发送 ApplicationInitEvent 事件，同时发送 ApplicationContainerInitEvent 事件。&lt;/p&gt;
+
+&lt;p&gt;这些事件会触发 ACL、log等相关的事件， 收到 ApplicationContainerInitEvent 后将 Container 加入 ApplicationImpl 的维护列表。&lt;/p&gt;
+
+&lt;p&gt;logHandle 处理完成之后会发送一个 log 事件，applicationImpl 收到后向 ResourceLocalizeService 发送 事件，
+为 private 和 application 级别的资源创建 LocalResourceTrackerImp ，为下载资源作准备。&lt;/p&gt;
+
+&lt;p&gt;private 的资源用户可见，如果该用户已经提交过了，无需创建。同理，如果 application 已经启动过 container 了，则同一个 application 的新 container 不必在创建。&lt;/p&gt;
+
+&lt;p&gt;经过上面操作后，ResourceLocalizeService 向 ApplicationImpl 发送 Application_Init&lt;/p&gt;
+
+&lt;p&gt;ApplicationImpl 收到 INIT 后，向所有的 ContainerImpl 发送 InitContainer ，ApplicationImpl 也从 ApplicationState.INITING 变为 ApplicationState.RUNNING,&lt;/p&gt;
+
+&lt;p&gt;InitContainer 命令后，和 AuxService 交互，然后从 ContainerLaunchContext 得到各类可见性资源并保存到相应数据结构，然后发送给 ResourceLocalizeService 。&lt;/p&gt;
+
+&lt;p&gt;ResourceLocalizeService 调用 handleInitContainerResources((ContainerLocalizationRequestEvent) event); 实际是 是发送给 LocalResourcesTrackerImpl 。&lt;/p&gt;
+
+&lt;p&gt;LocalResourcesTrackerImpl 会 判断是否需要下载等，为对应的资源创建 LocalizedResource 状态机，将 Request 发送给 LocalizedResource。&lt;/p&gt;
+
+&lt;p&gt;后续还是这样的时间驱动，总之可以概括为 ： NodeManager 上同一个 App 所有的 ContainerImpl 异步并发向向资源下载服务 ResourceLocalizeService 发送待下载的资源，
+ResourceLocalizeService下载完成后会通知依赖资源的所以 Container ，当一个 Container 依赖的资源全部下载完毕，Container 将会进入 运行阶段&lt;/p&gt;
+
+&lt;h2 id=&#34;2-container-运行&#34;&gt;2. Container 运行&lt;/h2&gt;
+
+&lt;p&gt;运行是 ContainerLauncher 服务实现的，主要过程为： 将待运行 Container 所需要的环境变量和运行命令写到 &lt;code&gt;launch_container.sh&lt;/code&gt; 中，
+将启动该脚本的命令写入：&lt;code&gt;default_container_executor.sh&lt;/code&gt; 中。&lt;/p&gt;
+
+&lt;p&gt;通过运行该脚本启动 Container 。主要有四步：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;ContainerImpl 向 ContainersLauncher 发送 Launch_container ，请求启动 container。
+dispatcher.getEventHandler().handle(new ContainersLauncherEvent(this, launcherEvent));&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ContainersLauncher 收到后，&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Application app =context.getApplications().get(containerId.getApplicationAttemptId().getApplicationId());
+ContainerLaunch launch = new ContainerLaunch(context, getConfig(), dispatcher, exec, app,event.getContainer(), dirsHandler, containerManager);
+containerLauncher.submit(launch);
+running.put(containerId, launch);
+break;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ContainerLaunch 放到线程池执行，对应的 call 方法为：&lt;/p&gt;
+
+&lt;p&gt;为 Container 创建 token 文件 和 &lt;code&gt;launch_container.sh&lt;/code&gt; ，将他们保存到 NodeManager 私有目录 nmPrivate 下面， &lt;code&gt;launch_container.sh&lt;/code&gt;包含了运行所以的命令。
+一般都是前面 export 环境变量，最后有个 exec 命令 。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;准备好了 命令，
+&lt;code&gt;Container_Launcher&lt;/code&gt; 首先向 ContainerImpl 发送 &lt;code&gt;Container_LANUCHED&lt;/code&gt; 命令，然他启动监控等。然后调用 ContainerExector launchContainer 启动 Container 。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;然后是启动监控，汇报信息等。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>yarn-resourcemanager-1</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-resourcemanager-1/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-resourcemanager-1/</guid>
+      
+        <description>
+
+&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&#34;&gt;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;提交应用程序的过程&#34;&gt;提交应用程序的过程&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-yarnclient-submitapplication-appcontext&#34;&gt;1. yarnClient.submitApplication(appContext);&lt;/h2&gt;
+
+&lt;p&gt;新建请求，最终调用： rmClient.submitApplication(request);&lt;/p&gt;
+
+&lt;p&gt;实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request)&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;得到APPID：ApplicationId applicationId = submissionContext.getApplicationId();&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user);&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;放到 rmAppManager 中，rmAppManager 中存放了所有的 application。
+跟进去，发现调用了：&lt;/p&gt;
+
+&lt;p&gt;this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void handle(RMAppEvent event) {
+      ApplicationId appID = event.getApplicationId();
+      RMApp rmApp = this.rmContext.getRMApps().get(appID);
+      if (rmApp != null) {
+        try {
+          rmApp.handle(event);
+        } catch (Throwable t) {
+          LOG.error(&amp;quot;Error in handling event type &amp;quot; + event.getType()
+              + &amp;quot; for application &amp;quot; + appID, t);
+        }
+      }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后导致这个 applicationId 所在的 RMAppEvent 状态机发生变化。&lt;/p&gt;
+
+&lt;h2 id=&#34;2-registerapplicationmasterresponse-response-amrmclient-registerapplicationmaster-appmasterhostname-appmasterrpcport-appmastertrackingurl&#34;&gt;2.RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname, appMasterRpcPort,appMasterTrackingUrl);&lt;/h2&gt;
+
+&lt;p&gt;注册 ApplicationMaster，注意这段代码是在用户编写的 ApplicationMaster 类中，所以这段代码运行在yarn给APPMaster分配的Container中。&lt;/p&gt;
+
+&lt;p&gt;RegisterApplicationMasterResponse response = client.registerApplicationMaster(appHostName, appHostPort, appTrackingUrl);&lt;/p&gt;
+
+&lt;p&gt;会调用：RegisterApplicationMasterResponse response = rmClient.registerApplicationMaster(request);&lt;/p&gt;
+
+&lt;p&gt;最终会通过RPC调用：ApplicationMasterServeice.registerApplicationMaster(RegisterApplicationMasterRequest request)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.rmContext
+        .getDispatcher()
+        .getEventHandler()
+        .handle(
+          new RMAppAttemptRegistrationEvent(applicationAttemptId, request
+            .getHost(), request.getRpcPort(), request.getTrackingUrl()));
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这种 RMAppAttemptEventType 类型的会 通过handle进行处理：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void handle(RMAppAttemptEvent event) {
+      ApplicationAttemptId appAttemptID = event.getApplicationAttemptId();
+      ApplicationId appAttemptId = appAttemptID.getApplicationId();
+      RMApp rmApp = this.rmContext.getRMApps().get(appAttemptId);
+      if (rmApp != null) {
+        RMAppAttempt rmAppAttempt = rmApp.getRMAppAttempt(appAttemptID);
+        if (rmAppAttempt != null) {
+          try {
+            rmAppAttempt.handle(event);
+          } catch (Throwable t) {
+            LOG.error(&amp;quot;Error in handling event type &amp;quot; + event.getType()
+                + &amp;quot; for applicationAttempt &amp;quot; + appAttemptId, t);
+          }
+        }
+      }
+    }
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;和上面的 RMAppEvent 一样，会进入一个状态机进行处理。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-状态机相互转换细节&#34;&gt;1.状态机相互转换细节&lt;/h3&gt;
+
+&lt;p&gt;上面的过程细化一下：&lt;/p&gt;
+
+&lt;p&gt;RMAppImpl 收到 RMAppEventType.START 事件后，会调用 RMStateStore#storeApplication，以日志记录 RMAppImpl 当前信息，&lt;/p&gt;
+
+&lt;p&gt;至此，RMAppImpl 的运行状态由 NEW 转移为 NEW_SAVING。该步骤就较为复杂了，下面详细介绍下。&lt;/p&gt;
+
+&lt;p&gt;其中 RMAppEventType 注册到中央异步调度器的地方在 ResourceManager.java 中，new ApplicationEventDispatcher(rmContext) 进行处理，
+处理方式很简单：通过appid得到得到 RMAppImpl ，最终会给  RMAppImpl自己处理，进入他的状态机处理。状态机有这么一个事件：&lt;/p&gt;
+
+&lt;p&gt;addTransition(RMAppState.NEW, RMAppState.NEW_SAVING, RMAppEventType.START, new RMAppNewlySavingTransition())&lt;/p&gt;
+
+&lt;p&gt;RMAppNewlySavingTransition 的 transition 就是 app.rmContext.getStateStore().storeNewApplication(app);  实际上就是保存应用的相关信息。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public synchronized void storeNewApplication(RMApp app) {  
+    //app=RMAppImpl  
+    LOG.info(&amp;quot;begin to storeNewApplication,app=&amp;quot;+app.toString());  
+    ApplicationSubmissionContext context = app.getApplicationSubmissionContext();  
+    assert context instanceof ApplicationSubmissionContextPBImpl;  
+    ApplicationState appState =  
+        new ApplicationState(app.getSubmitTime(), app.getStartTime(), context,app.getUser());  
+    dispatcher.getEventHandler().handle(new RMStateStoreAppEvent(appState));  
+  }  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;注意： dispatcher.getEventHandler().handle(new RMStateStoreAppEvent(appState));  这里会调用 RMStateStore 状态机的 transition，实际上就是 store + notifyDoneStoringApplication&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;rmDispatcher.getEventHandler().handle(new RMAppNewSavedEvent(appId, storedException));&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;这个事件又会进入 RMAppImpl 的状态机，对应代码 addTransition(RMAppState.NEW_SAVING, RMAppState.SUBMITTED, RMAppEventType.APP_NEW_SAVED, new AddApplicationToSchedulerTransition())&lt;/p&gt;
+
+&lt;p&gt;调用：app.handler.handle(new AppAddedSchedulerEvent(app.applicationId,app.submissionContext.getQueue(), app.user));&lt;/p&gt;
+
+&lt;p&gt;会触发： RMAppImpl 处理 AppAddedSchedulerEvent&lt;/p&gt;
+
+&lt;p&gt;然后这个事件会分配给：CapacityScheduler ，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;case APP_ADDED:  
+    {  
+      AppAddedSchedulerEvent appAddedEvent = (AppAddedSchedulerEvent) event;  
+      addApplication(appAddedEvent.getApplicationId(),  
+        appAddedEvent.getQueue(), appAddedEvent.getUser());  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;addApplication 会调用 rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.APP_ACCEPTED));&lt;/p&gt;
+
+&lt;p&gt;RMAppImpl 会触发 ：addTransition(RMAppState.SUBMITTED, RMAppState.ACCEPTED,  RMAppEventType.APP_ACCEPTED, new StartAppAttemptTransition())&lt;/p&gt;
+
+&lt;p&gt;对应的transition： createNewAttempt(); handler.handle(new RMAppStartAttemptEvent(currentAttempt.getAppAttemptId(),  transferStateFromPreviousAttempt));&lt;br /&gt;
+实际上就是触发 RMAppAttemptImpl 状态机操作。&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 接受 RMAppAttemptEventType.START 事件后，进行一系列初始化工作。将自身状态由NEW转换为SUBMITTED，并调用 AttemptStartedTransition。&lt;/p&gt;
+
+&lt;p&gt;AttemptStartedTransition appAttempt.eventHandler.handle(new AppAttemptAddedSchedulerEvent(  appAttempt.applicationAttemptId, transferStateFromPreviousAttempt));&lt;/p&gt;
+
+&lt;p&gt;AppAttemptAddedSchedulerEvent 会交给 CapacityScheduler 。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;case APP_ATTEMPT_ADDED:  
+    {  
+      AppAttemptAddedSchedulerEvent appAttemptAddedEvent =  
+          (AppAttemptAddedSchedulerEvent) event;  
+      addApplicationAttempt(appAttemptAddedEvent.getApplicationAttemptId(),  
+        appAttemptAddedEvent.getTransferStateFromPreviousAttempt(),  
+        appAttemptAddedEvent.getShouldNotifyAttemptAdded());  
+    }  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;实际上就是讲这个 attempt 放进队列，等待处理。并且：rmContext.getDispatcher().getEventHandler().handle( new RMAppAttemptEvent(applicationAttemptId, RMAppAttemptEventType.ATTEMPT_ADDED));&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 接受到事件 RMAppAttemptEventType.ATTEMPT_ADDED 后，状态由SUBMITTED转换为SCHEDULED。进入内部类ScheduleTransition的transition函数：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private static final class ScheduleTransition  
+      implements  
+      MultipleArcTransition&amp;lt;RMAppAttemptImpl, RMAppAttemptEvent, RMAppAttemptState&amp;gt; {  
+    @Override  
+    public RMAppAttemptState transition(RMAppAttemptImpl appAttempt,  
+        RMAppAttemptEvent event) {  
+        LOG.info(&amp;quot;class::ScheduleTransition, func::transition, begin.&amp;quot;);  
+      if (!appAttempt.submissionContext.getUnmanagedAM()) {  
+        // Request a container for the AM.  
+        ResourceRequest request =  
+            BuilderUtils.newResourceRequest(  
+                AM_CONTAINER_PRIORITY, ResourceRequest.ANY, appAttempt  
+                    .getSubmissionContext().getResource(), 1);  
+  
+        // SchedulerUtils.validateResourceRequests is not necessary because  
+        // AM resource has been checked when submission  
+        Allocation amContainerAllocation = appAttempt.scheduler.allocate(  
+            appAttempt.applicationAttemptId,  
+            Collections.singletonList(request), EMPTY_CONTAINER_RELEASE_LIST, null, null);  
+        if (amContainerAllocation != null  
+            &amp;amp;&amp;amp; amContainerAllocation.getContainers() != null) {  
+          assert (amContainerAllocation.getContainers().size() == 0);  
+        }  
+        return RMAppAttemptState.SCHEDULED;  
+      } else {  
+        // save state and then go to LAUNCHED state  
+        appAttempt.storeAttempt();  
+        return RMAppAttemptState.LAUNCHED_UNMANAGED_SAVING;  
+      }  
+    }  
+  } 
+   
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里面就是：新建资源 ResourceRequest ，然后 appAttempt.scheduler.allocate&lt;/p&gt;
+
+&lt;p&gt;&amp;mdash;&amp;mdash; 这里断层了,谁触发了 AMContainerImpl 启动和分配 Container，需要后续再看。&lt;/p&gt;
+
+&lt;p&gt;这里有个疑问需要解答一下，之前一直好奇是哪里启动了 AMContainerImpl，上面的 schedule.allocate 将需要的资源提交给 schedule ，实际上 schedule 会分配。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;application.updateResourceRequests(ask);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这一句话，&lt;/p&gt;
+
+&lt;p&gt;以  FairScheduler 为例，启动服务会调用 initScheduler(conf); 里面有三行代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;schedulingThread = new ContinuousSchedulingThread();
+schedulingThread.setName(&amp;quot;FairSchedulerContinuousScheduling&amp;quot;);
+schedulingThread.setDaemon(true);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会有守护线程调用 continuousSchedulingAttempt(); 实际上会调用：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;    for (NodeId nodeId : nodeIdList) {
+      FSSchedulerNode node = getFSSchedulerNode(nodeId);
+      try {
+        if (node != null &amp;amp;&amp;amp; Resources.fitsIn(minimumAllocation,
+            node.getAvailableResource())) {
+          attemptScheduling(node);
+        }
+      } catch (Throwable ex) {
+        LOG.error(&amp;quot;Error while attempting scheduling for node &amp;quot; + node +
+            &amp;quot;: &amp;quot; + ex.toString(), ex);
+      }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 attemptScheduling(node); 就会创建 AMContainerImpl 实例，至于怎么创建，需要了解各个 Schedule 的内部细节。&lt;/p&gt;
+
+&lt;p&gt;ResourceManager 为应用程序的 AM 分配资源后，创建一个 RMContainerImpl，并向它发送一个 RMContainerEventType.START 事件。&lt;/p&gt;
+
+&lt;p&gt;RMContainerImpl 收到 RMContainerEventType.START 事件后，直接向 RMAppAttemptImpl 发送一个 RMAppAttemptEventType.CONTAINER_ALLOCATED&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 收到 RMAppAttemptEventType.CONTAINER_ALLOCATED 事件后：调用 AMContainerAllocatedTransition：&lt;/p&gt;
+
+&lt;p&gt;transition函数中，调用 scheduler.allocate 获取分配的资源，scheduler 返回资源之前，会向 RMContainerImpl 发送 RMContainerEventType.ALLOCATED事件。&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 收到资源后，向 RMStateStore 发送 MStateStoreEventType.STORE_APP_ATTEMPT 事件请求记录日志。&lt;/p&gt;
+
+&lt;p&gt;至此，RMAppAttemptImpl 状态从 SCHEDULED 转换为 ALLOCATED_SAVING。&lt;/p&gt;
+
+&lt;p&gt;日志记录完成后，RMStateStore 向 RMAppAttemptImpl 发送 RMAppAttemptEventType.ATTEMPT_NEW_SAVED 事件。&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 收到 RMAppAttemptEventType.ATTEMPT_NEW_SAVED 事件后，
+向 ApplicationMasterLauncher 发送 AMLauncherEventType.LAUNCH 事件，
+至此，RMAppAttemptImpl 状态从 ALLOCATED_SAVING 转换为 ALLOCATED。&lt;/p&gt;
+
+&lt;p&gt;后面的和这里类似，不过涉及到了 RMContainer状态机，先跳过。&lt;/p&gt;
+
+&lt;h2 id=&#34;3-总结&#34;&gt;3.总结&lt;/h2&gt;
+
+&lt;p&gt;通过这个实例我们大概了解了yarn中的RPC、调度器、服务、状态机配合的过程。
+一般是客户端（可以使用户的client、nodeManager进程或者它启动的container进程）发送请求，中间通过RPC调用了ResourceManager中的某个服务，这个服务会触发一定的事件，并且返回。&lt;/p&gt;
+
+&lt;p&gt;例如客户端提交一个应用程序，首先有个 appid，每个appid对应的有一个 RMApp ，放在 rmAppManager 的一个map中。这个 RMApp 是一个状态机。&lt;/p&gt;
+
+&lt;p&gt;然后会调用 this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));&lt;/p&gt;
+
+&lt;p&gt;调度器会启动对应的 EventHandle 去处理这个事件，而 对应的 EventHandle 会根据appid 通过 rmAppManager 得到对应的 RMApp，调用对应的状态转化函数就实现了状态转化。&lt;/p&gt;
+
+&lt;p&gt;再例如某个container启动 APPMaster，也是调用
+this.rmContext.getDispatcher().getEventHandler().handle
+(new RMAppAttemptRegistrationEvent(applicationAttemptId, request.getHost(), request.getRpcPort(), request.getTrackingUrl()));&lt;/p&gt;
+
+&lt;p&gt;然后调度器会启动对应的 EventHandle 去处理这个事件，而 对应的 EventHandle 会根据appid 通过 rmAppManager 得到对应的 RMApp，
+这时候事件类似是 RMAppAttemptEvent，处理逻辑变了，会在另一个状态机进行操作。&lt;/p&gt;
+
+&lt;h2 id=&#34;4-rmcontainer状态机&#34;&gt;4.RMContainer状态机&lt;/h2&gt;
+
+&lt;p&gt;上面分析了 两个状态机，实际上还有一个 RMContainer ，这个和上面两个类似吧。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>yarn-基础库</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;yarn-事件库和服务库&#34;&gt;yarn-事件库和服务库&lt;/h1&gt;
+
+&lt;h2 id=&#34;使用&#34;&gt;使用&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;新建Event和EventType&lt;/li&gt;
+&lt;li&gt;新建 AsyncDispatcher 并给 AsyncDispatcher 注册 Event 和对应的 EventHandler&lt;Event&gt;&lt;/li&gt;
+&lt;li&gt;调用 AsyncDispatcher 的 getEventHandler 得到 EventHandler 然后调用 handler 的 handle 方法处理 Event&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;基本原理&#34;&gt;基本原理：&lt;/h2&gt;
+
+&lt;p&gt;AsyncDispatcher 注册 EventHandler&lt;Event&gt; 的过程实际上生成了一个 map，保存了每个事件对应的handler。同时有一个 队列，用于放置 Event&lt;/p&gt;
+
+&lt;p&gt;调用 handle 的时候 将Event放进queue中，内部启动一个线程不断处理 queue的任务。&lt;/p&gt;
+
+&lt;h1 id=&#34;yarn-状态机&#34;&gt;yarn-状态机&lt;/h1&gt;
+
+&lt;h2 id=&#34;使用-1&#34;&gt;使用&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;初始化&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;StateMachineFactory
+.addTransition(JobStateInternal.NEW, JobStateInternal.INITED, JobEventType.JOB_INIT,new InitTransition())
+.addTransition(JobStateInternal.INITED, JobStateInternal.SETUP, JobEventType.JOB_START,new StartTransition())
+.installTopology()
+.make()
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;新建对应的 Transition&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static class InitTransition implements SingleArcTransition&amp;lt;JobStateMachine,JobEvent&amp;gt;{
+
+        @Override
+        public void transition(JobStateMachine job, JobEvent event) {
+            System.out.println(&amp;quot;Receiving event &amp;quot; + event);
+        }
+
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;调用 StateMachine 的 doTransition(event.getType(), event)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;原理&#34;&gt;原理&lt;/h2&gt;
+
+&lt;p&gt;installTopology的时候创建一个拓扑图，记录每个 State 能接受的 Event，以及接受该 Event 后的操作，以及操作后的 State。&lt;/p&gt;
+
+&lt;p&gt;每次有Event传入，调用对应的 Transition ，并且将 此时刻 的状态变为 操作后的状态。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>JanusGraph官网文档</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/</link>
+      <pubDate>Thu, 03 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;一-janusgraph-basics&#34;&gt;一、JanusGraph Basics&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-config&#34;&gt;1.config&lt;/h2&gt;
+
+&lt;h2 id=&#34;chapter-5-schema-and-data-modeling&#34;&gt;Chapter 5. Schema and Data Modeling&lt;/h2&gt;
+
+&lt;h3 id=&#34;5-1-defining-edge-labels&#34;&gt;5.1. Defining Edge Labels&lt;/h3&gt;
+
+&lt;p&gt;To define an edge label, call makeEdgeLabel(String) on an open graph or management transaction and provide the name of the edge label as the argument. Edge label names must be unique in the graph.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+follow = mgmt.makeEdgeLabel(&#39;follow&#39;).multiplicity(MULTI).make()
+mother = mgmt.makeEdgeLabel(&#39;mother&#39;).multiplicity(MANY2ONE).make()
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-2-defining-property-keys&#34;&gt;5.2. Defining Property Keys&lt;/h3&gt;
+
+&lt;p&gt;call makePropertyKey(String) on an open graph or management transaction and provide the name of the property key as the argument.&lt;/p&gt;
+
+&lt;p&gt;Use dataType(Class) to define the data type of a property key.&lt;/p&gt;
+
+&lt;p&gt;Use cardinality(Cardinality) to define the allowed cardinality of the values associated with the key on any given vertex.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+birthDate = mgmt.makePropertyKey(&#39;birthDate&#39;).dataType(Long.class).cardinality(Cardinality.SINGLE).make()
+name = mgmt.makePropertyKey(&#39;name&#39;).dataType(String.class).cardinality(Cardinality.SET).make()
+sensorReading = mgmt.makePropertyKey(&#39;sensorReading&#39;).dataType(Double.class).cardinality(Cardinality.LIST).make()
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-3-relation-types&#34;&gt;5.3. Relation Types&lt;/h3&gt;
+
+&lt;p&gt;Edge labels and property keys are jointly referred to as relation types.&lt;/p&gt;
+
+&lt;p&gt;property keys and edge labels cannot have the same name.&lt;/p&gt;
+
+&lt;p&gt;There are methods in the JanusGraph API to query for the existence or retrieve relation types which encompasses both property keys and edge labels.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+if (mgmt.containsRelationType(&#39;name&#39;))
+    name = mgmt.getPropertyKey(&#39;name&#39;)
+mgmt.getRelationTypes(EdgeLabel.class)
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-4-defining-vertex-labels&#34;&gt;5.4. Defining Vertex Labels&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+person = mgmt.makeVertexLabel(&#39;person&#39;).make()
+mgmt.commit()
+// Create a labeled vertex
+person = graph.addVertex(label, &#39;person&#39;)
+// Create an unlabeled vertex
+v = graph.addVertex()
+graph.tx().commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-5-automatic-schema-maker&#34;&gt;5.5. Automatic Schema Maker&lt;/h3&gt;
+
+&lt;h3 id=&#34;5-6-changing-schema-elements&#34;&gt;5.6. Changing Schema Elements&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+place = mgmt.getPropertyKey(&#39;place&#39;)
+mgmt.changeName(place, &#39;location&#39;)
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note, that schema name changes may not be immediately visible in currently running transactions and other JanusGraph graph instances in the cluster.&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-6-gremlin-query-language&#34;&gt;Chapter 6. Gremlin Query Language&lt;/h2&gt;
+
+&lt;p&gt;Gremlin is a path-oriented language which succinctly expresses complex graph traversals and mutation operations.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://docs.janusgraph.org/latest/gremlin.html&#34;&gt;http://docs.janusgraph.org/latest/gremlin.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;6-1-introductory-traversals&#34;&gt;6.1. Introductory Traversals&lt;/h3&gt;
+
+&lt;p&gt;A Gremlin query is a chain of operations/functions that are evaluated from left to right. A simple grandfather query is provided below over the Graph of the Gods dataset&lt;/p&gt;
+
+&lt;p&gt;和sql相互转换： &lt;a href=&#34;http://sql2gremlin.com/&#34;&gt;http://sql2gremlin.com/&lt;/a&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;explain:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;g: for the current graph traversal.
+V: for all vertices in the graph
+has(&#39;name&#39;, &#39;hercules&#39;): filters the vertices down to those with name property &amp;quot;hercules&amp;quot; (there is only one).
+out(&#39;father&#39;): traverse outgoing father edge’s from Hercules.
+out(&#39;father&#39;): traverse outgoing father edge’s from Hercules&#39; father’s vertex (i.e. Jupiter).
+name: get the name property of the &amp;quot;hercules&amp;quot; vertex’s grandfather.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g
+==&amp;gt;graphtraversalsource[janusgraph[cassandrathrift:127.0.0.1], standard]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;)
+==&amp;gt;v[24]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;)
+==&amp;gt;v[16]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;)
+==&amp;gt;v[20]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;For a sanity check, it is usually good to look at the properties of each return, not the assigned long id.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).values(&#39;name&#39;)
+==&amp;gt;hercules
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;jupiter
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).repeat(out(&#39;father&#39;)).emit().values(&#39;name&#39;)
+==&amp;gt;jupiter
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; hercules = g.V().has(&#39;name&#39;, &#39;hercules&#39;).next()
+==&amp;gt;v[1536]
+gremlin&amp;gt; g.V(hercules).out(&#39;father&#39;, &#39;mother&#39;).label()
+==&amp;gt;god
+==&amp;gt;human
+gremlin&amp;gt; g.V(hercules).out(&#39;battled&#39;).label()
+==&amp;gt;monster
+==&amp;gt;monster
+==&amp;gt;monster
+gremlin&amp;gt; g.V(hercules).out(&#39;battled&#39;).valueMap()
+==&amp;gt;{name=nemean}
+==&amp;gt;{name=hydra}
+==&amp;gt;{name=cerberus}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;6-2-iterating-the-traversal&#34;&gt;6.2. Iterating the Traversal&lt;/h3&gt;
+
+&lt;p&gt;4steps:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;iterate() - Zero results are expected or can be ignored.
+next() - Get one result. Make sure to check hasNext() first.
+next(int n) - Get the next n results. Make sure to check hasNext() first.
+toList() - Get all results as a list. If there are no results, an empty list is returned.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Traversal t = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;pluto&amp;quot;); // Define a traversal
+// Note the traversal is not executed/iterated yet
+Vertex pluto = null;
+if (t.hasNext()) { // Check if results are available
+    pluto = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;pluto&amp;quot;).next(); // Get one result
+    g.V(pluto).drop().iterate(); // Execute a traversal to drop pluto from graph
+}
+// Note the traversal can be cloned for reuse
+Traversal tt = t.asAdmin().clone();
+if (tt.hasNext()) {
+    System.err.println(&amp;quot;pluto was not dropped!&amp;quot;);
+}
+List&amp;lt;Vertex&amp;gt; gods = g.V().hasLabel(&amp;quot;god&amp;quot;).toList(); // Find all the gods
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;chapter-7-janusgraph-server&#34;&gt;Chapter 7. JanusGraph Server&lt;/h2&gt;
+
+&lt;p&gt;JanusGraph Server 应该就是类似hive的server，能够执行远程的Gremin语句。&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-8-configuredgraphfactory&#34;&gt;Chapter 8. ConfiguredGraphFactory&lt;/h2&gt;
+
+&lt;p&gt;应该是一个通过配置管理多个graph的工厂类。&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-9-indexing-for-better-performance&#34;&gt;Chapter 9. Indexing for Better Performance&lt;/h2&gt;
+
+&lt;p&gt;JanusGraph supports two different kinds of indexing to speed up query processing: graph indexes and vertex-centric indexes.&lt;/p&gt;
+
+&lt;p&gt;Most graph queries start the traversal from a list of vertices or edges that are identified by their properties.
+Graph indexes make these global retrieval operations efficient on large graphs.&lt;/p&gt;
+
+&lt;p&gt;Vertex-centric indexes speed up the actual traversal through the graph, in particular when traversing through vertices with many incident edges.&lt;/p&gt;
+
+&lt;h3 id=&#34;9-1-graph-index&#34;&gt;9.1. Graph Index&lt;/h3&gt;
+
+&lt;h4 id=&#34;9-1-1-composite-index&#34;&gt;9.1.1. Composite Index&lt;/h4&gt;
+
+&lt;p&gt;Mixed indexes - 支持更多谓词查询&lt;/p&gt;
+
+&lt;p&gt;composite indexes -等值查询&lt;/p&gt;
+
+&lt;p&gt;代码： &lt;code&gt;mgmt.buildIndex(&#39;nameAndAge&#39;, Vertex.class).addKey(name).addKey(age).buildMixedIndex(&amp;quot;search&amp;quot;)&lt;/code&gt;
+这里的名字 search 必须在配置中添加： index.search.backend&lt;/p&gt;
+
+&lt;p&gt;查询方式：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;)).has(&#39;age&#39;, inside(20, 50))
+g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;))
+g.V().has(&#39;age&#39;, lt(50))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;9-2-vertex-centric-indexes&#34;&gt;9.2. Vertex-centric Indexes&lt;/h3&gt;
+
+&lt;p&gt;查找和 hercules battled 时间为 10-20 的人。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;h = g.V().has(&#39;name&#39;, &#39;hercules&#39;).next()
+g.V(h).outE(&#39;battled&#39;).has(&#39;time&#39;, inside(10, 20)).inV()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这样会遍历，我们可以添加索引。我们可以： Building a vertex-centric index by time speeds up such traversal queries.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;graph.tx().rollback()  //Never create new indexes while a transaction is active
+mgmt = graph.openManagement()
+time = mgmt.getPropertyKey(&#39;time&#39;)
+battled = mgmt.getEdgeLabel(&#39;battled&#39;)
+mgmt.buildEdgeIndex(battled, &#39;battlesByTime&#39;, Direction.BOTH, Order.decr, time)
+mgmt.commit()
+//Wait for the index to become available
+mgmt.awaitGraphIndexStatus(graph, &#39;battlesByTime&#39;).call()
+//Reindex the existing data
+mgmt = graph.openManagement()
+mgmt.updateIndex(mgmt.getGraphIndex(&amp;quot;battlesByTime&amp;quot;), SchemaAction.REINDEX).get()
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;9-2-1-ordered-traversals&#34;&gt;9.2.1. Ordered Traversals&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;h = g..V().has(&#39;name&#39;, &#39;hercules&#39;).next()
+g.V(h).local(outE(&#39;battled&#39;).order().by(&#39;time&#39;, decr).limit(10)).inV().values(&#39;name&#39;)
+g.V(h).local(outE(&#39;battled&#39;).has(&#39;rating&#39;, 5.0).order().by(&#39;time&#39;, decr).limit(10)).values(&#39;place&#39;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;chapter-10-transactions&#34;&gt;Chapter 10. Transactions&lt;/h2&gt;
+
+&lt;h3 id=&#34;10-1-transaction-handling&#34;&gt;10.1. Transaction Handling&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-2-transactional-scope&#34;&gt;10.2. Transactional Scope&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-3-transaction-failures&#34;&gt;10.3. Transaction Failures&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-4-multi-threaded-transactions&#34;&gt;10.4. Multi-Threaded Transactions&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-5-concurrent-algorithms&#34;&gt;10.5. Concurrent Algorithms&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-6-nested-transactions&#34;&gt;10.6. Nested Transactions&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-7-common-transaction-handling-problems&#34;&gt;10.7. Common Transaction Handling Problems&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-8-transaction-configuration&#34;&gt;10.8. Transaction Configuration&lt;/h3&gt;
+
+&lt;h2 id=&#34;chapter-11-janusgraph-cache&#34;&gt;Chapter 11. JanusGraph Cache&lt;/h2&gt;
+
+&lt;h2 id=&#34;chapter-12-transaction-log&#34;&gt;Chapter 12. Transaction Log&lt;/h2&gt;
+
+&lt;h1 id=&#34;part-iii-storage-backends&#34;&gt;Part III. Storage Backends&lt;/h1&gt;
+
+&lt;p&gt;hbase&lt;/p&gt;
+
+&lt;p&gt;cassandra&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraph graph = JanusGraphFactory.build().
+	set(&amp;quot;storage.backend&amp;quot;, &amp;quot;hbase&amp;quot;).
+	open();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;iv-index-backends&#34;&gt;IV. Index Backends&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Elasticsearch&lt;/li&gt;
+&lt;li&gt;Apache Solr&lt;/li&gt;
+&lt;li&gt;Apache Lucene&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;v-advanced-topics&#34;&gt;V. Advanced Topics&lt;/h1&gt;
+
+&lt;h1 id=&#34;vi-janusgraph-internals&#34;&gt;VI. JanusGraph Internals&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://docs.janusgraph.org/latest/data-model.html&#34;&gt;http://docs.janusgraph.org/latest/data-model.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-38-janusgraph-data-model&#34;&gt;Chapter 38. JanusGraph Data Model&lt;/h2&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>分布式算法理论</title>
+      <link>https://dengziming.github.io/post/%E7%90%86%E8%AE%BA/first/</link>
+      <pubDate>Tue, 01 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E7%90%86%E8%AE%BA/first/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-算法&#34;&gt;一、算法&lt;/h2&gt;
+
+&lt;h2 id=&#34;二-理论&#34;&gt;二、理论&lt;/h2&gt;
+
+&lt;h3 id=&#34;1-two-phase-commit-protocol&#34;&gt;1. Two-phase commit protocol&lt;/h3&gt;
+
+&lt;p&gt;直接翻译维基百科的解释了：
+&lt;a href=&#34;https://en.wikipedia.org/wiki/Two-phase_commit_protocol&#34;&gt;https://en.wikipedia.org/wiki/Two-phase_commit_protocol&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;In transaction processing, databases, and computer networking, the two-phase commit protocol (2PC) is a type of atomic commitment protocol (ACP).&lt;/p&gt;
+
+&lt;p&gt;在处理事务、数据库和计算机网络，2PC是一种原子性提交协议&lt;/p&gt;
+
+&lt;p&gt;It is a distributed algorithm that coordinates all the processes that participate in a distributed atomic transaction on whether to commit or abort (roll back)
+the transaction (it is a specialized type of consensus protocol).&lt;/p&gt;
+
+&lt;p&gt;2PC是一种 协调所有参与分布式原子事务的进程 是否 提交或者放弃提交事务 的分布式算法。&lt;/p&gt;
+
+&lt;p&gt;The protocol achieves its goal even in many cases of temporary system failure (involving either process, network node, communication, etc. failures),
+and is thus widely used.[1][2][3] However, it is not resilient to all possible failure configurations,
+and in rare cases, user (e.g., a system&amp;rsquo;s administrator) intervention is needed to remedy an outcome.&lt;/p&gt;
+
+&lt;p&gt;这个协议在很多临时的系统系统失败的时候达到它的目的，所以会广泛应用。但是，这个挺不是在所有可能的配置都是可伸缩的。
+在极少数情况下，需要用户人为干预补救结果。&lt;/p&gt;
+
+&lt;p&gt;To accommodate recovery from failure (automatic in most cases) the protocol&amp;rsquo;s participants use logging of the protocol&amp;rsquo;s states.&lt;/p&gt;
+
+&lt;p&gt;为了容纳失败后的恢复（大多时候是自动的），协议的参与者通过日志记录协议的状态。&lt;/p&gt;
+
+&lt;p&gt;Log records, which are typically slow to generate but survive failures, are used by the protocol&amp;rsquo;s recovery procedures.&lt;/p&gt;
+
+&lt;p&gt;日志记录，一般用在协议的恢复过程中，一般生成比较慢，但是失败的时候不会被删掉。&lt;/p&gt;
+
+&lt;p&gt;Many protocol variants exist that primarily differ in logging strategies and recovery mechanisms.&lt;/p&gt;
+
+&lt;p&gt;这个协议的有很多延伸算法，不同点主要是记录日志的策略和恢复机制。&lt;/p&gt;
+
+&lt;p&gt;Though usually intended to be used infrequently, recovery procedures compose a substantial portion of the protocol,&lt;/p&gt;
+
+&lt;p&gt;尽管很少被使用，恢复策略是这个协议的关键部分，&lt;/p&gt;
+
+&lt;p&gt;due to many possible failure scenarios to be considered and supported by the protocol.&lt;/p&gt;
+
+&lt;p&gt;由于许多可能的恢复场景都需要考虑支持这个协议。&lt;/p&gt;
+
+&lt;p&gt;In a &amp;ldquo;normal execution&amp;rdquo; of any single distributed transaction ( i.e., when no failure occurs, which is typically the most frequent situation), the protocol consists of two phases:&lt;/p&gt;
+
+&lt;p&gt;在很多单一的分布式系统事务中，一个简单普通操作，这个协议包含两部分：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;The commit-request phase (or voting phase), in which a coordinator process attempts to prepare all the transaction&amp;rsquo;s participating processes (named participants, cohorts, or workers)
+to take the necessary steps for either committing or aborting the transaction and to vote, either &amp;ldquo;Yes&amp;rdquo;: commit (if the transaction participant&amp;rsquo;s local portion execution has ended properly), or &amp;ldquo;No&amp;rdquo;: abort (if a problem has been detected with the local portion),&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;第一个是请求提交阶段，或者投票阶段，这个阶段协调者尝试 准备所有的事务的参与者（我们也叫他们participants, cohorts, or workers）采取必要的步骤提交或者放弃，然后投票yes或者no，分别代表commit或者abort&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;and The commit phase, in which, based on voting of the cohorts, the coordinator decides whether to commit (only if all have voted &amp;ldquo;Yes&amp;rdquo;) or abort the transaction (otherwise),
+and notifies the result to all the cohorts. The cohorts then follow with the needed actions (commit or abort) with their local transactional resources (also called recoverable resources; e.g., database data)
+and their respective portions in the transaction&amp;rsquo;s other output (if applicable).&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;第二个阶段是提交截断，基于 cohorts 的投票结果，coordinator决定是否提交或者放弃。然后向 所有的 cohorts 通知结果。
+cohorts将会使用本地资源(also called recoverable resources; e.g., database data) 和他们各自比例 来执行对应的actions 。&lt;/p&gt;
+
+&lt;p&gt;Note that the two-phase commit (2PC) protocol should not be confused with the two-phase locking (2PL) protocol, a concurrency control protocol.&lt;/p&gt;
+
+&lt;h4 id=&#34;assumptions&#34;&gt;Assumptions&lt;/h4&gt;
+
+&lt;p&gt;The protocol works in the following manner: one node is a designated coordinator,
+which is the master site, and the rest of the nodes in the network are designated the cohorts.&lt;/p&gt;
+
+&lt;p&gt;该协议以如下方式工作：一个节点是指定的协调器，它是主站点，而网络中的其余节点被指定为同伙。&lt;/p&gt;
+
+&lt;p&gt;The protocol assumes that there is stable storage at each node with a write-ahead log, that no node crashes forever,
+that the data in the write-ahead log is never lost or corrupted in a crash, and that any two nodes can communicate with each other.&lt;/p&gt;
+
+&lt;p&gt;该协议假定在每个节点上有一个提前写入日志的稳定存储，即没有节点永远崩溃，写入前日志中的数据在崩溃中从未丢失或损坏，并且任何两个节点可以彼此通信。&lt;/p&gt;
+
+&lt;p&gt;The last assumption is not too restrictive, as network communication can typically be rerouted.
+The first two assumptions are much stronger; if a node is totally destroyed then data can be lost.&lt;/p&gt;
+
+&lt;p&gt;最后一个假设不是太严格，因为网络通信通常可以重新路由。前两个假设强得多；如果一个节点被完全破坏，那么数据就会丢失。&lt;/p&gt;
+
+&lt;p&gt;The protocol is initiated by the coordinator after the last step of the transaction has been reached.
+The cohorts then respond with an agreement message or an abort message depending on whether the transaction has been processed successfully at the cohort.&lt;/p&gt;
+
+&lt;p&gt;该协议是在事务的最后一步到达之后由协调器发起的。同伙随后根据协议消息或中止消息来响应，这取决于事务是否在队列中被成功处理。&lt;/p&gt;
+
+&lt;h4 id=&#34;basic-algorithm&#34;&gt;Basic algorithm&lt;/h4&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Commit request phase or voting phase&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The coordinator sends a query to commit message to all cohorts and waits until it has received a reply from all cohorts.&lt;/p&gt;
+
+&lt;p&gt;coordinator 给所有的 cohorts 发送一个commit message 然后等到所有的 cohorts 回复。&lt;/p&gt;
+
+&lt;p&gt;The cohorts execute the transaction up to the point where they will be asked to commit.
+They each write an entry to their undo log and an entry to their redo log.&lt;/p&gt;
+
+&lt;p&gt;cohorts执行事务，那是他们将会被要求提交，他们各自写一个条目到他们的撤销日志和一个条目到他们的重做日志。&lt;/p&gt;
+
+&lt;p&gt;Each cohort replies with an agreement message (cohort votes Yes to commit), if the cohort&amp;rsquo;s actions succeeded,
+or an abort message (cohort votes No, not to commit), if the cohort experiences a failure that will make it impossible to commit.&lt;/p&gt;
+
+&lt;p&gt;每个 cohort 回复一个 agreement message ，如果这个cohort的action成功（cohort votes Yes to commit），
+或者 cohort experiences a failure that will make it impossible to commit，回复 an abort message (cohort votes No, not to commit)&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Commit phase or Completion phase&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Success：If the coordinator received an agreement message from all cohorts during the commit-request phase:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如果 coordinator 收到从所有的 cohorts 收到一个an agreement message&lt;/p&gt;
+
+&lt;p&gt;The coordinator sends a commit message to all the cohorts.&lt;/p&gt;
+
+&lt;p&gt;coordinator 给所有的 cohorts 发送一个 commit message&lt;/p&gt;
+
+&lt;p&gt;Each cohort completes the operation, and releases all the locks and resources held during the transaction.&lt;/p&gt;
+
+&lt;p&gt;每个 cohort 完成 operation，释放 transaction 持有的 locks and resources&lt;/p&gt;
+
+&lt;p&gt;Each cohort sends an acknowledgment to the coordinator.&lt;/p&gt;
+
+&lt;p&gt;每个 cohort get coordinator 发送一个 acknowledgment。&lt;/p&gt;
+
+&lt;p&gt;The coordinator completes the transaction when all acknowledgments have been received.&lt;/p&gt;
+
+&lt;p&gt;coordinator 收到所有的 acknowledgments 完成 transaction 。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Failure：If any cohort votes No during the commit-request phase (or the coordinator&amp;rsquo;s timeout expires):&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The coordinator sends a rollback message to all the cohorts.&lt;/p&gt;
+
+&lt;p&gt;Each cohort undoes the transaction using the undo log, and releases the resources and locks held during the transaction.&lt;/p&gt;
+
+&lt;p&gt;Each cohort sends an acknowledgement to the coordinator.&lt;/p&gt;
+
+&lt;p&gt;The coordinator undoes the transaction when all acknowledgements have been received.&lt;/p&gt;
+
+&lt;p&gt;类似上面的过程。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Message flow&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code&gt;Coordinator                                         Cohort
+                              QUERY TO COMMIT
+                --------------------------------&amp;gt;
+                              VOTE YES/NO           prepare*/abort*
+                &amp;lt;-------------------------------
+commit*/abort*                COMMIT/ROLLBACK
+                --------------------------------&amp;gt;
+                              ACKNOWLEDGMENT        commit*/abort*
+                &amp;lt;--------------------------------  
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;An * next to the record type means that the record is forced to stable storage.[4]&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;*&lt;/code&gt; 代表 record 已经强制刷新到 stable storage。&lt;/p&gt;
+
+&lt;h2 id=&#34;disadvantages&#34;&gt;Disadvantages&lt;/h2&gt;
+
+&lt;p&gt;The greatest disadvantage of the two-phase commit protocol is that it is a blocking protocol.
+If the coordinator fails permanently, some cohorts will never resolve their transactions: After a cohort has sent an agreement message to the coordinator, it will block until a commit or rollback is received.&lt;/p&gt;
+
+&lt;p&gt;是一个 阻塞式协议，coordinator 如果失败了，cohorts可能会永远得不到回复。&lt;/p&gt;
+
+&lt;p&gt;上面介绍了 2PC，2PC的劣势已经了解，接下来我们认识3PC&lt;/p&gt;
+
+&lt;h3 id=&#34;three-phase-commit-protocol&#34;&gt;Three-phase commit protocol&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;status Coordinator                              Cohort status
+                              can COMMIT ?
+                --------------------------------&amp;gt;
+                              VOTE YES/NO           Uncertain
+                &amp;lt;-------------------------------    timeout cause abort
+commit authorized  
+                              precommit
+                --------------------------------&amp;gt;    prepare to commit
+                              ACKNOWLEDGMENT        
+                &amp;lt;--------------------------------  
+finalize commit               do COMMIT
+timeout cause abort --------------------------------&amp;gt;
+                              have COMMITED           commited
+                &amp;lt;--------------------------------  
+end
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析1-下载编译启动</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/</link>
+      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/</guid>
+      
+        <description>
+
+&lt;p&gt;#
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+&lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-下载编译&#34;&gt;一、下载编译&lt;/h2&gt;
+
+&lt;p&gt;我直接使用github desktop打开了 janusgraph 的源码，使用IDEA打开，然后编译：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# 编译完整的
+mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+# 只编译core部分
+mvn -pl janusgraph-core -am clean install -Dlicense.skip=true -DskipTests -P prod
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们在 &lt;code&gt;janusgraph-test&lt;/code&gt; 下面编写一个例子 &lt;code&gt;FirstTest&lt;/code&gt;：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class FirstTest {
+
+    public static void main(String[] args) {
+
+        /*
+         * The example below will open a JanusGraph graph instance and load The Graph of the Gods dataset diagrammed above.
+         * JanusGraphFactory provides a set of static open methods,
+         * each of which takes a configuration as its argument and returns a graph instance.
+         * This tutorial calls one of these open methods on a configuration
+         * that uses the BerkeleyDB storage backend and the Elasticsearch index backend,
+         * then loads The Graph of the Gods using the helper class GraphOfTheGodsFactory.
+         * This section skips over the configuration details, but additional information about storage backends,
+         * index backends, and their configuration are available in
+         * Part III, “Storage Backends”, Part IV, “Index Backends”, and Chapter 13, Configuration Reference.
+         */
+
+        // Loading the Graph of the Gods Into JanusGraph
+        JanusGraph graph = JanusGraphFactory
+                .open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;);
+
+        GraphOfTheGodsFactory.load(graph);
+        GraphTraversalSource g = graph.traversal();
+
+        /*
+         * The typical pattern for accessing data in a graph database is to first locate the entry point into the graph
+         * using a graph index. That entry point is an element (or set of elements) 
+         * — i.e. a vertex or edge. From the entry elements,
+         * a Gremlin path description describes how to traverse to other elements in the graph via the explicit graph structure.
+         * Given that there is a unique index on name property, the Saturn vertex can be retrieved.
+         * The property map (i.e. the key/value pairs of Saturn) can then be examined.
+         * As demonstrated, the Saturn vertex has a name of &amp;quot;saturn, &amp;quot; an age of 10000, and a type of &amp;quot;titan.&amp;quot;
+         * The grandchild of Saturn can be retrieved with a traversal that expresses:
+         * &amp;quot;Who is Saturn’s grandchild?&amp;quot; (the inverse of &amp;quot;father&amp;quot; is &amp;quot;child&amp;quot;). The result is Hercules.
+         */
+        // Global Graph Indices
+        Vertex saturn = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).next();
+        GraphTraversal&amp;lt;Vertex, Map&amp;lt;String, Object&amp;gt;&amp;gt; vertexMapGraphTraversal = g.V(saturn).valueMap();
+
+        GraphTraversal&amp;lt;Vertex, Object&amp;gt; values = g.V(saturn).in(&amp;quot;father&amp;quot;).in(&amp;quot;father&amp;quot;).values(&amp;quot;name&amp;quot;);
+
+        /*
+         * The property place is also in a graph index. The property place is an edge property.
+         * Therefore, JanusGraph can index edges in a graph index.
+         * It is possible to query The Graph of the Gods for all events that have happened within 50 kilometers of Athens
+          * (latitude:37.97 and long:23.72).
+          * Then, given that information, which vertices were involved in those events.
+         */
+		System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50))));
+        System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&amp;quot;source&amp;quot;).inV()
+                .as(&amp;quot;god2&amp;quot;)
+                .select(&amp;quot;source&amp;quot;).outV()
+                .as(&amp;quot;god1&amp;quot;).select(&amp;quot;god1&amp;quot;, &amp;quot;god2&amp;quot;)
+                .by(&amp;quot;name&amp;quot;));
+    }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后在&amp;rdquo;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;rdquo; 文件中，将注释掉的内容取消注释。&lt;/p&gt;
+
+&lt;p&gt;运行发现依赖挺麻烦。
+首先运行报错了：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Exception in thread &amp;quot;main&amp;quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.berkeleyje.BerkeleyJEStoreManager
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;找到报错处的代码，我们发现 &lt;code&gt;janusgraph-core&lt;/code&gt; 中通过反射创建一个类，但是这个类在 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt; 中，而前者不依赖后者，所以找不到这个类，我们可以将后者加到前者的依赖，
+但是我们发现后者依赖前者，如果加了依赖两个就相互依赖了，这是 Janus 官方设计的问题。我们只好在 FirstTest 所在的module中把两个依赖都加进来试试。
+（注意，如果我们将所有的都打进一个包，这个问题就不存在了，但是在本地运行是不一样的，各自模块的编译输出文件在不同的地方。）在 &lt;code&gt;janusgraph-test&lt;/code&gt; 中添加：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;        &amp;lt;dependency&amp;gt;
+            &amp;lt;groupId&amp;gt;org.janusgraph&amp;lt;/groupId&amp;gt;
+            &amp;lt;artifactId&amp;gt;janusgraph-berkeleyje&amp;lt;/artifactId&amp;gt;
+            &amp;lt;version&amp;gt;0.3.0-SNAPSHOT&amp;lt;/version&amp;gt;
+        &amp;lt;/dependency&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;发现 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;也依赖了 &lt;code&gt;janusgraph-test&lt;/code&gt;,又相互依赖了，好麻烦。我们写写代码一定要注意这个问题。这里我的解决方法是直接把 代码放到 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt; 中运行。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Exception in thread &amp;quot;main&amp;quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.es.ElasticSearchIndex
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;和上面一样，还依赖了 &lt;code&gt;janusgraph-es&lt;/code&gt;,我只好吧代码复制到 &lt;code&gt;janusgraph-es&lt;/code&gt; 的test代码块中运行（注意一点是test代码中），顺便在 &lt;code&gt;janusgraph-es&lt;/code&gt; 中 添加上&lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;的依赖。
+运行成功了，但是报了连接失败，是因为我本地没有启动es，我启动一下es：&lt;code&gt;elasticsearch&lt;/code&gt;
+然后在运行：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Exception in thread &amp;quot;main&amp;quot; org.janusgraph.core.SchemaViolationException: Adding this property for key [~T$SchemaName] and value [rtname] violates a uniqueness constraint [SystemIndex#~T$SchemaName]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;经过google查到原因： &lt;a href=&#34;https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k&#34;&gt;https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k&lt;/a&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;This exception is thrown only when you already have added property key to index. So &amp;quot;name&amp;quot; is already added and next time when you run your program somewhere it is again adding &amp;quot;name&amp;quot; property key. So check if that particular code is running twice
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后我们可以在我们传入的配置文件找到：storage.directory=../db/berkeley  ，直接删除这个目录，再重新运行，就成功了：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;11:20:17,051  INFO GraphDatabaseConfiguration:1285 - Set default timestamp provider MICRO
+11:20:17,296  INFO GraphDatabaseConfiguration:1492 - Generated unique-instance-id=c0a815a789637-dengzimings-MacBook-Pro-local1
+11:20:17,547  INFO Backend:462 - Configuring index [search]
+11:20:19,279  INFO Backend:177 - Initiated backend operations thread pool of size 8
+11:20:19,461  INFO KCVSLog:753 - Loaded unidentified ReadMarker start time 2018-04-26T03:20:19.408Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@73cd37c0
+[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])]
+[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])@[source], EdgeVertexStep(IN)@[god2], SelectOneStep(last,source), EdgeVertexStep(OUT)@[god1], SelectStep(last,[god1, god2],[value(name)])]
+11:20:29,578  INFO ManagementLogger:192 - Received all acknowledgements for eviction [1]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后我们可以去 ../db/berkeley  目录查看，多了一些文件，这些文件的作用我们后续再分析。
+然后我们取es查看：&lt;code&gt;curl -XGET &#39;localhost:9200/_cat/indices?v&amp;amp;pretty&#39;&lt;/code&gt; ，发现多了两个index:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;yellow open   janusgraph_edges    QT-E7AV6SMWr8Cu_ywKsXg   5   1          6            0     13.7kb         13.7kb
+yellow open   janusgraph_vertices gE4TSXFATnSZUWYdAf46Xg   5   1          6            0     10.9kb         10.9kb
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;还可以具体查看内容。例如名字是titan的内容：&lt;code&gt;curl -XGET &#39;localhost:9200/janusgraph_vertices/_search?q=name:titan&amp;amp;pretty&#39;&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;到现在我们第一个案例就结束了。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&amp;quot;source&amp;quot;).inV()
+                .as(&amp;quot;god2&amp;quot;)
+                .select(&amp;quot;source&amp;quot;).outV()
+                .as(&amp;quot;god1&amp;quot;).select(&amp;quot;god1&amp;quot;, &amp;quot;god2&amp;quot;)
+                .by(&amp;quot;name&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这种风格的代码实际上是groovy语言的代码，大家可以研究一下groovy语言。&lt;/p&gt;
+
+&lt;p&gt;注意事项：
+上述第一次运行问题的原因是 &lt;code&gt;janusgraph-core&lt;/code&gt;需要用到 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;的类，
+但是&lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;是依赖 &lt;code&gt;janusgraph-core&lt;/code&gt;的，所以两个相互依赖了。
+janus的做法是在core中使用反射，所以编译通过了，打包到了一起就没问题了。但是本地运行没法成功。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析1-下载编译启动</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/</link>
+      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/</guid>
+      
+        <description>
+
+&lt;p&gt;#
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+&lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-第一遍调试&#34;&gt;一、第一遍调试&lt;/h2&gt;
+
+&lt;p&gt;还是上次的例子 &lt;code&gt;FirstTest&lt;/code&gt;：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class FirstTest {
+
+    public static void main(String[] args) {
+
+        /*
+         * The example below will open a JanusGraph graph instance and load The Graph of the Gods dataset diagrammed above.
+         * JanusGraphFactory provides a set of static open methods,
+         * each of which takes a configuration as its argument and returns a graph instance.
+         * This tutorial calls one of these open methods on a configuration
+         * that uses the BerkeleyDB storage backend and the Elasticsearch index backend,
+         * then loads The Graph of the Gods using the helper class GraphOfTheGodsFactory.
+         * This section skips over the configuration details, but additional information about storage backends,
+         * index backends, and their configuration are available in
+         * Part III, “Storage Backends”, Part IV, “Index Backends”, and Chapter 13, Configuration Reference.
+         */
+
+        // Loading the Graph of the Gods Into JanusGraph
+        JanusGraph graph = JanusGraphFactory
+                .open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;);
+
+        GraphOfTheGodsFactory.load(graph);
+        GraphTraversalSource g = graph.traversal();
+
+        /*
+         * The typical pattern for accessing data in a graph database is to first locate the entry point into the graph
+         * using a graph index. That entry point is an element (or set of elements) 
+         * — i.e. a vertex or edge. From the entry elements,
+         * a Gremlin path description describes how to traverse to other elements in the graph via the explicit graph structure.
+         * Given that there is a unique index on name property, the Saturn vertex can be retrieved.
+         * The property map (i.e. the key/value pairs of Saturn) can then be examined.
+         * As demonstrated, the Saturn vertex has a name of &amp;quot;saturn, &amp;quot; an age of 10000, and a type of &amp;quot;titan.&amp;quot;
+         * The grandchild of Saturn can be retrieved with a traversal that expresses:
+         * &amp;quot;Who is Saturn’s grandchild?&amp;quot; (the inverse of &amp;quot;father&amp;quot; is &amp;quot;child&amp;quot;). The result is Hercules.
+         */
+        // Global Graph Indices
+        Vertex saturn = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).next();
+        GraphTraversal&amp;lt;Vertex, Map&amp;lt;String, Object&amp;gt;&amp;gt; vertexMapGraphTraversal = g.V(saturn).valueMap();
+
+        GraphTraversal&amp;lt;Vertex, Object&amp;gt; values = g.V(saturn).in(&amp;quot;father&amp;quot;).in(&amp;quot;father&amp;quot;).values(&amp;quot;name&amp;quot;);
+
+        /*
+         * The property place is also in a graph index. The property place is an edge property.
+         * Therefore, JanusGraph can index edges in a graph index.
+         * It is possible to query The Graph of the Gods for all events that have happened within 50 kilometers of Athens
+          * (latitude:37.97 and long:23.72).
+          * Then, given that information, which vertices were involved in those events.
+         */
+		System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50))));
+        System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&amp;quot;source&amp;quot;).inV()
+                .as(&amp;quot;god2&amp;quot;)
+                .select(&amp;quot;source&amp;quot;).outV()
+                .as(&amp;quot;god1&amp;quot;).select(&amp;quot;god1&amp;quot;, &amp;quot;god2&amp;quot;)
+                .by(&amp;quot;name&amp;quot;));
+    }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;删除 db 文件夹，打上断点，开始debug，首先进入：JanusGraphFactory.open&lt;/p&gt;
+
+&lt;p&gt;JanusGraphFactory is used to open or instantiate a JanusGraph graph database.
+Opens a {@link JanusGraph} database configured according to the provided configuration.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static JanusGraph open(ReadConfiguration configuration, String backupName) {
+    final ModifiableConfiguration config = new ModifiableConfiguration(ROOT_NS, (WriteConfiguration) configuration, BasicConfiguration.Restriction.NONE);
+    final String graphName = config.has(GRAPH_NAME) ? config.get(GRAPH_NAME) : backupName;
+    final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
+    if (null != graphName) {
+        Preconditions.checkState(jgm != null, JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG);
+        return (JanusGraph) jgm.openGraph(graphName, gName -&amp;gt; new StandardJanusGraph(new GraphDatabaseConfiguration(configuration)));
+    } else {
+        if (jgm != null) {
+            log.warn(&amp;quot;...&amp;quot;);
+        }
+        return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;前面的部分先跳过，然后进入：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1. return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
+    // 构造方法，分为精通代码和构造方法
+    1. 父类：JanusGraphBlueprintsGraph
+        static {
+        TraversalStrategies graphStrategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class).clone()
+                .addStrategies(AdjacentVertexFilterOptimizerStrategy.instance(), JanusGraphLocalQueryOptimizerStrategy.instance(), JanusGraphStepStrategy.instance());
+
+        //Register with cache
+        TraversalStrategies.GlobalCache.registerStrategies(StandardJanusGraph.class, graphStrategies);
+        TraversalStrategies.GlobalCache.registerStrategies(StandardJanusGraphTx.class, graphStrategies);
+        }
+    2. 新建配置，A graph database configuration is uniquely associated with a graph database and must not be used for multiple databases
+    
+    new GraphDatabaseConfiguration(configuration)
+        1. storeManager 
+        final KeyColumnValueStoreManager storeManager = Backend.getStorageManager(localBasicConfiguration);
+        final StoreFeatures storeFeatures = storeManager.getFeatures();
+        2. 检查参数，配置等
+    
+    3. 然后是构造方法
+        1. 成员变量
+        private final SchemaCache.StoreRetrieval typeCacheRetrieval = new SchemaCache.StoreRetrieval() {}
+        2. backend
+        this.backend = configuration.getBackend();
+            1. Backend backend = new Backend(configuration);
+                1. KeyColumnValueStoreManager manager = getStorageManager(configuration);
+                2. indexes = getIndexes(configuration);
+                
+                3. //这里的 KCVS 是 keycolumnvaluestorageManager
+                managementLogManager = getKCVSLogManager(MANAGEMENT_LOG);
+        		txLogManager = getKCVSLogManager(TRANSACTION_LOG);
+        		userLogManager = getLogManager(USER_LOG);
+        		
+        		4. scanner = new StandardScanner(storeManager);
+                
+            2. backend.initialize(configuration);
+                1. store 新建
+                KeyColumnValueStore idStore = storeManager.openDatabase(config.get(IDS_STORE_NAME));
+                KeyColumnValueStore edgeStoreRaw = storeManagerLocking.openDatabase(EDGESTORE_NAME);
+            	KeyColumnValueStore indexStoreRaw = storeManagerLocking.openDatabase(INDEXSTORE_NAME);
+                
+                2. cacheEnabled
+                edgeStore = new NoKCVSCache(edgeStoreRaw);
+                indexStore = new NoKCVSCache(indexStoreRaw);
+            3. storeFeatures = backend.getStoreFeatures();
+        3. 初始化
+        this.idAssigner = config.getIDAssigner(backend);
+        this.idManager = idAssigner.getIDManager();
+        this.serializer = config.getSerializer();
+        StoreFeatures storeFeatures = backend.getStoreFeatures();
+        this.indexSerializer = new IndexSerializer(configuration.getConfiguration(), this.serializer,
+        this.backend.getIndexInformation(), storeFeatures.isDistributed() &amp;amp;&amp;amp; storeFeatures.isKeyOrdered());
+        this.edgeSerializer = new EdgeSerializer(this.serializer);
+        this.vertexExistenceQuery = edgeSerializer.getQuery(BaseKey.VertexExists, Direction.OUT, new EdgeSerializer.TypedInterval[0]).setLimit(1);
+        this.queryCache = new RelationQueryCache(this.edgeSerializer);
+        this.schemaCache = configuration.getTypeCache(typeCacheRetrieval);
+        this.times = configuration.getTimestampProvider();
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后是open完成后：GraphOfTheGodsFactory.load(graph);&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;1. 得到management
+JanusGraphManagement management = graph.openManagement();
+    
+    1. new ManagementSystem
+        1. 启动 tx
+        this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();
+            1.  graph.newTransaction(immutable);
+                StandardJanusGraphTx tx = new StandardJanusGraphTx(this, configuration);
+            	tx.setBackendTransaction(openBackendTransaction(tx));
+            	openTransactions.add(tx);
+2. 得到 PropertyKey
+final PropertyKey name = management.makePropertyKey(&amp;quot;name&amp;quot;).dataType(String.class).make();
+    1. return transaction.makePropertyKey(name);
+        1. return new StandardPropertyKeyMaker(this, name, indexSerializer, attributeHandler);
+            1. super(tx, name, indexSerializer, attributeHandler);
+    2. public StandardPropertyKeyMaker dataType(Class&amp;lt;?&amp;gt; clazz)
+    3. public PropertyKey make()
+        1. TypeDefinitionMap definition = makeDefinition();        
+        2. return tx.makePropertyKey(getName(), definition);
+            1. return (PropertyKey) makeSchemaVertex(JanusGraphSchemaCategory.PROPERTYKEY, name, definition);
+                1. ... 先跳过。
+            
+3. 新建 index
+JanusGraphManagement.IndexBuilder nameIndexBuilder = management.buildIndex(&amp;quot;name&amp;quot;, Vertex.class).addKey(name);
+    1. 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;调用：JanusGraphManagement management = graph.openManagement();然后：management.makeEdgeLabel(&amp;ldquo;father&amp;rdquo;).multiplicity(Multiplicity.MANY2ONE).make();&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>学习心得</title>
+      <link>https://dengziming.github.io/post/%E5%BF%83%E5%BE%97/first/</link>
+      <pubDate>Wed, 25 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BF%83%E5%BE%97/first/</guid>
+      
+        <description>&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;结硬寨打呆战&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;独当一面&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;花时间钻研底层只是&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;元认知更重要&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>es架构-1</title>
+      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</link>
+      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</guid>
+      
+        <description>
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster&#34;&gt;一、Anatomy of an Elasticsearch Cluster&lt;/h2&gt;
+
+&lt;p&gt;很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要覆盖了es的底层结构、数据原型、读写过程。es的功能主要有：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;全文搜索
+例如：怎么找到Wikipedia上面和某个名字最相关的文章&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;聚合&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;例如 显示广告网络上面的词条出价直方图&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;地理空间API&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;例如：设计一个能找到和骑手最近司机的骑行分享平台&lt;/p&gt;
+
+&lt;p&gt;接下来就是内容，主要有以下几个方面：
+1. 是主从架构还是无主架构
+2. 存储模型
+3. 读写工作流程
+4. 搜索结果怎么相关&lt;/p&gt;
+
+&lt;h3 id=&#34;1-the-confusion-between-elasticsearch-index-and-lucene-index-other-common-terms&#34;&gt;1.The confusion between Elasticsearch Index and Lucene Index + other common terms…&lt;/h3&gt;
+
+&lt;p&gt;es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。&lt;/p&gt;
+
+&lt;p&gt;每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-types-of-nodes&#34;&gt;2. Types of nodes&lt;/h3&gt;
+
+&lt;h4 id=&#34;1-master-node&#34;&gt;（1）Master Node&lt;/h4&gt;
+
+&lt;p&gt;控制集群，负责集群的操作，例如创建删除index，和集群的nodes联系，给节点分配shards。主节点一次处理一个集群状态，并将状态广播到所有节点，收到广播的节点对主节点进行确认回复。
+an be configured to be eligible to become a master node by setting the node.master property to be true (default) in elasticsearch.yml.
+大集群最好有专门的master node，去空值集群，不用处理任何用户请求&lt;/p&gt;
+
+&lt;h4 id=&#34;2-data-node&#34;&gt;（2） Data Node&lt;/h4&gt;
+
+&lt;p&gt;保存数据和倒排索引，By default, every node is configured to be a data node and the property node.data is set to true in elasticsearch.yml.
+If you would like to have a dedicated master node, then change the node.data property to false.&lt;/p&gt;
+
+&lt;h4 id=&#34;3-client-node&#34;&gt;（3）Client Node:&lt;/h4&gt;
+
+&lt;p&gt;If you set both node.master and node.data to false, then the node gets configured as a client node and acts as a load balancer routing incoming requests to different nodes in the cluster.&lt;/p&gt;
+
+&lt;h4 id=&#34;4-coordinating-node&#34;&gt;（4）coordinating node&lt;/h4&gt;
+
+&lt;p&gt;注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-storage-model&#34;&gt;2. Storage Model&lt;/h3&gt;
+
+&lt;p&gt;Elasticsearch uses Apache Lucene, a full-text search library written in Java and developed by Doug Cutting (creator of Apache Hadoop)。
+es内部通过倒排索引的数据结构，从而处理可能延迟的查询。es中 document 是数据的存储 unit，通过将document的词进行分词创建 inverted index ，倒排索引能够创建排序的term并将和这个term相关的document进行管理。
+和每本书背后的index类似，包含了很多词和那一页可以找到这些词，例如下面的两个document。&lt;/p&gt;
+
+&lt;p&gt;Doc 1: Insight Data Engineering Fellows Program
+Doc 2: Insight Data Science Fellows Program&lt;/p&gt;
+
+&lt;p&gt;If we want to find documents which contain the term “insight”, we can scan the inverted index (where words are sorted), find the word “insight” and return the document IDs which contain this word, which in this case would be Doc 1 and Doc 2.&lt;/p&gt;
+
+&lt;p&gt;为了更好的搜索性，文档先被分析。一般就是分词+标准化。&lt;/p&gt;
+
+&lt;p&gt;综上，我们知道每个document存储模型，存储了document，以及对他们分词后的倒排索引。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-anatomy-of-a-write&#34;&gt;3.Anatomy of a Write&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&amp;copy;reate&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;When you send a request to the coordinating node to index a new document, the following set of operations take place:&lt;/p&gt;
+
+&lt;p&gt;es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shard route起来，
+es再通过 murmur3 hash算法将documentId进行取值，得到shard。&lt;code&gt;shard = hash(document_id) % (num_of_primary_shards)&lt;/code&gt;。
+当节点收到 coordinating node 的 request ，request 会被写入到 translog 中，document 会被放进 memory buffer（&lt;a href=&#34;http://www.linfo.org/buffer.html），&#34;&gt;http://www.linfo.org/buffer.html），&lt;/a&gt;
+如果在primary shard上执行成功，reques也会被发送到 replica shard上，
+当 translog fsynced （&lt;a href=&#34;https://linux.die.net/man/2/fsync）&#34;&gt;https://linux.die.net/man/2/fsync）&lt;/a&gt; on all primary and replica shards.client receives acknowledgement that the request was successful。&lt;/p&gt;
+
+&lt;p&gt;memory buffer会周期性更新 (defaults to 1 sec)，contents 会被写到一个 a new segment in filesystem cache ，
+This segment is not yet fsync’ed, however, the segment is open and the contents are available for search.&lt;/p&gt;
+
+&lt;p&gt;The translog is emptied and filesystem cache is fsync’ed every 30 minutes or when the translog gets too big. 这个过程称为flush
+the in-memory buffer is cleared and the contents are written to a new segment.
+A new commit point is created with the segments fsync’ed and flushed to disk. The old translog is deleted and a fresh one begins.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;(U)pdate and (D)elete&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;es的记录是无法更改的，删除和update实际上是新建，更改版本号。每个segment 都有一个 .del  file。
+When a delete request is sent, the document is not really deleted, but marked as deleted in the .del file.
+This document may still match a search query but is filtered out of the results.
+When segments are merged, the documents marked as deleted in the .del file are not included in the new merged segment.&lt;/p&gt;
+
+&lt;p&gt;update则是新建+删除，es给每个document一个version，每次改变，version都+增加，旧版本会被.del 文件标记为删除，
+和删除一样，This older document may still match a search query but is filtered out of the results.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Anatomy of a &amp;reg;ead
+Read operations consist of two parts:&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Query Phase
+Fetch Phase&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Query Phase
+coordinating node route the search request to all the shards (primary or replica) in the index.
+每个shard单独search，然后将结果放进一个优先队列，根据 relevance score (we’ll cover relevance score later in the post).
+所有 shards将结果汇总，创建一个新的优先队列，取出相关度最高的一部分。这个过程类似spark的topn&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Fetch Phase
+coordinating node 排好序之后，
+it then requests the original documents from all the shards. All the shards enrich the documents and return them to the coordinating node.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;相关度：tf/idf （term frequency/inverse document frequency）算法。
+tf 词频，在某文档出现的频率
+idf 出现过得所有文档数&lt;/p&gt;
+
+&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
+
+&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
+Transaction log
+Lucene segments
+Why deep pagination during search is dangerous?
+Difficulties and trade-offs in calculating search relevance
+Concurrency control
+Why is Elasticsearch near real-time?
+How to ensure consistent writes and reads?&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>es架构-2</title>
+      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</link>
+      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</guid>
+      
+        <description>
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-2&#34;&gt;一、Anatomy of an Elasticsearch Cluster -2&lt;/h2&gt;
+
+&lt;p&gt;上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这一节的内容主要包括：
+Consensus — split-brain problem and importance of quorum
+Concurrency
+Consistency: Ensuring consistent writes and reads
+Translog (Write Ahead Log — WAL)
+Lucene segments&lt;/p&gt;
+
+&lt;h3 id=&#34;1-consensus-split-brain-problem-and-importance-of-quorum&#34;&gt;1. Consensus- Split-brain problem and importance of quorum&lt;/h3&gt;
+
+&lt;p&gt;Consensus 算法包括 Raft、Paxos等，为了解决一致性问题，es的一致性算法有两个部分：&lt;/p&gt;
+
+&lt;p&gt;Ping: The process nodes use to discover each other
+Unicast: The module that contains a list of hostnames to control which nodes to ping&lt;/p&gt;
+
+&lt;p&gt;es是一个P2P的系统，所有节点都和其他节点沟通，有一个主节点，控制和更新集群操作。一个新的集群需要经过选举，一个节点被选为master，其他的加入master。
+As nodes join, they send a join request to the master with a default join_timeout which is 20 times the ping_timeout.
+如果mster节点挂了，cluster重新开始ping，开始新的选举。这种ping过程也帮忙解决脑裂（某个节点突然觉得maste挂了，开始寻找新master）&lt;/p&gt;
+
+&lt;p&gt;为了容错，master会ping 所有的 节点去检查是否 alive然后节点会ping master进行response。
+默认配置下，es可能会有脑裂， 由于 network partition,a node 觉得 master 已经 failed然后自己当上master，导致连个master。
+This may result in data loss and it may not be possible to merge the data correctly.
+This can be avoided by setting the following property to a quorum of master eligible nodes.
+&lt;code&gt;discovery.zen.minimum_master_nodes = int(# of master eligible nodes/2)+1&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;设置这个配置之后，需要有 quorum of active master eligible nodes 参加完成master选举过程，并接受他的master身份。
+This is an extremely important property to ensure cluster stability and can be dynamically updated if the cluster size changes.
+NOTE: For a production cluster, it is recommended to have 3 dedicated master nodes, which do not serve any client requests, out of which 1 is active at any given time.&lt;/p&gt;
+
+&lt;p&gt;这就是 Consensus 的内容&lt;/p&gt;
+
+&lt;h3 id=&#34;2-concurrency&#34;&gt;2. Concurrency&lt;/h3&gt;
+
+&lt;p&gt;对于高并发，es使用 optimistic concurrency control 乐冠锁进行控制，保证新纪录不被就记录覆盖。
+每个document indexed 有一个 version number which is incremented with every change applied to that document。保证每次更新都能按照顺序。
+为了保证数据不丢失，es可以让你自己指定id，如果你指定的id比present的小，更新就失败了。
+How failed requests are handled can be controlled at the application level.
+There are also other locking options available and you can read about them：&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&#34;3-consistency-ensuring-consistent-writes-and-reads&#34;&gt;3. Consistency — Ensuring consistent writes and reads&lt;/h3&gt;
+
+&lt;p&gt;写一致
+对于怎样算写成功，可以设置 available的 shards 数量
+The available options are quorum, one and all. By default it is set to quorum and that means that a write operation will be permitted only if a majority of the shards are available.&lt;/p&gt;
+
+&lt;p&gt;尽管大多数available，也有可能出错。the replica is said to be faulty and the shard would be rebuilt on a different node.&lt;/p&gt;
+
+&lt;p&gt;读一致：
+new documents are not available for search until after the refresh interval.
+为了保证读到最新的document，replication can be set to sync (default) 。这样只有 primary and replica shards 都写完了才会返回 write request 。
+这样，从任何一个shard查询，都将返回最新的document。
+Even if your application requires replication=async for higher indexing rate, there is a _preference parameter which can be set to primary for search requests.
+这样，查询都走 primary shard ，保证结果都来自最新版本。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-translog&#34;&gt;2. Translog&lt;/h3&gt;
+
+&lt;p&gt;WAL来自关系型数据库的世界，translog保证事件失败时候的数据完整性，通过底层的原则 :在将数据提交到磁盘的实际更改之前，必须记录并提交预期的更改。&lt;/p&gt;
+
+&lt;p&gt;当新 document被index，或者旧的更改，Lucene index会改变，然后改变会被提交到磁盘进行持久化。每次update都进行提交很expensive，更好地办法是一次性提交很多。
+上一节提到的，flush操作默认30min一次或者translog太大，这样的话，有可能丢失30min的数据。为了避免这个问题，es使用translog，update操作都将被写到translog，
+translog is fsync’ed after every index/delete/update operation (or every 5 sec by default) 保证改变被持久化。
+The client receives acknowledgement for writes after the translog is fsync’ed on both primary and replica shards.&lt;/p&gt;
+
+&lt;p&gt;当两次flush之间出现问题，translog将会重新执行，从而恢复丢失的change，
+NOTE: It is recommended to explicitly flush the translog before restarting Elasticsearch instances,
+as the startup will be faster because the translog to be replayed will be empty.
+POST /_all/_flush command can be used to flush all indices in the cluster.&lt;/p&gt;
+
+&lt;p&gt;上面已经说了translog的flush操作，segments文件会被提交到磁盘来保证改变持久化。接下来我们看看什么是lucene的 segment。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-lucene-segments&#34;&gt;3.Lucene Segments&lt;/h3&gt;
+
+&lt;p&gt;Lucene索引由多个段组成，并且段本身是一个全功能倒置索引。
+是不可变的，它允许Lucene在不从头开始重建索引的情况下增量地向索引添加新文档。
+对于每一个搜索请求，索引中的所有段都被搜索，并且每个段消耗CPU周期、文件句柄和内存。这意味着段数越高，搜索性能就越低。
+为了解决这个问题，es将小的段合并成更大的段，将新合并的段提交到磁盘并删除旧的较小的段。
+对于搜索请求，搜索给定的弹性搜索索引碎片中的所有Lucene段，但是，在排名结果中提取所有匹配的文档或文档对于弹性搜索集群是危险的。&lt;/p&gt;
+
+&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
+
+&lt;p&gt;在后续文章中，我们将看到这一点，并回顾下面的主题，其中包括在弹性搜索中进行的一些权衡，以在低延迟下服务相关搜索结果。&lt;/p&gt;
+
+&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
+Transaction log
+Lucene segments
+Why deep pagination during search is dangerous?
+Difficulties and trade-offs in calculating search relevance
+Concurrency control
+Why is Elasticsearch near real-time?
+How to ensure consistent writes and reads?&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>es架构-3</title>
+      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-3/</link>
+      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-3/</guid>
+      
+        <description>
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-3&#34;&gt;一、Anatomy of an Elasticsearch Cluster -3&lt;/h2&gt;
+
+&lt;p&gt;上一节我们说了：how Elasticsearch approaches some of the fundamental challenges of a distributed system.这一节的内容主要包括：&lt;/p&gt;
+
+&lt;p&gt;Near real-time search&lt;/p&gt;
+
+&lt;p&gt;Why deep pagination in distributed search can be dangerous?&lt;/p&gt;
+
+&lt;p&gt;Trade-offs in calculating search relevance&lt;/p&gt;
+
+&lt;h3 id=&#34;1-near-real-time-search&#34;&gt;1. Near real-time search&lt;/h3&gt;
+
+&lt;p&gt;尽管改变不会立即可见，但是es确实提供了近实时查询，前面的内容提到，lucene的segment改变提交到磁盘是很消耗性能的。&lt;/p&gt;
+
+&lt;p&gt;为了避免search的同时提交改变到磁盘，es在memory buffer和disk之间提供了一个 filesystem cache，memory buffer 默认1s refreshed 一次，
+一个包含倒排索引的segment也会在 filesystem cache中生成。segment是开放的可以查询。&lt;/p&gt;
+
+&lt;p&gt;filesystem cache有文件句柄而且可以打开，读写，关闭，尽管它在内存中。
+Since, the refresh interval is 1 sec by default,  the changes are not visible right away ，所以是准实时。
+Since, the translog is a persistent record of changes not persisted to the disk, it also helps with the near real-time aspect for CRUD operations.
+在查找相关段之前，在 translog 中搜索任何最近的变化，因此，客户端可以访问近实时的所有变化。&lt;/p&gt;
+
+&lt;p&gt;你可以每次更新后手动刷新index，但是这样会产生很多小segment，不推荐。
+For a search request, all Lucene segments in a given shard of an Elasticsearch index are searched。
+however, fetching all matching documents or documents deep in the resulting pages is dangerous for your Elasticsearch cluster. Let’s see why that is.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-why-deep-pagination-in-distributed-search-can-be-dangerous&#34;&gt;2. Why deep pagination in distributed search can be dangerous?&lt;/h3&gt;
+
+&lt;p&gt;当我们查到的es中有很多匹配到的document，默认返回最相关的10条，分页操作会提供from和size两个参数，然后每个shard上面会产生from+size个结果放进优先队列，最后汇总。&lt;/p&gt;
+
+&lt;p&gt;加入你需要的是10000到100010个结果，每个shard的优先队列会返回10010个结果排序后放进 memory中，这样将会有很大的隐患。
+scroll API （&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html）可以让你返回所有的结果。&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html）可以让你返回所有的结果。&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;前面说到es使用tf-idf算法，分布式系统计算idf时很麻烦的，需要有aggregate操作。es的做法是返回一个local idf：
+Instead, every shard calculates a local idf to assign a relevance score to the resulting documents and returns the result for only the documents on that shard.
+Similarly, all the shards return the resulting documents with relevant scores calculated using local idf and the coordinating node sorts all the results to return the top ones。
+大多数情况可靠，但是数据倾斜时候就不太可靠了。&lt;/p&gt;
+
+&lt;p&gt;对于上面的问题有两种 trade-off，都不太适合大规模数据。一种是只有一个shard，这样local idf就是 globe idf。另一种是 dfs_query_then_search，先把local idf合并成globe idf，然后在计算。&lt;/p&gt;
+
+&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
+
+&lt;p&gt;In the last few posts, we reviewed some of the fundamental principles of Elasticsearch which are important to understand in order to get started.&lt;/p&gt;
+
+&lt;p&gt;接下来，我们要看看他的源码，或者看看怎么和spark、hadoop结合使用。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
       <title>Java内存区域与内存溢出异常</title>
       <link>https://dengziming.github.io/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/</link>
       <pubDate>Fri, 20 Apr 2018 00:00:00 +0000</pubDate>
@@ -2463,426 +4368,6 @@ This selector mechanism makes it easy for a single thread to manage multiple cha
     </item>
     
     <item>
-      <title>es架构-1</title>
-      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</guid>
-      
-        <description>
-
-&lt;p&gt;es设计架构，良心参考资料：
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster&#34;&gt;一、Anatomy of an Elasticsearch Cluster&lt;/h2&gt;
-
-&lt;p&gt;很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要覆盖了es的底层结构、数据原型、读写过程。es的功能主要有：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;全文搜索
-例如：怎么找到Wikipedia上面和某个名字最相关的文章&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;聚合&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;例如 显示广告网络上面的词条出价直方图&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;地理空间API&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;例如：设计一个能找到和骑手最近司机的骑行分享平台&lt;/p&gt;
-
-&lt;p&gt;接下来就是内容，主要有以下几个方面：
-1. 是主从架构还是无主架构
-2. 存储模型
-3. 读写工作流程
-4. 搜索结果怎么相关&lt;/p&gt;
-
-&lt;h3 id=&#34;1-the-confusion-between-elasticsearch-index-and-lucene-index-other-common-terms&#34;&gt;1.The confusion between Elasticsearch Index and Lucene Index + other common terms…&lt;/h3&gt;
-
-&lt;p&gt;es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。
-每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。&lt;/p&gt;
-
-&lt;h3 id=&#34;2-types-of-nodes&#34;&gt;2. Types of nodes&lt;/h3&gt;
-
-&lt;h4 id=&#34;1-master-node&#34;&gt;（1）Master Node&lt;/h4&gt;
-
-&lt;p&gt;控制集群，负责集群的操作，例如创建删除index，和集群的nodes联系，给节点分配shards。主节点一次处理一个集群状态，并将状态广播到所有节点，收到广播的节点对主节点进行确认回复。
-an be configured to be eligible to become a master node by setting the node.master property to be true (default) in elasticsearch.yml.
-大集群最好有专门的master node，去空值集群，不用处理任何用户请求&lt;/p&gt;
-
-&lt;h4 id=&#34;2-data-node&#34;&gt;（2） Data Node&lt;/h4&gt;
-
-&lt;p&gt;保存数据和倒排索引，By default, every node is configured to be a data node and the property node.data is set to true in elasticsearch.yml.
-If you would like to have a dedicated master node, then change the node.data property to false.&lt;/p&gt;
-
-&lt;h4 id=&#34;3-client-node&#34;&gt;（3）Client Node:&lt;/h4&gt;
-
-&lt;p&gt;If you set both node.master and node.data to false, then the node gets configured as a client node and acts as a load balancer routing incoming requests to different nodes in the cluster.&lt;/p&gt;
-
-&lt;h4 id=&#34;4-coordinating-node&#34;&gt;（4）coordinating node&lt;/h4&gt;
-
-&lt;p&gt;通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
-
-&lt;h3 id=&#34;2-storage-model&#34;&gt;2. Storage Model&lt;/h3&gt;
-
-&lt;p&gt;Elasticsearch uses Apache Lucene, a full-text search library written in Java and developed by Doug Cutting (creator of Apache Hadoop)。
-es内部通过倒排索引的数据结构，从而处理可能延迟的查询。es中 document 是数据的存储 unit，通过将document的词进行分词创建 inverted index ，倒排索引能够创建排序的term并将和这个term相关的document进行管理。
-和每本书背后的index类似，包含了很多词和那一页可以找到这些词，例如下面的两个document。&lt;/p&gt;
-
-&lt;p&gt;Doc 1: Insight Data Engineering Fellows Program
-Doc 2: Insight Data Science Fellows Program&lt;/p&gt;
-
-&lt;p&gt;If we want to find documents which contain the term “insight”, we can scan the inverted index (where words are sorted), find the word “insight” and return the document IDs which contain this word, which in this case would be Doc 1 and Doc 2.&lt;/p&gt;
-
-&lt;p&gt;为了更好的搜索性，文档先被分析。一般就是分词+标准化。&lt;/p&gt;
-
-&lt;p&gt;综上，我们知道每个document存储模型，存储了document，以及对他们分词后的倒排索引。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-anatomy-of-a-write&#34;&gt;3.Anatomy of a Write&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&amp;copy;reate&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;When you send a request to the coordinating node to index a new document, the following set of operations take place:&lt;/p&gt;
-
-&lt;p&gt;es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shardroute起来，
-es再通过murmur3 hash算法将documentId进行取值，得到shard。&lt;code&gt;shard = hash(document_id) % (num_of_primary_shards)&lt;/code&gt;。
-当节点收到 coordinating node 的reques，request会被写入到 translog中，document会被放进 memory buffer（&lt;a href=&#34;http://www.linfo.org/buffer.html），&#34;&gt;http://www.linfo.org/buffer.html），&lt;/a&gt;
-如果在primary shard上执行成功，reques也会被发送到 replica shard上，
-当 translog fsynced （&lt;a href=&#34;https://linux.die.net/man/2/fsync）&#34;&gt;https://linux.die.net/man/2/fsync）&lt;/a&gt; on all primary and replica shards.client receives acknowledgement that the request was successful。&lt;/p&gt;
-
-&lt;p&gt;memory buffer会周期性更新，contents会被写到一个 a new segment in filesystem cache ，
-This segment is not yet fsync’ed, however, the segment is open and the contents are available for search.&lt;/p&gt;
-
-&lt;p&gt;The translog is emptied and filesystem cache is fsync’ed every 30 minutes or when the translog gets too big. 这个过程称为flush
-the in-memory buffer is cleared and the contents are written to a new segment.
-A new commit point is created with the segments fsync’ed and flushed to disk. The old translog is deleted and a fresh one begins.&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;(U)pdate and (D)elete&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;es的记录是无法更改的，删除和update实际上是新建，更改版本号。每个segment 都有一个 .del  file。
-When a delete request is sent, the document is not really deleted, but marked as deleted in the .del file.
-This document may still match a search query but is filtered out of the results.
-When segments are merged, the documents marked as deleted in the .del file are not included in the new merged segment.&lt;/p&gt;
-
-&lt;p&gt;update则是新建+删除，es给每个document一个version，每次改变，version都+增加，旧版本会被.del 文件标记为删除，
-和删除一样，This older document may still match a search query but is filtered out of the results.&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;Anatomy of a &amp;reg;ead
-Read operations consist of two parts:&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;Query Phase
-Fetch Phase&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Query Phase
-coordinating node route the search request to all the shards (primary or replica) in the index.
-每个shard单独search，然后将结果放进一个优先队列，根据 relevance score (we’ll cover relevance score later in the post).
-所有 shards将结果汇总，创建一个新的优先队列，取出相关度最高的一部分。这个过程类似spark的topn&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Fetch Phase
-coordinating node 排好序之后，
-it then requests the original documents from all the shards. All the shards enrich the documents and return them to the coordinating node.&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;相关度：tf/idf （term frequency/inverse document frequency）算法。
-tf 词频，在某文档出现的频率
-idf 出现过得所有文档数&lt;/p&gt;
-
-&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
-
-&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
-Transaction log
-Lucene segments
-Why deep pagination during search is dangerous?
-Difficulties and trade-offs in calculating search relevance
-Concurrency control
-Why is Elasticsearch near real-time?
-How to ensure consistent writes and reads?&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>es架构-2</title>
-      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</guid>
-      
-        <description>
-
-&lt;p&gt;es设计架构，良心参考资料：
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-2&#34;&gt;一、Anatomy of an Elasticsearch Cluster -2&lt;/h2&gt;
-
-&lt;p&gt;上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这一节的内容主要包括：
-Consensus — split-brain problem and importance of quorum
-Concurrency
-Consistency: Ensuring consistent writes and reads
-Translog (Write Ahead Log — WAL)
-Lucene segments&lt;/p&gt;
-
-&lt;h3 id=&#34;1-consensus-split-brain-problem-and-importance-of-quorum&#34;&gt;1. Consensus- Split-brain problem and importance of quorum&lt;/h3&gt;
-
-&lt;p&gt;Consensus 算法包括 Raft、Paxos等，为了解决一致性问题，es的一致性算法有两个部分：&lt;/p&gt;
-
-&lt;p&gt;Ping: The process nodes use to discover each other
-Unicast: The module that contains a list of hostnames to control which nodes to ping&lt;/p&gt;
-
-&lt;p&gt;es是一个P2P的系统，所有节点都和其他节点沟通，有一个主节点，控制和更新集群操作。一个新的集群需要经过选举，一个节点被选为master，其他的加入master。
-As nodes join, they send a join request to the master with a default join_timeout which is 20 times the ping_timeout.
-如果mster节点挂了，cluster重新开始ping，开始新的选举。这种ping过程也帮忙解决脑裂（某个节点突然觉得maste挂了，开始寻找新master）&lt;/p&gt;
-
-&lt;p&gt;为了容错，master会ping 所有的 节点去检查是否 alive然后节点会ping master进行response。
-默认配置下，es可能会有脑裂， 由于 network partition,a node 觉得 master 已经 failed然后自己当上master，导致连个master。
-This may result in data loss and it may not be possible to merge the data correctly.
-This can be avoided by setting the following property to a quorum of master eligible nodes.
-&lt;code&gt;discovery.zen.minimum_master_nodes = int(# of master eligible nodes/2)+1&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;设置这个配置之后，需要有 quorum of active master eligible nodes 参加完成master选举过程，并接受他的master身份。
-This is an extremely important property to ensure cluster stability and can be dynamically updated if the cluster size changes.
-NOTE: For a production cluster, it is recommended to have 3 dedicated master nodes, which do not serve any client requests, out of which 1 is active at any given time.&lt;/p&gt;
-
-&lt;p&gt;这就是 Consensus 的内容&lt;/p&gt;
-
-&lt;h3 id=&#34;2-concurrency&#34;&gt;2. Concurrency&lt;/h3&gt;
-
-&lt;p&gt;对于高并发，es使用 optimistic concurrency control 乐冠锁进行控制，保证新纪录不被就记录覆盖。
-每个document indexed 有一个 version number which is incremented with every change applied to that document。保证每次更新都能按照顺序。
-为了保证数据不丢失，es可以让你自己指定id，如果你指定的id比present的小，更新就失败了。
-How failed requests are handled can be controlled at the application level.
-There are also other locking options available and you can read about them：&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h3 id=&#34;3-consistency-ensuring-consistent-writes-and-reads&#34;&gt;3. Consistency — Ensuring consistent writes and reads&lt;/h3&gt;
-
-&lt;p&gt;写一致
-对于怎样算写成功，可以设置 available的 shards 数量
-The available options are quorum, one and all. By default it is set to quorum and that means that a write operation will be permitted only if a majority of the shards are available.&lt;/p&gt;
-
-&lt;p&gt;尽管大多数available，也有可能出错。the replica is said to be faulty and the shard would be rebuilt on a different node.&lt;/p&gt;
-
-&lt;p&gt;读一致：
-new documents are not available for search until after the refresh interval.
-为了保证读到最新的document，replication can be set to sync (default) 。这样只有 primary and replica shards 都写完了才会返回 write request 。
-这样，从任何一个shard查询，都将返回最新的document。
-Even if your application requires replication=async for higher indexing rate, there is a _preference parameter which can be set to primary for search requests.
-这样，查询都走 primary shard ，保证结果都来自最新版本。&lt;/p&gt;
-
-&lt;h3 id=&#34;2-translog&#34;&gt;2. Translog&lt;/h3&gt;
-
-&lt;p&gt;WAL来自关系型数据库的世界，translog保证事件失败时候的数据完整性，通过底层的原则 :在将数据提交到磁盘的实际更改之前，必须记录并提交预期的更改。&lt;/p&gt;
-
-&lt;p&gt;当新 document被index，或者旧的更改，Lucene index会改变，然后改变会被提交到磁盘进行持久化。每次update都进行提交很expensive，更好地办法是一次性提交很多。
-上一节提到的，flush操作默认30min一次或者translog太大，这样的话，有可能丢失30min的数据。为了避免这个问题，es使用translog，update操作都将被写到translog，
-translog is fsync’ed after every index/delete/update operation (or every 5 sec by default) 保证改变被持久化。
-The client receives acknowledgement for writes after the translog is fsync’ed on both primary and replica shards.&lt;/p&gt;
-
-&lt;p&gt;当两次flush之间出现问题，translog将会重新执行，从而恢复丢失的change，
-NOTE: It is recommended to explicitly flush the translog before restarting Elasticsearch instances,
-as the startup will be faster because the translog to be replayed will be empty.
-POST /_all/_flush command can be used to flush all indices in the cluster.&lt;/p&gt;
-
-&lt;p&gt;上面已经说了translog的flush操作，segments文件会被提交到磁盘来保证改变持久化。接下来我们看看什么是lucene的 segment。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-lucene-segments&#34;&gt;3.Lucene Segments&lt;/h3&gt;
-
-&lt;p&gt;Lucene索引由多个段组成，并且段本身是一个全功能倒置索引。
-是不可变的，它允许Lucene在不从头开始重建索引的情况下增量地向索引添加新文档。
-对于每一个搜索请求，索引中的所有段都被搜索，并且每个段消耗CPU周期、文件句柄和内存。这意味着段数越高，搜索性能就越低。
-为了解决这个问题，es将小的段合并成更大的段，将新合并的段提交到磁盘并删除旧的较小的段。
-对于搜索请求，搜索给定的弹性搜索索引碎片中的所有Lucene段，但是，在排名结果中提取所有匹配的文档或文档对于弹性搜索集群是危险的。&lt;/p&gt;
-
-&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
-
-&lt;p&gt;在后续文章中，我们将看到这一点，并回顾下面的主题，其中包括在弹性搜索中进行的一些权衡，以在低延迟下服务相关搜索结果。&lt;/p&gt;
-
-&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
-Transaction log
-Lucene segments
-Why deep pagination during search is dangerous?
-Difficulties and trade-offs in calculating search relevance
-Concurrency control
-Why is Elasticsearch near real-time?
-How to ensure consistent writes and reads?&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>janusgraph源码分析1-下载编译启动</title>
-      <link>https://dengziming.github.io/post/titan/first/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/titan/first/</guid>
-      
-        <description>
-
-&lt;p&gt;#
-研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
-&lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;一-下载编译&#34;&gt;一、下载编译&lt;/h2&gt;
-
-&lt;p&gt;我直接使用github desktop打开了 janusgraph 的源码，使用IDEA打开，然后编译：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# 编译完整的
-mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
-# 只编译core部分
-mvn -pl janusgraph-core -am clean install -Dlicense.skip=true -DskipTests -P prod
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;我们在 &lt;code&gt;janusgraph-test&lt;/code&gt; 下面编写一个例子 &lt;code&gt;FirstTest&lt;/code&gt;：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class FirstTest {
-
-    public static void main(String[] args) {
-
-        /*
-         * The example below will open a JanusGraph graph instance and load The Graph of the Gods dataset diagrammed above.
-         * JanusGraphFactory provides a set of static open methods,
-         * each of which takes a configuration as its argument and returns a graph instance.
-         * This tutorial calls one of these open methods on a configuration
-         * that uses the BerkeleyDB storage backend and the Elasticsearch index backend,
-         * then loads The Graph of the Gods using the helper class GraphOfTheGodsFactory.
-         * This section skips over the configuration details, but additional information about storage backends,
-         * index backends, and their configuration are available in
-         * Part III, “Storage Backends”, Part IV, “Index Backends”, and Chapter 13, Configuration Reference.
-         */
-
-        // Loading the Graph of the Gods Into JanusGraph
-        JanusGraph graph = JanusGraphFactory
-                .open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;);
-
-        GraphOfTheGodsFactory.load(graph);
-        GraphTraversalSource g = graph.traversal();
-
-        /*
-         * The typical pattern for accessing data in a graph database is to first locate the entry point into the graph
-         * using a graph index. That entry point is an element (or set of elements) 
-         * — i.e. a vertex or edge. From the entry elements,
-         * a Gremlin path description describes how to traverse to other elements in the graph via the explicit graph structure.
-         * Given that there is a unique index on name property, the Saturn vertex can be retrieved.
-         * The property map (i.e. the key/value pairs of Saturn) can then be examined.
-         * As demonstrated, the Saturn vertex has a name of &amp;quot;saturn, &amp;quot; an age of 10000, and a type of &amp;quot;titan.&amp;quot;
-         * The grandchild of Saturn can be retrieved with a traversal that expresses:
-         * &amp;quot;Who is Saturn’s grandchild?&amp;quot; (the inverse of &amp;quot;father&amp;quot; is &amp;quot;child&amp;quot;). The result is Hercules.
-         */
-        // Global Graph Indices
-        Vertex saturn = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).next();
-        GraphTraversal&amp;lt;Vertex, Map&amp;lt;String, Object&amp;gt;&amp;gt; vertexMapGraphTraversal = g.V(saturn).valueMap();
-
-        GraphTraversal&amp;lt;Vertex, Object&amp;gt; values = g.V(saturn).in(&amp;quot;father&amp;quot;).in(&amp;quot;father&amp;quot;).values(&amp;quot;name&amp;quot;);
-
-        /*
-         * The property place is also in a graph index. The property place is an edge property.
-         * Therefore, JanusGraph can index edges in a graph index.
-         * It is possible to query The Graph of the Gods for all events that have happened within 50 kilometers of Athens
-          * (latitude:37.97 and long:23.72).
-          * Then, given that information, which vertices were involved in those events.
-         */
-		System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50))));
-        System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
-                .as(&amp;quot;source&amp;quot;).inV()
-                .as(&amp;quot;god2&amp;quot;)
-                .select(&amp;quot;source&amp;quot;).outV()
-                .as(&amp;quot;god1&amp;quot;).select(&amp;quot;god1&amp;quot;, &amp;quot;god2&amp;quot;)
-                .by(&amp;quot;name&amp;quot;));
-    }
-
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后在&amp;rdquo;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;rdquo; 文件中，将注释掉的内容取消注释。&lt;/p&gt;
-
-&lt;p&gt;运行发现依赖挺麻烦。
-首先运行报错了：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Exception in thread &amp;quot;main&amp;quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.berkeleyje.BerkeleyJEStoreManager
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;找到报错处的代码，我们发现 &lt;code&gt;janusgraph-core&lt;/code&gt; 中通过反射创建一个类，但是这个类在 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt; 中，而前者不依赖后者，所以找不到这个类，我们可以将后者加到前者的依赖，
-但是我们发现后者依赖前者，如果加了依赖两个就相互依赖了，这是 Janus 官方设计的问题。我们只好在 FirstTest 所在的module中把两个依赖都加进来试试。
-（注意，如果我们将所有的都打进一个包，这个问题就不存在了，但是在本地运行是不一样的，各自模块的编译输出文件在不同的地方。）在 &lt;code&gt;janusgraph-test&lt;/code&gt; 中添加：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-xml&#34;&gt;        &amp;lt;dependency&amp;gt;
-            &amp;lt;groupId&amp;gt;org.janusgraph&amp;lt;/groupId&amp;gt;
-            &amp;lt;artifactId&amp;gt;janusgraph-berkeleyje&amp;lt;/artifactId&amp;gt;
-            &amp;lt;version&amp;gt;0.3.0-SNAPSHOT&amp;lt;/version&amp;gt;
-        &amp;lt;/dependency&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;发现 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;也依赖了 &lt;code&gt;janusgraph-test&lt;/code&gt;,又相互依赖了，好麻烦。我们写写代码一定要注意这个问题。这里我的解决方法是直接把 代码放到 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt; 中运行。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Exception in thread &amp;quot;main&amp;quot; java.lang.IllegalArgumentException: Could not find implementation class: org.janusgraph.diskstorage.es.ElasticSearchIndex
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;和上面一样，还依赖了 &lt;code&gt;janusgraph-es&lt;/code&gt;,我只好吧代码复制到 &lt;code&gt;janusgraph-es&lt;/code&gt; 的test代码块中运行（注意一点是test代码中），顺便在 &lt;code&gt;janusgraph-es&lt;/code&gt; 中 添加上&lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;的依赖。
-运行成功了，但是报了连接失败，是因为我本地没有启动es，我启动一下es：&lt;code&gt;elasticsearch&lt;/code&gt;
-然后在运行：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Exception in thread &amp;quot;main&amp;quot; org.janusgraph.core.SchemaViolationException: Adding this property for key [~T$SchemaName] and value [rtname] violates a uniqueness constraint [SystemIndex#~T$SchemaName]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;经过google查到原因： &lt;a href=&#34;https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k&#34;&gt;https://groups.google.com/forum/#!topic/aureliusgraphs/vZ_nTXlXj4k&lt;/a&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This exception is thrown only when you already have added property key to index. So &amp;quot;name&amp;quot; is already added and next time when you run your program somewhere it is again adding &amp;quot;name&amp;quot; property key. So check if that particular code is running twice
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后我们可以在我们传入的配置文件找到：storage.directory=../db/berkeley  ，直接删除这个目录，再重新运行，就成功了：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;11:20:17,051  INFO GraphDatabaseConfiguration:1285 - Set default timestamp provider MICRO
-11:20:17,296  INFO GraphDatabaseConfiguration:1492 - Generated unique-instance-id=c0a815a789637-dengzimings-MacBook-Pro-local1
-11:20:17,547  INFO Backend:462 - Configuring index [search]
-11:20:19,279  INFO Backend:177 - Initiated backend operations thread pool of size 8
-11:20:19,461  INFO KCVSLog:753 - Loaded unidentified ReadMarker start time 2018-04-26T03:20:19.408Z into org.janusgraph.diskstorage.log.kcvs.KCVSLog$MessagePuller@73cd37c0
-[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])]
-[GraphStep(edge,[]), HasStep([place.geoWithin(BUFFER (POINT (23.72 37.97), 0.44966))])@[source], EdgeVertexStep(IN)@[god2], SelectOneStep(last,source), EdgeVertexStep(OUT)@[god1], SelectStep(last,[god1, god2],[value(name)])]
-11:20:29,578  INFO ManagementLogger:192 - Received all acknowledgements for eviction [1]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后我们可以去 ../db/berkeley  目录查看，多了一些文件，这些文件的作用我们后续再分析。
-然后我们取es查看：&lt;code&gt;curl -XGET &#39;localhost:9200/_cat/indices?v&amp;amp;pretty&#39;&lt;/code&gt; ，发现多了两个index:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;yellow open   janusgraph_edges    QT-E7AV6SMWr8Cu_ywKsXg   5   1          6            0     13.7kb         13.7kb
-yellow open   janusgraph_vertices gE4TSXFATnSZUWYdAf46Xg   5   1          6            0     10.9kb         10.9kb
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;还可以具体查看内容。例如名字是titan的内容：&lt;code&gt;curl -XGET &#39;localhost:9200/janusgraph_vertices/_search?q=name:titan&amp;amp;pretty&#39;&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;到现在我们第一个案例就结束了。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
-                .as(&amp;quot;source&amp;quot;).inV()
-                .as(&amp;quot;god2&amp;quot;)
-                .select(&amp;quot;source&amp;quot;).outV()
-                .as(&amp;quot;god1&amp;quot;).select(&amp;quot;god1&amp;quot;, &amp;quot;god2&amp;quot;)
-                .by(&amp;quot;name&amp;quot;)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;这种风格的代码实际上是groovy语言的代码，大家可以研究一下groovy语言。&lt;/p&gt;
-
-&lt;p&gt;注意事项：
-上述第一次运行问题的原因是 &lt;code&gt;janusgraph-core&lt;/code&gt;需要用到 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;的类，
-但是&lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;是依赖 &lt;code&gt;janusgraph-core&lt;/code&gt;的，所以两个相互依赖了。
-janus的做法是在core中使用反射，所以编译通过了，打包到了一起就没问题了。但是本地运行没法成功。&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
       <title>neo4j企业版分析</title>
       <link>https://dengziming.github.io/post/neo4j/neo4j%E4%BC%81%E4%B8%9A%E7%89%88%E5%88%86%E6%9E%90/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
@@ -2969,9 +4454,95 @@ janus的做法是在core中使用反射，所以编译通过了，打包到了�
       
         <description>
 
-&lt;h2 id=&#34;1-修改配置&#34;&gt;1.修改配置&lt;/h2&gt;
+&lt;h2 id=&#34;1-本文内容转自&#34;&gt;1.本文内容转自：&lt;/h2&gt;
 
-&lt;p&gt;待完成&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://key-value-stories.blogspot.tw/2015/02/neo4j-architecture.html?view=magazine&#34;&gt;https://key-value-stories.blogspot.tw/2015/02/neo4j-architecture.html?view=magazine&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;This post compiles some information about architecture of Neo4j, the leading graph database. Research is relevant for Neo4j 2.2 version.&lt;/p&gt;
+
+&lt;p&gt;There are three main kinds of primitives in Neo4j: nodes, relationships and properties. Nodes are connected via relationships. Properties could be attached to both nodes and relationships. All primitives are identified by identifiers, unique among primitive kind.&lt;/p&gt;
+
+&lt;p&gt;Node and relationship identifiers are 35 bits in length, i. e. database could hold at most about 34 billions of nodes or relationships. Property identifiers take 36 bits (reference).&lt;/p&gt;
+
+&lt;p&gt;Also, relationships are typed (for example, &amp;ldquo;friend of&amp;rdquo; and &amp;ldquo;in relationship with&amp;rdquo; are two different types of relationships between &amp;ldquo;people nodes&amp;rdquo; in social network graph). Relationship types have 2-byte identifiers.&lt;/p&gt;
+
+&lt;p&gt;In addition, nodes could be labelled. Label is logically another one kind of entity, with own identifiers.
+Main data storage
+Primitives stored on disk as records. Important, that all records or primitives of a kind are equally sized. (Actually, there are more record types and dedicated stores, and they all share this property. Dynamically sized data is stored as a linked list of constantly sized records.)
+Node store format
+Node records are 15 bytes (* 8 = 120 bits) long:
+35 bits for first relationship identifier
+36 bits for first property identifier
+40 bytes for label field:
+If there are at most 7 labels attached to the node, and each of label identifiers takes no more than (40 - 4  = 36) / numberOfLabels, i. e. if there are 7 labels, each label id should be below 2(36 / 7) = 5 = 32, than number of labels is stored in 36..38-th bits of the label field, and the label identifiers are packed in lower 0..35-th bits.
+Otherwise, if there are more than 7 labels attached to the node, or their identifiers are too big, 39-th bit of the label field, i. e. the flag, is set, and in the lower 0..35-th bits of the label field the identifier of the dynamic record with all label ids is stored.
+9 bits &amp;ndash; some flags and reserved for future use
+Relationship store format
+Since node keeps only a reference to the single relationship, relationships are orginized in doubly-linked lists, that makes all relationships of some node traversable from this node. Each relationship is a part of two linked lists: a list of relationships of the first node, i. e. from which this relationship starts, and a lists of relationships of the second node, i. e. at which this relationships ends.&lt;/p&gt;
+
+&lt;p&gt;Relationship record take 34 bytes (* 8 = 272 bits):
+35 bits of the first node identifier
+35 bits of the second node identifier
+35 * 4 = 140 bits of identifiers of the sibling relationships in two linked lists, this relationship participate in
+16 bits of relationship type
+36 bits for first property identifier
+10 bits &amp;ndash; some flags and reserved for future use
+Organazing relationships in linked lists is not particularly performant decision itself, but in some cases it becomes really disastrous &amp;ndash; for example, when some type of nodes has (on average) 100 relationships of type A and some relationships of type B. If we are only interested in traversal over relationships of type B, and they are occasionally clustered in the end of linked lists of the nodes of our type, we are required to traverse 100 relationships in which we are not currently interested to access the useful data.&lt;/p&gt;
+
+&lt;p&gt;Apparently to optimize cases like explained above, Neo4j supports another relationship layout (called dense node), in a nutshell it links relationships of each node in a tree, rather than simple linked list. In this case, &amp;ldquo;first relationship identifier&amp;rdquo; is interpreted as an identifier of a relationship group. Each relationship group is dedicated to relationships of a certain type. Relationship group record is 25 bytes (* 8 = 200 bits) long:
+35 bytes of the node identifier this relationship group belongs to
+16 bits of relationship type
+35 bytes of the first out relationship identifier, i. e. a relationship which has the given type and starts in the node owning this relationship group
+35 bytes of the first in relationship identifier, i. e. a relationship which has the given type and ends in the node owning this relationship group
+35 bytes of the first loop relationship identifier.
+35 bytes of the next linked relationship group of the owning node, i. e. relationship groups form a singly-linked list
+1 bit for presence flag
+One more byte (8 bits) apparently reserved for future use, however I&amp;rsquo;m not sure, because seems that it would be nicer to fit 24 bytes for relationship group record, because it is more &amp;ldquo;power of 2 aligned&amp;rdquo;, i. e. plays better with cache lines, pages.
+When relationship groups are used, relationships of any specified type and direction, could be traversed from from the node with much lesser overhead, skipping potentially a lot of relationships of the node we are not interested in during this traversal.&lt;/p&gt;
+
+&lt;p&gt;There is an interesting small optimization: when the node is dense, first relationship records in the doubly-linked lists, to which relationship groups point, keep the length of the doubly-linked list in place of previous relationship link, which is otherwise unused (because first relationship in the doubly-linked list point only to the next relationship in a chain).
+Property store format
+As nodes and relationships reference only the first their property, they are also stored as doubly-linked lists, by owning primitive entity. Property record size is 41 bytes:
+36 bits of the previous linked property identifier
+36 bits of the next linked property identifier
+32 bytes of &amp;ldquo;payload&amp;rdquo;, i. e. space where the property data itself is stored. It includes property type identifier, data encoding type and the data bytes. If the property data doesn&amp;rsquo;t fit the payload (i. e. it is a long string or array), the identifier of the linked dynamic data record is placed there as well.
+Neo4j supports plenty of property data formats, trying to pack the data as dense as possible, but it is not the subject of this blog post.
+File buffer cache
+Records of different kinds are stored in separate files. Access to disk storage is proxied with file buffer cache, or page cache:
+Neo4j uses multiple file buffer caches, one for each different storage file. Each file buffer cache divides its storage file into a number of equally sized windows. Each cache window contains an even number of storage records. The cache holds the most active cache windows in memory and tracks hit vs. miss ratio for the windows. When the hit ratio of an uncached window gets higher than the miss ratio of a cached window, the cached window gets evicted and the previously uncached window is cached instead.
+Quote from Caches in Neo4j document.&lt;/p&gt;
+
+&lt;p&gt;I would add, that the default page size is 8192 bytes, and it doesn&amp;rsquo;t depend on native page size, specified for the Neo4j server process, operation system or CPU platform.&lt;/p&gt;
+
+&lt;p&gt;I don&amp;rsquo;t understand, why Neo4j developers don&amp;rsquo;t rely on OS file caches, which employ several heuristics, including LRU, to solve the same task. Probably user space implementation is more precise in decisions about page eviction, than native generic mechanism would be, and is more manageable, but, on the other hand,
+Native page caching is fully transparent, i. e. relying on it simply throws a layer of complexity away from Neo4j project
+Even with Java-level page cache, OS still caches the same pages underneath, i. e. work is doubled to some extent.
+Summary
+The approach to data storage, chosen in Neo4j has one very useful consequence: since all records are strictly of the same size, accessing records by identifiers is pretty cheap, because doesn&amp;rsquo;t require any associative mapping from identifiers to record locations (hash table, tree or something else), identifiers just play as indexes in &amp;ldquo;arrays&amp;rdquo; of records.&lt;/p&gt;
+
+&lt;p&gt;Another strong point is impossibility of external fragmentation, records after removed primitives could always be reused.&lt;/p&gt;
+
+&lt;p&gt;However, there are also major disadvantages:
+Database entity identifiers hardly could simultaneously be domain identifiers, unless the system was designed to use Neo4j as primary storage from the beginning.
+A lot of memory overhead for storing links between records. For example, 50-80% of 34-byte relationship record is overhead (depends on how to count).
+Traversing links is slow. Partially it is excused by empirical observation, that if all relationships of the node or properties of the node or relationship are stored at once, they should reside adjacent records and their traversal won&amp;rsquo;t require page/cache line load on each step.
+Neo4j&amp;rsquo;s storage design favor reliability, versatility, agility and manageability. Apparently it is driven by initial database functional requirements and equally powerful, but more efficient approach doesn&amp;rsquo;t exist (at least I don&amp;rsquo;t see such). There is a basic tradeoff in systems design: more specific and constrained systems could be implemented more efficiently, than general and schema-less, like Neo4j.
+Indexes
+Neo4j supports indexing of nodes and relationships by labels and property values, i. e. it allows retrieving all nodes with given label and/or property value faster, than via full scan of all nodes in the database.&lt;/p&gt;
+
+&lt;p&gt;Apparently production implementation of indexes is fully delegated to Lucene engine. Entity identifiers are stored in Lucene documents with fields, corresponding to the indexed labels and property values. Lucene is able to search documents by individual fields and combinations of fields, empowering complex queries on Neo4j level.&lt;/p&gt;
+
+&lt;p&gt;I can&amp;rsquo;t judge about propriety and efficiency of this solution, because I&amp;rsquo;m not familiar with Lucene implementation. This requires separate research.
+Object cache
+Neo4j is written in Java, known for allocation and GC issues. It has several versions of object caches, introduced to prevent too much unnecessary allocations of node, relationship and property wrapper objects. Note that Neo4j&amp;rsquo;s object caches are not object pools, i. e. objects are not reused, caches only control object&amp;rsquo;s lifecycle in managed memory environment (JVM).&lt;/p&gt;
+
+&lt;p&gt;Community strong, weak and soft cache implementations use ConcurrentHashMap with Long keys and target cached object values. weak and soft versions additionally wrap values with WeakReference or SoftReference respectively. Object eviction is left to JVM. At least one obvious optimization is possible here: specialization of ConcurrentHashMap for primitive long keys.&lt;/p&gt;
+
+&lt;p&gt;Enterprise hpc (high-performance cache) uses simpler data structure: basically it&amp;rsquo;s just an AtomicReferenceArray of cached entities, slot for particular entity is determined as entity.id() % array.length(). On collisions, old cached objects are evicted. Eviction algorithm is also very simple: when after insertion of the new object total memory footprint of cached objects (including JVM object headers), preserved in a counter, exceeds configured limit, slots before and after current insertion index are cleared (in interleaved order), while total size of the cached objects is higher than 90% of the limit size.&lt;/p&gt;
+
+&lt;p&gt;It&amp;rsquo;s an amusing example, how applying little knowledge about the problem and major usage patterns leads to faster solution, even with simpler implementation.
+Conclusion
+In my understanding, Neo4j is a reliable, agile, general-purpose database, but it is not for edge performance, despite claims on their official website. Databases that allow to specialize storage and data structures for concrete node/relationship types should be more efficient.&lt;/p&gt;
 </description>
       
     </item>
@@ -3218,7 +4789,8 @@ phone:ID(PHONE),isblack,ismedia,iscuishou
 &lt;li&gt;&lt;p&gt;&lt;code&gt;return new GraphDatabaseDependencies( null, null, new ArrayList&amp;lt;&amp;gt;(), kernelExtensions,)&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;ServerBootstrapper.start( Bootstrapper boot, String... argv )&lt;/code&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;ServerBootstrapper.start( Bootstrapper boot, String... argv )&lt;/code&gt;
+```java&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;CommunityBootstrapper(AbstractNeoServer).start&lt;/code&gt;&lt;/p&gt;
@@ -3228,209 +4800,198 @@ phone:ID(PHONE),isblack,ismedia,iscuishou
 
 &lt;ol&gt;
 &lt;li&gt;&lt;code&gt;new CommunityNeoServer( config, dependencies, logProvider );&lt;/code&gt;
+&lt;br /&gt;
 &lt;br /&gt;&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// 初始化很多属性
-
-protected abstract WebServer createWebServer();
-
-// 放在代码后面的属性
-private final Dependencies dependencyResolver = new Dependencies( new Supplier&amp;lt;DependencyResolver&amp;gt;()
-{
-    @Override
-    public DependencyResolver get()
-    {
-        Database db = dependencyResolver.resolveDependency( Database.class );
-        return db.getGraph().getDependencyResolver();
-    }
-} );
-// 构造方法
-public AbstractNeoServer( Config config, Database.Factory dbFactory,
-        GraphDatabaseFacadeFactory.Dependencies dependencies, LogProvider logProvider )
-{
-    this.logProvider = logProvider;
-    // 初始化很多东西
-}
-&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AbstractNeoServer.start();&lt;/code&gt;&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;init()&lt;/code&gt;&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );&lt;/code&gt;&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;lambda$lifecycleManagingDatabase$0:47, LifecycleManagingDatabase (org.neo4j.server.database)&lt;/code&gt;
-这里的 java8 lamabda表达式有点不懂，总之就是这个 dbFactory.newDatabase( config, dependencies ) 执行的是这段代码：
-&lt;code&gt;( config, dependencies ) -&amp;gt; new LifecycleManagingDatabase( config, graphDbFactory, dependencies );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;dependencyResolver.satisfyDependency(LifecycleManagingDatabase )&lt;/code&gt;
-这里的 satisfyDependency 方法有点奇怪，总之就是将 LifecycleManagingDatabase 的所有父类添加到一个临时变量，好像啥也没做。&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;life.add(LifecycleManagingDatabase)&lt;/code&gt;
-奇怪的代码，后续我们专门讲解这个 life 的实现，这是注释：
-Add a new Lifecycle instance. It will immediately be transitioned to the state of this LifeSupport.
-将传入的dependency 新建为一个LifecycleInstance，add到 instances中。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;LifecycleInstance newInstance = new LifecycleInstance( instance );
-private volatile List&amp;lt;LifecycleInstance&amp;gt; instances = new ArrayList&amp;lt;&amp;gt;();
-&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;this.database = LifecycleManagingDatabase&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;p&gt;// 初始化很多属性&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;新建其他的，非内核部分我们忽略。&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.authManagerSupplier = dependencyResolver.provideDependency( AuthManager.class );
-this.userManagerSupplier = dependencyResolver.provideDependency( UserManagerSupplier.class );
-this.sslPolicyFactorySupplier = dependencyResolver.provideDependency( SslPolicyLoader.class );
-this.webServer = createWebServer();
+&lt;p&gt;		protected abstract WebServer createWebServer();&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;			// 放在代码后面的属性
+			private final Dependencies dependencyResolver = new Dependencies( new Supplier&lt;DependencyResolver&gt;()
+    		{
+    		    @Override
+    		    public DependencyResolver get()
+    		    {
+    		        Database db = dependencyResolver.resolveDependency( Database.class );
+    		        return db.getGraph().getDependencyResolver();
+    		    }
+    		} );
+			// 构造方法
+    		public AbstractNeoServer( Config config, Database.Factory dbFactory,
+    		        GraphDatabaseFacadeFactory.Dependencies dependencies, LogProvider logProvider )
+    		{
+    		    this.logProvider = logProvider;
+    		    // 初始化很多东西
+    		}&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    2. `AbstractNeoServer.start();`
+
+        1. `init()`
+
+            1. `this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );`
+
+                1. `lambda$lifecycleManagingDatabase$0:47, LifecycleManagingDatabase (org.neo4j.server.database)`
+                这里的 java8 lamabda表达式有点不懂，总之就是这个 dbFactory.newDatabase( config, dependencies ) 执行的是这段代码：
+                 `( config, dependencies ) -&amp;gt; new LifecycleManagingDatabase( config, graphDbFactory, dependencies );`
+
+                2. `dependencyResolver.satisfyDependency(LifecycleManagingDatabase )`
+                这里的 satisfyDependency 方法有点奇怪，总之就是将 LifecycleManagingDatabase 的所有父类添加到一个临时变量，好像啥也没做。
+
+                3. `life.add(LifecycleManagingDatabase)`
+                奇怪的代码，后续我们专门讲解这个 life 的实现，这是注释：
+                Add a new Lifecycle instance. It will immediately be transitioned to the state of this LifeSupport.
+                将传入的dependency 新建为一个LifecycleInstance，add到 instances中。
+
+                LifecycleInstance newInstance = new LifecycleInstance( instance );
+                private volatile List&amp;lt;LifecycleInstance&amp;gt; instances = new ArrayList&amp;lt;&amp;gt;();
+
+                4. `this.database = LifecycleManagingDatabase`
+
+            2. 新建其他的，非内核部分我们忽略。
+
+
+            this.authManagerSupplier = dependencyResolver.provideDependency( AuthManager.class );
+    		this.userManagerSupplier = dependencyResolver.provideDependency( UserManagerSupplier.class );
+    		this.sslPolicyFactorySupplier = dependencyResolver.provideDependency( SslPolicyLoader.class );
+    		this.webServer = createWebServer();
+
+
+            3. createServerModules()
+
+
+            return Arrays.asList(
+            new DBMSModule( webServer, getConfig() ),
+            new RESTApiModule( webServer, getConfig(), getDependencyResolver(), logProvider ),
+            new ManagementApiModule( webServer, getConfig() ),
+            new ThirdPartyJAXRSModule( webServer, getConfig(), logProvider, this ),
+            new ConsoleModule( webServer, getConfig() ),
+            new Neo4jBrowserModule( webServer ),
+            createAuthorizationModule(),
+            new SecurityRulesModule( webServer, getConfig(), logProvider ) );
+
+
+            4.创建 ServerComponentsLifecycleAdapter
+
+
+            serverComponents = new ServerComponentsLifecycleAdapter();
+            life.add( serverComponents );
+
+            this.initialized = true;
+
+
+        2. life.start();
+        debug进入：`LifeSupport`
+
+            1. init();
+                1. status = changedStatus( this, status, LifecycleStatus.INITIALIZING );
+
+                2. for ( LifecycleInstance instance : instances ) instance.init();
+                    这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();
+
+                    1. LifecycleInstance.init()
+                    还好两个代码里面什么都没做，不然再F5进去，我要奔溃了。。。
+
+                3. status = changedStatus( this, status, LifecycleStatus.STOPPED );
+
+            2. for ( LifecycleInstance instance : instances ) instance.start();
+                这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();
+
+                    1. `LifecycleInstance.start() `
+
+                    2. `LifecycleManagingDatabase.start()`
+
+
+                        log.info( &amp;quot;Starting...&amp;quot; );
+    					this.graph = dbFactory.newGraphDatabase( config, dependencies );
+    					if ( !isInTestMode() )
+    					{
+    					    preLoadCypherCompiler();
+    					}
+    					log.info( &amp;quot;Started.&amp;quot; );
+
+
+
+    					1. this.graph = dbFactory.newGraphDatabase( config, dependencies );
+    					这里又是lambda表达式：
+    					new GraphDatabaseFacadeFactory,
+
+    					File storeDir = config.get( GraphDatabaseSettings.database_path );
+                        return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
+                               .newFacade( storeDir, config, dependencies );
+
+                        主要的核心代码已经找到了：new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );
+                        接下来我们主要调试这一段。
+
+                    3. `ServerComponentsLifecycleAdapter.start()`
+                        这里主要是和web，cypher有关，我们暂时忽略。
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;ol&gt;
-&lt;li&gt;createServerModules()
-&lt;br /&gt;&lt;/li&gt;
-&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;
 
-&lt;pre&gt;&lt;code&gt;return Arrays.asList(
-new DBMSModule( webServer, getConfig() ),
-new RESTApiModule( webServer, getConfig(), getDependencyResolver(), logProvider ),
-new ManagementApiModule( webServer, getConfig() ),
-new ThirdPartyJAXRSModule( webServer, getConfig(), logProvider, this ),
-new ConsoleModule( webServer, getConfig() ),
-new Neo4jBrowserModule( webServer ),
-createAuthorizationModule(),
-new SecurityRulesModule( webServer, getConfig(), logProvider ) );
-&lt;/code&gt;&lt;/pre&gt;
+## 2.调试 GraphDatabaseFacadeFactory.newFacade
+上面我们已经调试到了 最后的部分，也是高潮部分。
 
-&lt;p&gt;4.创建 ServerComponentsLifecycleAdapter&lt;/p&gt;
+newFacade 方法：
+1. `initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );`
 
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;serverComponents = new ServerComponentsLifecycleAdapter();
-life.add( serverComponents );
+```java
+    1.`new GraphDatabaseFacade()`
+    初始化相关数据
 
-this.initialized = true;
-&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+    2.`GraphDatabaseFacade initFacade( File storeDir, Config config, final Dependencies dependencies, final GraphDatabaseFacade graphDatabaseFacade )`
 
-&lt;li&gt;&lt;p&gt;life.start();
-debug进入：&lt;code&gt;LifeSupport&lt;/code&gt;&lt;/p&gt;
+    	1. `PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;init();&lt;/p&gt;
+        	1. `new PlatformModule( storeDir, config, databaseInfo, dependencies, graphDatabaseFacade );`
+            这一部分代码很长很关键的感觉，这里是内核相关，先跳过，回头看。下一章节 TODO
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;status = changedStatus( this, status, LifecycleStatus.INITIALIZING );&lt;/p&gt;&lt;/li&gt;
+            2. EditionModule edition = editionFactory.apply( platform );
+            
+            这里和上一个PlatformModule干的事情一样。下一章节 TODO
 
-&lt;li&gt;&lt;p&gt;for ( LifecycleInstance instance : instances ) instance.init();
-这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();&lt;/p&gt;
+        2. `final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );`
 
-&lt;ol&gt;
-&lt;li&gt;LifecycleInstance.init()
-还好两个代码里面什么都没做，不然再F5进去，我要奔溃了。。。&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
+            1. new DataSourceModule( platformModule, editionModule, queryEngine );
+            和上面的 PlatformModule 一样，一大堆的新建。。。最后 life.add( platformModule.kernelExtensions ) 新建DataSource
+        3. `ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );`
+        
+        4. `platform.life.start();`
+ 
+            1. init();
+            2. for ( LifecycleInstance instance : instances ) instance.start();
+                这里的instance ：
+           		
+           		
+           		0 = {LifeSupport$LifecycleInstance@3583} &amp;quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&amp;quot;
+		 		1 = {LifeSupport$LifecycleInstance@3730} &amp;quot;org.neo4j.kernel.impl.util.Neo4jJobScheduler@2667f029: STARTED&amp;quot;
+		 		2 = {LifeSupport$LifecycleInstance@3635} &amp;quot;org.neo4j.udc.UsageData@67a20f67: STARTED&amp;quot;
+		 		3 = {LifeSupport$LifecycleInstance@3658} &amp;quot;org.neo4j.kernel.impl.logging.StoreLogService@57c758ac: STARTED&amp;quot;
+		 		4 = {LifeSupport$LifecycleInstance@3681} &amp;quot;org.neo4j.kernel.internal.locker.StoreLockerLifecycleAdapter@a9cd3b1: STARTED&amp;quot;
+		 		5 = {LifeSupport$LifecycleInstance@3731} &amp;quot;org.neo4j.kernel.impl.pagecache.PageCacheLifecycle@13e39c73: STOPPED&amp;quot;
+		 		6 = {LifeSupport$LifecycleInstance@3732} &amp;quot;org.neo4j.kernel.info.DiagnosticsManager@64cd705f: STOPPED&amp;quot;
+		 		7 = {LifeSupport$LifecycleInstance@3733} &amp;quot;org.neo4j.kernel.impl.transaction.state.DataSourceManager@548d708a: STOPPED&amp;quot;
+		 		8 = {LifeSupport$LifecycleInstance@3734} &amp;quot;org.neo4j.kernel.impl.util.watcher.DefaultFileSystemWatcherService@4b013c76: STOPPED&amp;quot;
+		 		9 = {LifeSupport$LifecycleInstance@3735} &amp;quot;org.neo4j.kernel.impl.core.DelegatingPropertyKeyTokenHolder@53fb3dab: STOPPED&amp;quot;
+		 		10 = {LifeSupport$LifecycleInstance@3736} &amp;quot;org.neo4j.kernel.impl.core.DelegatingLabelTokenHolder@cb0755b: STOPPED&amp;quot;
+		 		11 = {LifeSupport$LifecycleInstance@3737} &amp;quot;org.neo4j.kernel.impl.core.DelegatingRelationshipTypeTokenHolder@33065d67: STOPPED&amp;quot;
+		 		12 = {LifeSupport$LifecycleInstance@3738} &amp;quot;org.neo4j.kernel.internal.DefaultKernelData@30: STOPPED&amp;quot;
+		 		13 = {LifeSupport$LifecycleInstance@3739} &amp;quot;org.neo4j.kernel.impl.core.ThreadToStatementContextBridge@7bba5817: STOPPED&amp;quot;
+		 		14 = {LifeSupport$LifecycleInstance@3740} &amp;quot;org.neo4j.kernel.extension.KernelExtensions@25df00a0: STOPPED&amp;quot;
+		 		15 = {LifeSupport$LifecycleInstance@3741} &amp;quot;org.neo4j.kernel.impl.proc.Procedures@6cc4cdb9: STOPPED&amp;quot;
+		 		16 = {LifeSupport$LifecycleInstance@3742} &amp;quot;org.neo4j.server.security.auth.BasicAuthManager@47c81abf: STOPPED&amp;quot;
+		 		17 = {LifeSupport$LifecycleInstance@3743} &amp;quot;org.neo4j.kernel.impl.cache.MonitorGc@30b6ffe0: STOPPED&amp;quot;
+		 		18 = {LifeSupport$LifecycleInstance@3744} &amp;quot;org.neo4j.kernel.impl.pagecache.PublishPageCacheTracerMetricsAfterStart@2415fc55: STOPPED&amp;quot;
+		 		19 = {LifeSupport$LifecycleInstance@3745} &amp;quot;org.neo4j.kernel.DatabaseAvailability@1890516e: STOPPED&amp;quot;
+		 		20 = {LifeSupport$LifecycleInstance@3746} &amp;quot;org.neo4j.kernel.impl.factory.DataSourceModule$StartupWaiter@16c069df: STOPPED&amp;quot;
+		 		21 = {LifeSupport$LifecycleInstance@3747} &amp;quot;org.neo4j.kernel.internal.KernelEventHandlers@2bec854f: STOPPED&amp;quot;
+           	   
+               每个instance的start方法具体是怎样的，我们稍后细看，这里跳过 TODO
 
-&lt;li&gt;&lt;p&gt;status = changedStatus( this, status, LifecycleStatus.STOPPED );&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;for ( LifecycleInstance instance : instances ) instance.start();
-这时候有两个instance，分别是上面我们new出来的  new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter();&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1. `LifecycleInstance.start() `
-
-2. `LifecycleManagingDatabase.start()`
-
-    ```java
-    log.info( &amp;quot;Starting...&amp;quot; );
-    this.graph = dbFactory.newGraphDatabase( config, dependencies );
-    if ( !isInTestMode() )
-    {
-        preLoadCypherCompiler();
-    }
-    log.info( &amp;quot;Started.&amp;quot; );
-
-    ```
-
-    1. this.graph = dbFactory.newGraphDatabase( config, dependencies );
-    这里又是lambda表达式：
-    new GraphDatabaseFacadeFactory,
-    ```java
-    File storeDir = config.get( GraphDatabaseSettings.database_path );
-    return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
-           .newFacade( storeDir, config, dependencies );
-    ```
-    主要的核心代码已经找到了：new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );
-    接下来我们主要调试这一段。
-
-3. `ServerComponentsLifecycleAdapter.start()`
-    这里主要是和web，cypher有关，我们暂时忽略。
-&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h2 id=&#34;2-调试-graphdatabasefacadefactory-newfacade&#34;&gt;2.调试 GraphDatabaseFacadeFactory.newFacade&lt;/h2&gt;
-
-&lt;p&gt;上面我们已经调试到了 最后的部分，也是高潮部分。&lt;/p&gt;
-
-&lt;p&gt;newFacade 方法：
-1. &lt;code&gt;initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );&lt;/code&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.`new GraphDatabaseFacade()`
-初始化相关数据
-
-2.`GraphDatabaseFacade initFacade( File storeDir, Config config, final Dependencies dependencies, final GraphDatabaseFacade graphDatabaseFacade )`
-
-    1. `PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );`
-
-        1. `new PlatformModule( storeDir, config, databaseInfo, dependencies, graphDatabaseFacade );`
-        这一部分代码很长很关键的感觉，这里是内核相关，先跳过，回头看。下一章节 TODO
-
-        2. EditionModule edition = editionFactory.apply( platform );
-
-        这里和上一个PlatformModule干的事情一样。下一章节 TODO
-
-    2. `final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get );`
-
-        1. new DataSourceModule( platformModule, editionModule, queryEngine );
-        和上面的 PlatformModule 一样，一大堆的新建。。。最后 life.add( platformModule.kernelExtensions ) 新建DataSource
-    3. `ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );`
-
-    4. `platform.life.start();`
-
-        1. init();
-        2. for ( LifecycleInstance instance : instances ) instance.start();
-            这里的instance ：
-
-            ```java
-            0 = {LifeSupport$LifecycleInstance@3583} &amp;quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&amp;quot;
-            1 = {LifeSupport$LifecycleInstance@3730} &amp;quot;org.neo4j.kernel.impl.util.Neo4jJobScheduler@2667f029: STARTED&amp;quot;
-            2 = {LifeSupport$LifecycleInstance@3635} &amp;quot;org.neo4j.udc.UsageData@67a20f67: STARTED&amp;quot;
-            3 = {LifeSupport$LifecycleInstance@3658} &amp;quot;org.neo4j.kernel.impl.logging.StoreLogService@57c758ac: STARTED&amp;quot;
-            4 = {LifeSupport$LifecycleInstance@3681} &amp;quot;org.neo4j.kernel.internal.locker.StoreLockerLifecycleAdapter@a9cd3b1: STARTED&amp;quot;
-            5 = {LifeSupport$LifecycleInstance@3731} &amp;quot;org.neo4j.kernel.impl.pagecache.PageCacheLifecycle@13e39c73: STOPPED&amp;quot;
-            6 = {LifeSupport$LifecycleInstance@3732} &amp;quot;org.neo4j.kernel.info.DiagnosticsManager@64cd705f: STOPPED&amp;quot;
-            7 = {LifeSupport$LifecycleInstance@3733} &amp;quot;org.neo4j.kernel.impl.transaction.state.DataSourceManager@548d708a: STOPPED&amp;quot;
-            8 = {LifeSupport$LifecycleInstance@3734} &amp;quot;org.neo4j.kernel.impl.util.watcher.DefaultFileSystemWatcherService@4b013c76: STOPPED&amp;quot;
-            9 = {LifeSupport$LifecycleInstance@3735} &amp;quot;org.neo4j.kernel.impl.core.DelegatingPropertyKeyTokenHolder@53fb3dab: STOPPED&amp;quot;
-            10 = {LifeSupport$LifecycleInstance@3736} &amp;quot;org.neo4j.kernel.impl.core.DelegatingLabelTokenHolder@cb0755b: STOPPED&amp;quot;
-            11 = {LifeSupport$LifecycleInstance@3737} &amp;quot;org.neo4j.kernel.impl.core.DelegatingRelationshipTypeTokenHolder@33065d67: STOPPED&amp;quot;
-            12 = {LifeSupport$LifecycleInstance@3738} &amp;quot;org.neo4j.kernel.internal.DefaultKernelData@30: STOPPED&amp;quot;
-            13 = {LifeSupport$LifecycleInstance@3739} &amp;quot;org.neo4j.kernel.impl.core.ThreadToStatementContextBridge@7bba5817: STOPPED&amp;quot;
-            14 = {LifeSupport$LifecycleInstance@3740} &amp;quot;org.neo4j.kernel.extension.KernelExtensions@25df00a0: STOPPED&amp;quot;
-            15 = {LifeSupport$LifecycleInstance@3741} &amp;quot;org.neo4j.kernel.impl.proc.Procedures@6cc4cdb9: STOPPED&amp;quot;
-            16 = {LifeSupport$LifecycleInstance@3742} &amp;quot;org.neo4j.server.security.auth.BasicAuthManager@47c81abf: STOPPED&amp;quot;
-            17 = {LifeSupport$LifecycleInstance@3743} &amp;quot;org.neo4j.kernel.impl.cache.MonitorGc@30b6ffe0: STOPPED&amp;quot;
-            18 = {LifeSupport$LifecycleInstance@3744} &amp;quot;org.neo4j.kernel.impl.pagecache.PublishPageCacheTracerMetricsAfterStart@2415fc55: STOPPED&amp;quot;
-            19 = {LifeSupport$LifecycleInstance@3745} &amp;quot;org.neo4j.kernel.DatabaseAvailability@1890516e: STOPPED&amp;quot;
-            20 = {LifeSupport$LifecycleInstance@3746} &amp;quot;org.neo4j.kernel.impl.factory.DataSourceModule$StartupWaiter@16c069df: STOPPED&amp;quot;
-            21 = {LifeSupport$LifecycleInstance@3747} &amp;quot;org.neo4j.kernel.internal.KernelEventHandlers@2bec854f: STOPPED&amp;quot;
-           ```
-           每个instance的start方法具体是怎样的，我们稍后细看，这里跳过 TODO
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;h2 id=&#34;3-学习neo4j-server的设计模式&#34;&gt;3.学习neo4j server的设计模式&lt;/h2&gt;
@@ -3494,9 +5055,11 @@ NetworkReceiver (org.neo4j.cluster.com)
 ...
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;然后我们重点看看 LifeSupport ，我们分析发现 LifeSupport 也是一个 Lifecycle，而且有一个 LifecycleInstance 的数组 instances ，
-LifecycleInstance 也是继承自 Lifecycle。所以实际上 LifeSupport 就是一堆 Lifecycle 放在了一起，进行了一个类似装饰模式而已。
-LifeSupport的init,start,stop,shutdown方法，分别是循环instances执行init,start,stop,shutdown方法。&lt;/p&gt;
+&lt;p&gt;然后我们重点看看 LifeSupport ，我们分析发现 LifeSupport 也是一个 Lifecycle，而且有一个 LifecycleInstance 的数组 instances ，&lt;/p&gt;
+
+&lt;p&gt;LifecycleInstance 也是继承自 Lifecycle。所以实际上 LifeSupport 就是一堆 Lifecycle 放在了一起，进行了一个类似装饰模式而已。&lt;/p&gt;
+
+&lt;p&gt;LifeSupport的init,start,stop,shutdown方法，分别是循环instances执行init,start,stop,shutdown方法。&lt;/p&gt;
 
 &lt;p&gt;经过上面的调试，我们发现neo4j基本上就是一个一个这样的 LifeSupport 组成的。&lt;/p&gt;
 
@@ -3509,55 +5072,66 @@ serverComponents = new ServerComponentsLifecycleAdapter();
 life.add( serverComponents );
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这里的 life 就是 AbstractNeoServer(CommunityNeoServer) LifeSupport，是父类的成员变量，新建 CommunityNeoServer 的时候初始化的。然后在init方法中给他添加了两个 Lifecycle 的实现对象。
-AbstractNeoServer(CommunityNeoServer)执行完了init方法，就执行 life 的start方法，实际上执行的还是 new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter() 的start。&lt;/p&gt;
+&lt;p&gt;这里的 life 就是 AbstractNeoServer(CommunityNeoServer) LifeSupport，是父类的成员变量，新建 CommunityNeoServer 的时候初始化的。然后在init方法中给他添加了两个 Lifecycle 的实现对象。&lt;/p&gt;
+
+&lt;p&gt;AbstractNeoServer(CommunityNeoServer)执行完了init方法，就执行 life 的start方法，实际上执行的还是 new LifecycleManagingDatabase( config, graphDbFactory, dependencies ) 和 new ServerComponentsLifecycleAdapter() 的start。&lt;/p&gt;
 
 &lt;p&gt;总结：
-CommunityNeoServer 中的 出现的 LifeSupport 为：
-1. new LifecycleManagingDatabase( config, graphDbFactory, dependencies )
- 这里的 graphDbFactory 是 CommunityNeoServer 的一个匿名内部类接口的实现类，dependencies就是包含了 kernelExtensions 等内容的东西。&lt;/p&gt;
+CommunityNeoServer 中的 出现的 LifeSupport 为：&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;new ServerComponentsLifecycleAdapter()&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;new LifecycleManagingDatabase( config, graphDbFactory, dependencies )
+这里的 graphDbFactory 是 CommunityNeoServer 的一个匿名内部类接口的实现类，dependencies就是包含了 kernelExtensions 等内容的东西。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;new ServerComponentsLifecycleAdapter()&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
 
 &lt;h3 id=&#34;2-第二次使用&#34;&gt;(2). 第二次使用&lt;/h3&gt;
 
-&lt;p&gt;我们后面还有一次用到了 LifeSupport 。就是执行life的start时候，需要上面的 LifecycleManagingDatabase 的 start 方法。里面最重要的就是 dbFactory.newGraphDatabase( config, dependencies );
-这个 dbFactory 我们已经说了是 CommunityNeoServer 的一个匿名内部类接口的实现类 COMMUNITY_FACTORY， 最终执行方法返回：
-&lt;code&gt;return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;我们后面还有一次用到了 LifeSupport 。就是执行life的start时候，需要上面的 LifecycleManagingDatabase 的 start 方法。里面最重要的就是 dbFactory.newGraphDatabase( config, dependencies );&lt;/p&gt;
+
+&lt;p&gt;这个 dbFactory 我们已经说了是 CommunityNeoServer 的一个匿名内部类接口的实现类 COMMUNITY_FACTORY， 最终执行方法返回：&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );&lt;/code&gt;&lt;/p&gt;
 
 &lt;p&gt;TODO 这里出现了 DatabaseInfo.COMMUNITY ，如果我们想使用企业版的功能，肯定需要在这里修改源码。还有 CommunityEditionModule ，
 创建的实例只能用于社区版，所以是否可以猜想，企业版就是比社区版多了几个 LifeSupport 而已&lt;/p&gt;
 
-&lt;p&gt;然后调用 GraphDatabaseFacadeFactory的newFacade方法，&lt;code&gt;return initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );&lt;/code&gt;
-这里 new GraphDatabaseFacade(),然后初始化，实际上就是初始化一个数据库了。
-然后创建一个 platform ，经过一堆复杂处理后，调用 platform 的 life 的start方法。也就是我们关心的 LifeSupport 。在查看之前，我们需要知道创建这个 platform 干了啥。&lt;/p&gt;
+&lt;p&gt;然后调用 GraphDatabaseFacadeFactory的newFacade方法，&lt;code&gt;return initFacade( storeDir, config, dependencies, new GraphDatabaseFacade() );&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;这里 new GraphDatabaseFacade(),然后初始化，实际上就是初始化一个数据库了。&lt;/p&gt;
+
+&lt;p&gt;然后创建一个 platform ，经过一堆复杂处理后，调用 platform 的 life 的start方法。也就是我们关心的 LifeSupport 。在查看之前，我们需要知道创建这个 platform 干了啥。&lt;/p&gt;
 
 &lt;p&gt;打开PlatformModule的构造方法，太复杂了。。。。，但是先别泄气，我们先抓 LifeSupport 吧，搞定了这个再看别的。&lt;/p&gt;
 
 &lt;p&gt;前面几行 F6 跳过，然后直接看：&lt;code&gt;life = dependencies.satisfyDependency( createLife() );&lt;/code&gt;
 这个 createLife 方法就是new了一个 LifeSupport，然后F6跳过几行，直接看：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code&gt;fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
 life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;这里 createFileSystemAbstraction 就是 new DefaultFileSystemAbstraction，然后添加到 life，这时候 life 的 size 已经是1了。&lt;/p&gt;
 
-&lt;p&gt;然后F6跳过几行，直接看： &lt;code&gt;jobScheduler = life.add( dependencies.satisfyDependency( createJobScheduler() ) );&lt;/code&gt;
-这里 createJobScheduler 就是 Neo4jJobScheduler。这时候 life 的 size 已经是2了。&lt;/p&gt;
+&lt;p&gt;然后F6跳过几行，直接看： &lt;code&gt;jobScheduler = life.add( dependencies.satisfyDependency( createJobScheduler() ) );&lt;/code&gt;&lt;/p&gt;
 
-&lt;p&gt;然后F6跳过几行，直接看： &lt;code&gt;dependencies.satisfyDependency( life.add( new UsageData( jobScheduler ) ) );&lt;/code&gt;
-这里 new UsageData ,这时候 life 的 size 已经是3了。&lt;/p&gt;
+&lt;p&gt;这里 createJobScheduler 就是 Neo4jJobScheduler。这时候 life 的 size 已经是2了。&lt;/p&gt;
 
-&lt;p&gt;然后F6跳过几行，直接看： &lt;code&gt;life.add( dependencies.satisfyDependency( new StoreLockerLifecycleAdapter( createStoreLocker() ) ) );&lt;/code&gt;
-这里的 createStoreLocker 就是 new GlobalStoreLocker( fileSystem, storeDir );
-然后 new StoreLockerLifecycleAdapter，这时候 life 的 size 已经是5了。我很好奇为啥突然加了两个。多了一个 StoreLogservice&lt;/p&gt;
+&lt;p&gt;然后F6跳过几行，直接看： &lt;code&gt;dependencies.satisfyDependency( life.add( new UsageData( jobScheduler ) ) );&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;这里 new UsageData ,这时候 life 的 size 已经是3了。&lt;/p&gt;
+
+&lt;p&gt;然后F6跳过几行，直接看： &lt;code&gt;life.add( dependencies.satisfyDependency( new StoreLockerLifecycleAdapter( createStoreLocker() ) ) );&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;这里的 createStoreLocker 就是 new GlobalStoreLocker( fileSystem, storeDir );&lt;/p&gt;
+
+&lt;p&gt;然后 new StoreLockerLifecycleAdapter，这时候 life 的 size 已经是5了。我很好奇为啥突然加了两个。多了一个 StoreLogservice&lt;/p&gt;
 
 &lt;p&gt;然后F6跳过几行，直接看：
-&lt;code&gt;pageCache = dependencies.satisfyDependency( createPageCache( fileSystem, config, logging, tracers ) );life.add( new PageCacheLifecycle( pageCache ) );&lt;/code&gt;
-然后 new PageCacheLifecycle( pageCache ) 这时候 life 的 size 已经是6了。&lt;/p&gt;
+&lt;code&gt;pageCache = dependencies.satisfyDependency( createPageCache( fileSystem, config, logging, tracers ) );life.add( new PageCacheLifecycle( pageCache ) );&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;然后 new PageCacheLifecycle( pageCache ) 这时候 life 的 size 已经是6了。&lt;/p&gt;
 
 &lt;p&gt;继续查看：&lt;code&gt;diagnosticsManager = life.add( dependencies.satisfyDependency( new DiagnosticsManager( logging.getInternalLog( DiagnosticsManager.class ) ) ) );&lt;/code&gt;
 这里 new DiagnosticsManager( logging.getInternalLog( DiagnosticsManager.class ) )  ，这时候 life 的 size 已经是7了。&lt;/p&gt;
@@ -3606,65 +5180,52 @@ life.add( new StartupWaiter( platformModule.availabilityGuard, editionModule.tra
 life.add( kernelEventHandlers );
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;到这里life的size已经是22 。
-然后会调用platform.life.start().就会循环调用上面的所有的 LifeSupport 的start方法。
-所以实际上，整个代码的运行就是一个个的 lifeSupport 的运行，&lt;/p&gt;
+&lt;p&gt;到这里life的size已经是22 。&lt;/p&gt;
+
+&lt;p&gt;然后会调用platform.life.start().就会循环调用上面的所有的 LifeSupport 的start方法。&lt;/p&gt;
+
+&lt;p&gt;所以实际上，整个代码的运行就是一个个的 lifeSupport 的运行，&lt;/p&gt;
 
 &lt;h2 id=&#34;4-理解lifesupport后再次调试代码&#34;&gt;4.理解LifeSupport后再次调试代码&lt;/h2&gt;
 
 &lt;p&gt;这次调试就好多了，我们可以着重看重要的代码&lt;/p&gt;
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;server = createNeoServer( config, dependencies, userLogProvider );&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;1. `server = createNeoServer( config, dependencies, userLogProvider );`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;this( config, lifecycleManagingDatabase( COMMUNITY_FACTORY ), dependencies, logProvider );&lt;/code&gt;&lt;/p&gt;
+    1. `this( config, lifecycleManagingDatabase( COMMUNITY_FACTORY ), dependencies, logProvider );`
 
-&lt;p&gt;1.&lt;/p&gt;
+        1.
+        
+        COMMUNITY_FACTORY = ( config, dependencies ) -&amp;gt;
+    	{
+    	    File storeDir = config.get( GraphDatabaseSettings.database_path );
+    	    return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
+    	            .newFacade( storeDir, config, dependencies );
+    	};
+        
 
-&lt;pre&gt;&lt;code&gt;COMMUNITY_FACTORY = ( config, dependencies ) -&amp;gt;
-{
-    File storeDir = config.get( GraphDatabaseSettings.database_path );
-    return new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new )
-            .newFacade( storeDir, config, dependencies );
-};
-&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
+2. `server.start();`
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;server.start();&lt;/code&gt;&lt;/p&gt;
+    1. `init`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;init&lt;/code&gt;&lt;/p&gt;
+        1. `this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;this.database = life.add( dependencyResolver.satisfyDependency( dbFactory.newDatabase( config, dependencies ) ) );&lt;/code&gt;&lt;/p&gt;
+            1. `new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;new GraphDatabaseFacadeFactory( DatabaseInfo.COMMUNITY, CommunityEditionModule::new ).newFacade( storeDir, config, dependencies );&lt;/code&gt;&lt;/p&gt;
+                1. `life.add(GraphDatabaseFacadeFactory)`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;code&gt;life.add(GraphDatabaseFacadeFactory)&lt;/code&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
+            2. `this.webServer = createWebServer();`
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;this.webServer = createWebServer();&lt;/code&gt;&lt;/p&gt;
+                1. `new JettyWebServer()`
 
-&lt;ol&gt;
-&lt;li&gt;&lt;code&gt;new JettyWebServer()&lt;/code&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
+            3. `createServerModules()`
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;createServerModules()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+            4. `serverComponents = new ServerComponentsLifecycleAdapter();`
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;serverComponents = new ServerComponentsLifecycleAdapter();&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
+    2. `life.start();`
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;life.start();&lt;/code&gt;&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;for ( LifecycleInstance instance : instances ) start()&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-&lt;/ol&gt;
+        1. for ( LifecycleInstance instance : instances ) start()
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;上面两个 Lifecycle start 分开看。&lt;/p&gt;
 
@@ -3728,9 +5289,11 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;p&gt;然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。&lt;/p&gt;
 
-&lt;p&gt;另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
-例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
-以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。&lt;/p&gt;
+&lt;p&gt;另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。&lt;/p&gt;
+
+&lt;p&gt;例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，&lt;/p&gt;
+
+&lt;p&gt;以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。&lt;/p&gt;
 </description>
       
     </item>
@@ -3758,8 +5321,9 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 &lt;li&gt;&lt;p&gt;&lt;code&gt;platform.life.start();&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;p&gt;这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个&lt;code&gt;0 = {LifeSupport$LifecycleInstance@3583} &amp;quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&amp;quot;&lt;/code&gt;为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。
-我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&amp;gt; &amp;hellip; -&amp;gt; new PlatformModule()，然后找到对应的代码：&lt;/p&gt;
+&lt;p&gt;这四段代码，前三段主要是新建 LifeCycle，最后一个是start是和我们整个neo4j的集群联系最紧密的。为了提高效率，我们可以将上面22个LifeCycle一个一个看。方法很简单，以第一个&lt;code&gt;0 = {LifeSupport$LifecycleInstance@3583} &amp;quot;org.neo4j.io.fs.FileSystemLifecycleAdapter@353d0772: STARTED&amp;quot;&lt;/code&gt;为例，我们只需要找到新建和添加到lifeCycle的地方，打断点，然后在他的init和start方法上面打断点。&lt;/p&gt;
+
+&lt;p&gt;我们找到新建的调用栈，应该是 LifecycleManagingDatabase.start() -&amp;gt; &amp;hellip; -&amp;gt; new PlatformModule()，然后找到对应的代码：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;fileSystem = dependencies.satisfyDependency( createFileSystemAbstraction() );
 life.add( new FileSystemLifecycleAdapter( fileSystem ) );
@@ -3767,9 +5331,11 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;p&gt;然后找到 FileSystemLifecycleAdapter 的 init和start方法，好像都是空的，然后打上断点进行调试。&lt;/p&gt;
 
-&lt;p&gt;另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。
-例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，
-以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。&lt;/p&gt;
+&lt;p&gt;另外对于我们关心的每一部分，实际上都是在这一块进行初始化和启动，一共就三个地方：PlatformModule，EditionModule，DataSourceModule。&lt;/p&gt;
+
+&lt;p&gt;例如我们要找neo4j的存储，可以在这三个类中寻找，我大概感觉是：PlatformModule 中新建的 dataSourceManager，在 CommunityEditionModule 中add到life中取得，&lt;/p&gt;
+
+&lt;p&gt;以及在 DataSourceModule 中的  new NeoStoreDataSource()  ，然后 dataSourceManager.register(NeoStoreDataSource)。仔细研究发现 dataSourceManager 也是一个LifeCycle，也有start方法，而他的instances包括了 NeoStoreDataSource，而 NeoStoreDataSource 也是一个LifeCycle，它的 instances是 start 方法中添加的。&lt;/p&gt;
 
 &lt;h2 id=&#34;二-datasourcemanager-预览&#34;&gt;二、DataSourceManager 预览&lt;/h2&gt;
 
@@ -3779,8 +5345,9 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;p&gt;在DataSourceManager类的init和start方法打上断点，然后在 PlatformModule 的构造方法打上断点，在 CommunityEditionModule 上打断点，在 DataSourceModule打上断点。&lt;/p&gt;
 
-&lt;p&gt;另外我们的代码反复用到了 Dependencies 这个类，我们先大概知道一下它的方法，他有个 parent 属性，一个 resolveDependency 方法和一个 satisfyDependency 方法，
-satisfyDependency方法是将一个类的所有父类放进一个map中，resolveDependency方法是调用 parent的resolveDependency，实际上是 DataSourceManager中的dependencies，这里可以暂时忽略。&lt;/p&gt;
+&lt;p&gt;另外我们的代码反复用到了 Dependencies 这个类，我们先大概知道一下它的方法，他有个 parent 属性，一个 resolveDependency 方法和一个 satisfyDependency 方法，&lt;/p&gt;
+
+&lt;p&gt;satisfyDependency方法是将一个类的所有父类放进一个map中，resolveDependency方法是调用 parent的resolveDependency，实际上是 DataSourceManager中的dependencies，这里可以暂时忽略。&lt;/p&gt;
 
 &lt;h3 id=&#34;2-开始调试&#34;&gt;2.开始调试&lt;/h3&gt;
 
@@ -3803,12 +5370,17 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 
 &lt;p&gt;这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。&lt;/p&gt;
 
-&lt;p&gt;然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。
-进入 NeoStoreDataSource 的构造方法，NeoStoreDataSource 也是 LifeCycle 的一个实现类，有start方法，它的构造方法好像就是做了很多赋值。
-然后是 dataSourceManager.register( neoStoreDataSource )，实际上也就是赋值 this.dataSource = dataSource;
-然后接下来是 ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );官方文档显示 ClassicCoreSPI 是 surface-layer-of-the-database
-然后是 graphDatabaseFacade.init()
-然后进入到了关键的 platform.life.start(); 我们知道这里的life的start方法会遍历 life 的 instances 调用init和start，其中就包括我们进行要调试的 DataSourceManager 。&lt;/p&gt;
+&lt;p&gt;然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。&lt;/p&gt;
+
+&lt;p&gt;进入 NeoStoreDataSource 的构造方法，NeoStoreDataSource 也是 LifeCycle 的一个实现类，有start方法，它的构造方法好像就是做了很多赋值。&lt;/p&gt;
+
+&lt;p&gt;然后是 dataSourceManager.register( neoStoreDataSource )，实际上也就是赋值 this.dataSource = dataSource;&lt;/p&gt;
+
+&lt;p&gt;然后接下来是 ClassicCoreSPI spi = new ClassicCoreSPI( platform, dataSource, msgLog, coreAPIAvailabilityGuard );官方文档显示 ClassicCoreSPI 是 surface-layer-of-the-database&lt;/p&gt;
+
+&lt;p&gt;然后是 graphDatabaseFacade.init()&lt;/p&gt;
+
+&lt;p&gt;然后进入到了关键的 platform.life.start(); 我们知道这里的life的start方法会遍历 life 的 instances 调用init和start，其中就包括我们进行要调试的 DataSourceManager 。&lt;/p&gt;
 
 &lt;h3 id=&#34;3-datasourcemanager的start方法&#34;&gt;3.DataSourceManager的start方法。&lt;/h3&gt;
 
@@ -3821,12 +5393,17 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
     }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;然后是start方法：其实就是 life.start(),它的life里面只有 NeoStoreDataSource 一个 instance ，然后会调用它的init和start方法，然后进入 init和start，init是空的，我们在start调试。信息量比较大，做好准备。
-第一步是 life = new LifeSupport();
-第二步是 life.add( recoveryCleanupWorkCollector );
-然后 life.add( indexConfigStore ) 和 life.add( Lifecycles.multiple( indexProviders.values() ) );
-然后是 storageEngine = buildStorageEngine()， buildRecovery(), final NeoStoreKernelModule kernelModule = buildKernel(),
-然后是 life.start();这里的life工有13个instance：&lt;/p&gt;
+&lt;p&gt;然后是start方法：其实就是 life.start(),它的life里面只有 NeoStoreDataSource 一个 instance ，然后会调用它的init和start方法，然后进入 init和start，init是空的，我们在start调试。信息量比较大，做好准备。&lt;/p&gt;
+
+&lt;p&gt;第一步是 life = new LifeSupport();&lt;/p&gt;
+
+&lt;p&gt;第二步是 life.add( recoveryCleanupWorkCollector );&lt;/p&gt;
+
+&lt;p&gt;然后 life.add( indexConfigStore ) 和 life.add( Lifecycles.multiple( indexProviders.values() ) );&lt;/p&gt;
+
+&lt;p&gt;然后是 storageEngine = buildStorageEngine()， buildRecovery(), final NeoStoreKernelModule kernelModule = buildKernel(),&lt;/p&gt;
+
+&lt;p&gt;然后是 life.start();这里的life工有13个instance：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;instances = {ArrayList@5669}  size = 13
  0 = {LifeSupport$LifecycleInstance@5673} &amp;quot;org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector@3b0c9195: NONE&amp;quot;
@@ -3844,9 +5421,11 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
  12 = {LifeSupport$LifecycleInstance@5685} &amp;quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。
-我们先看和存储有关的 &lt;code&gt;3 = {LifeSupport$LifecycleInstance@5676} &amp;quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&amp;quot;&lt;/code&gt;
-打好断点进入，这次终于没有 instance 了，感觉快进入了盗梦空间啊，直接看init：&lt;/p&gt;
+&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。&lt;/p&gt;
+
+&lt;p&gt;我们先看和存储有关的 &lt;code&gt;3 = {LifeSupport$LifecycleInstance@5676} &amp;quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&amp;quot;&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;打好断点进入，这次终于没有 instance 了，感觉快进入了盗梦空间啊，直接看init：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void init() throws Throwable
 {
@@ -3855,8 +5434,9 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。
-NativeLabelScanStore的init，我也先不跳进去了。&lt;/p&gt;
+&lt;p&gt;IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。&lt;/p&gt;
+
+&lt;p&gt;NativeLabelScanStore的init，我也先不跳进去了。&lt;/p&gt;
 
 &lt;p&gt;再看start：&lt;/p&gt;
 
@@ -3879,8 +5459,9 @@ NativeLabelScanStore的init，我也先不跳进去了。&lt;/p&gt;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;neoStores.makeStoreOk(); 这个初始化就是读取本地存储，还是要重点查看一下：TODO
-然后是：&lt;/p&gt;
+&lt;p&gt;neoStores.makeStoreOk(); 这个初始化就是读取本地存储，还是要重点查看一下：TODO&lt;/p&gt;
+
+&lt;p&gt;然后是：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;propertyKeyTokenHolder.setInitialTokens(
         neoStores.getPropertyKeyTokenStore().getTokens( Integer.MAX_VALUE ) );
@@ -3890,9 +5471,11 @@ labelTokenHolder.setInitialTokens(
         neoStores.getLabelTokenStore().getTokens( Integer.MAX_VALUE ) );
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这几段代码都可以直接用调试的估值功能直接看出具体的值。
-然后是：neoStores.rebuildCountStoreIfNeeded(); 跳进去： getCounts().start();
-然后是：&lt;/p&gt;
+&lt;p&gt;这几段代码都可以直接用调试的估值功能直接看出具体的值。&lt;/p&gt;
+
+&lt;p&gt;然后是：neoStores.rebuildCountStoreIfNeeded(); 跳进去： getCounts().start();&lt;/p&gt;
+
+&lt;p&gt;然后是：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;neoStores.rebuildCountStoreIfNeeded(); // TODO: move this to counts store lifecycle
 loadSchemaCache();
@@ -3905,12 +5488,17 @@ idController.start();
 
 &lt;h2 id=&#34;三-datasourcemanager-剖析&#34;&gt;三、dataSourceManager 剖析&lt;/h2&gt;
 
-&lt;p&gt;上面我们已经看出了，AbstractNeoServer 包含两个 LifeCycle ，其中一个是 LifecycleManagingDatabase ，
-LifecycleManagingDatabase  包含 22个 LifeCycle，其中一个是 dataSourceManager ，
-dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，
-NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。
-RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。
-这就是整个盗梦空间的五层梦，接下来我们只能从最深的一层反着往回查看了。&lt;/p&gt;
+&lt;p&gt;上面我们已经看出了，AbstractNeoServer 包含两个 LifeCycle ，其中一个是 LifecycleManagingDatabase ，&lt;/p&gt;
+
+&lt;p&gt;LifecycleManagingDatabase  包含 22个 LifeCycle，其中一个是 dataSourceManager ，&lt;/p&gt;
+
+&lt;p&gt;dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，&lt;/p&gt;
+
+&lt;p&gt;NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。&lt;/p&gt;
+
+&lt;p&gt;RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。&lt;/p&gt;
+
+&lt;p&gt;这就是整个盗梦空间的五层梦，接下来我们只能从最深的一层反着往回查看了。&lt;/p&gt;
 
 &lt;h3 id=&#34;1-recordstorageengine-分析&#34;&gt;1. RecordStorageEngine 分析&lt;/h3&gt;
 
@@ -3918,11 +5506,15 @@ RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构
 
 &lt;h4 id=&#34;1-storageengine-预览&#34;&gt;(1). StorageEngine 预览&lt;/h4&gt;
 
-&lt;p&gt;storeReadLayer() , return an interface for accessing data previously applied to this storage. 返回读取之前放进storage的数据的接口。
-allocateCommandCreationContext(), 保存需要多次执行的命令的上下文
-createCommands(),返回一系列在当前的事务状态下进行改变的&lt;code&gt;StorageCommand&lt;/code&gt;命令，CommandsToApply 命令可以通过调用apply方法放进存储中。
-apply()，执行一系列的命令到存储，
-其他的暂时忽略。&lt;/p&gt;
+&lt;p&gt;storeReadLayer() , return an interface for accessing data previously applied to this storage. 返回读取之前放进storage的数据的接口。&lt;/p&gt;
+
+&lt;p&gt;allocateCommandCreationContext(), 保存需要多次执行的命令的上下文&lt;/p&gt;
+
+&lt;p&gt;createCommands(),返回一系列在当前的事务状态下进行改变的&lt;code&gt;StorageCommand&lt;/code&gt;命令，CommandsToApply 命令可以通过调用apply方法放进存储中。&lt;/p&gt;
+
+&lt;p&gt;apply()，执行一系列的命令到存储，&lt;/p&gt;
+
+&lt;p&gt;其他的暂时忽略。&lt;/p&gt;
 
 &lt;h4 id=&#34;2-recordstorageengine-属性查看&#34;&gt;(2). RecordStorageEngine 属性查看&lt;/h4&gt;
 
@@ -4062,8 +5654,9 @@ neoStores = {NeoStores@3549}
 &lt;li&gt;pageCache = {MuninnPageCache@1773}&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;p&gt;pageCache = {MuninnPageCache@1773} &amp;ldquo;MuninnPageCache[ \n Page[ id = 0, address = 4516331520, filePageId = 0, swapperId = 1, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 1, address = 4516339712, filePageId = 0, swapperId = 2, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 2, address = 4516347904, filePageId = 0, swapperId = 3, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 3, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 4, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 5, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 6, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 7&amp;rdquo;
-通过一个 re-usable cursor 来缓存和读取 cache 的内容，可以通过运行 MuninnPageCacheTest 的单元测试查看功能。&lt;/p&gt;
+&lt;p&gt;pageCache = {MuninnPageCache@1773} &amp;ldquo;MuninnPageCache[ \n Page[ id = 0, address = 4516331520, filePageId = 0, swapperId = 1, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 1, address = 4516339712, filePageId = 0, swapperId = 2, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 2, address = 4516347904, filePageId = 0, swapperId = 3, usageCounter = 1 ] OffHeapPageLock[Flush: 0, Excl: 0, Mod: 0, Ws: 0, S: 1]\n Page[ id = 3, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 4, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 5, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 6, address = 0, filePageId = -1, swapperId = 0, usageCounter = 0 ] OffHeapPageLock[Flush: 0, Excl: 1, Mod: 0, Ws: 0, S: 0]\n Page[ id = 7&amp;rdquo;&lt;/p&gt;
+
+&lt;p&gt;通过一个 re-usable cursor 来缓存和读取 cache 的内容，可以通过运行 MuninnPageCacheTest 的单元测试查看功能。&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;fs = {DefaultFileSystemAbstraction@1772}&lt;/li&gt;
@@ -4360,8 +5953,9 @@ indexMap.putIndexProxy( indexId, indexProxy );
 
 &lt;p&gt;然而我们可以先看看如何读数据，写数据的。第一是找到java类 &lt;code&gt;PhysicalLogCommandReaderV3_0_2&lt;/code&gt;。我们可以看到里面有很多读文件处理的方法，主要是&lt;code&gt;neostore.transaction.db.0&lt;/code&gt;这个文件，好像是日志文件。&lt;/p&gt;
 
-&lt;p&gt;然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：
-new RecordStorageEngine()
+&lt;p&gt;然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-jva&#34;&gt;new RecordStorageEngine()
 neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
 return new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );
@@ -4370,7 +5964,8 @@ store = openStore( storeType );
 Object store = type.open( this );
 return neoStores.createNodeStore( getStoreName() );
 return initialize( new NodeStore( storeFile, config, idGeneratorFactory, pageCache, logProvider,(DynamicArrayStore) getOrCreateStore( StoreType.NODE_LABEL ), recordFormats, openOptions ) );
-new CommonAbstractStore()&lt;/p&gt;
+new CommonAbstractStore()
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;同理，我们还可以在 RelationshipStore PropertyStore TokenStore AbstractDynamicStore 等store中打上断点，了解调用栈。所有的存储文件如下：&lt;/p&gt;
 
@@ -4442,8 +6037,9 @@ void openIdGenerator()
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;IdGenerator 的功能是分配id，每一种存储格式都有自己的id，所以在 CommonAbstractStore 中都有这个属性。idGenerator负责分配和释放id，所以它里面要有最大的id，已经已经释放的id。
-最大的id可以用到下一次分配id，已经释放的也可以用于分配。进一步了解功能可以在 IdGeneratorImplTest 中调试。我们可以用二进制文件编辑器打开&lt;code&gt;neostore.nodestore.db.id&lt;/code&gt;看看。&lt;/p&gt;
+&lt;p&gt;IdGenerator 的功能是分配id，每一种存储格式都有自己的id，所以在 CommonAbstractStore 中都有这个属性。idGenerator负责分配和释放id，所以它里面要有最大的id，已经已经释放的id。&lt;/p&gt;
+
+&lt;p&gt;最大的id可以用到下一次分配id，已经释放的也可以用于分配。进一步了解功能可以在 IdGeneratorImplTest 中调试。我们可以用二进制文件编辑器打开&lt;code&gt;neostore.nodestore.db.id&lt;/code&gt;看看。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;0000 0000 0000 0000 0b00 0000 0000 0000
 0000 0000 0000 0000 0100 0000 0000 0000
@@ -4524,9 +6120,11 @@ you no longer have an immediate use for the contents of the file, it can be &amp
 
 &lt;p&gt;一旦一个文件被映射到页面缓存，它就不再被直接通过文件系统访问，因为页面缓存将保持内存的变化，认为它正在管理唯一权威的副本。&lt;/p&gt;
 
-&lt;p&gt;一个文件被map多次，返回的是同一个 PageCache，对应的 reference counter +1，
-Unmapping decrements the reference counter, discarding the PagedFile from the cache if the counter reaches zero.
-If the last reference was unmapped, then all dirty pages for that file will be flushed before the file is discarded from the cache。&lt;/p&gt;
+&lt;p&gt;一个文件被map多次，返回的是同一个 PageCache，对应的 reference counter +1，&lt;/p&gt;
+
+&lt;p&gt;Unmapping decrements the reference counter, discarding the PagedFile from the cache if the counter reaches zero.&lt;/p&gt;
+
+&lt;p&gt;If the last reference was unmapped, then all dirty pages for that file will be flushed before the file is discarded from the cache。&lt;/p&gt;
 
 &lt;p&gt;page 是一堆data的集合，可以是 file, or the memory allocated for the page cache。We refer to these two types of pages as &amp;ldquo;file pages&amp;rdquo; and &amp;ldquo;cache pages&amp;rdquo; respectively.&lt;/p&gt;
 
@@ -4606,8 +6204,9 @@ If the last reference was unmapped, then all dirty pages for that file will be f
 
 &lt;h2 id=&#34;四-commonabstractstore-格式&#34;&gt;四、CommonAbstractStore 格式&lt;/h2&gt;
 
-&lt;p&gt;这个是一个存储格式的基本实现类，我们现在任何一个Store上面打断点，然后在 CommonAbstractStore 中打断点，开始调试即可。以 NodeStore 为例，在构造方法打断点，在 CommonAbstractStore 的 checkAndLoadStorage 打断点。
-我们找到了调用栈：&lt;/p&gt;
+&lt;p&gt;这个是一个存储格式的基本实现类，我们现在任何一个Store上面打断点，然后在 CommonAbstractStore 中打断点，开始调试即可。以 NodeStore 为例，在构造方法打断点，在 CommonAbstractStore 的 checkAndLoadStorage 打断点。&lt;/p&gt;
+
+&lt;p&gt;我们找到了调用栈：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
@@ -4631,8 +6230,9 @@ loadStorage( filePageSize );
 
 &lt;h2 id=&#34;四-abstractdynamicstore-文件格式&#34;&gt;四、AbstractDynamicStore 文件格式&lt;/h2&gt;
 
-&lt;p&gt;neo4j 中对于字符串等变长值的保存策略是用一组定长的 block 来保存，block之间用单向链表链接。
-例如 neostore.propertystore.db.arrays 和 neostore.propertystore.db.strings 类 AbstractDynamicStore 实现了该功能，文件结构在 DynamicRecordFormat 中有解释。&lt;/p&gt;
+&lt;p&gt;neo4j 中对于字符串等变长值的保存策略是用一组定长的 block 来保存，block之间用单向链表链接。&lt;/p&gt;
+
+&lt;p&gt;例如 neostore.propertystore.db.arrays 和 neostore.propertystore.db.strings 类 AbstractDynamicStore 实现了该功能，文件结构在 DynamicRecordFormat 中有解释。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;private static final int RECORD_HEADER_SIZE = 1/*header byte*/ + 3/*# of bytes*/ + 8/*max size of next reference*/;
 &lt;/code&gt;&lt;/pre&gt;
@@ -4660,9 +6260,9 @@ loadStorage( filePageSize );
       
         <description>
 
-&lt;h2 id=&#34;插件&#34;&gt;插件&lt;/h2&gt;
+&lt;h2 id=&#34;一&#34;&gt;一、&lt;/h2&gt;
 
-&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
+&lt;h3 id=&#34;1-插件&#34;&gt;1.插件&lt;/h3&gt;
 
 &lt;p&gt;版本兼容检查&lt;/p&gt;
 
@@ -4685,7 +6285,18 @@ loadStorage( filePageSize );
 &lt;p&gt;can&amp;rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
 例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 &lt;code&gt;mvn clean install -DskipTests=true -rf :janusgraph-es&lt;/code&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;3&#34;&gt;3.&lt;/h3&gt;
+&lt;p&gt;java return cannot find symbol som.sun.*
+可以换成jdk1.8.&lt;/p&gt;
+
+&lt;p&gt;Missing tools.jar at: /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/Classes/classes.jar. Expression: file.exists()
+cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
+sudo mkdir Classes
+cd Classes/
+sudo ln -s ../jre/lib/rt.jar classes.jar&lt;/p&gt;
+
+&lt;h3 id=&#34;3-常用命令&#34;&gt;3.常用命令&lt;/h3&gt;
+
+&lt;p&gt;mvn -pl hadoop-yarn-project -am clean install -D maven.test.skip=true -P prod&lt;/p&gt;
 </description>
       
     </item>
@@ -4784,6 +6395,8 @@ percentile_rank&lt;/p&gt;
 &lt;h3 id=&#34;5-键值对&#34;&gt;5.键值对&lt;/h3&gt;
 
 &lt;p&gt;str_to_map(concat_ws(&amp;lsquo;,&amp;rsquo;,collect_set(concat_ws(&amp;rsquo;:&amp;lsquo;, ctime_month, cast(final_score as string) )))) as time2score&lt;/p&gt;
+
+&lt;h3 id=&#34;6-cache-table&#34;&gt;6.cache table&lt;/h3&gt;
 </description>
       
     </item>

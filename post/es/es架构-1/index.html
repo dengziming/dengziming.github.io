@@ -56,8 +56,8 @@
 
 
 
-<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
-<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:published_time" content="2018-04-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-04-22T00:00:00&#43;00:00"/>
 
 
 
@@ -73,8 +73,8 @@
 <meta itemprop="description" content="es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster 很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要">
 
 
-<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="2054">
+<meta itemprop="dateModified" content="2018-04-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="2067">
 
 
 
@@ -173,13 +173,13 @@
       <h1 class="post-title">es架构-1</h1>
 
       <div class="post-meta">
-        <span class="post-time"> 2018-03-22 </span>
+        <span class="post-time"> 2018-04-22 </span>
         <div class="post-category">
             
               <a href="/categories/es/"> es </a>
             
           </div>
-        <span class="more-meta"> 2054 words </span>
+        <span class="more-meta"> 2067 words </span>
         <span class="more-meta"> 5 min read </span>
       </div>
     </header>
@@ -250,8 +250,9 @@
 
 <h3 id="1-the-confusion-between-elasticsearch-index-and-lucene-index-other-common-terms">1.The confusion between Elasticsearch Index and Lucene Index + other common terms…</h3>
 
-<p>es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。
-每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。</p>
+<p>es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。</p>
+
+<p>每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。</p>
 
 <h3 id="2-types-of-nodes">2. Types of nodes</h3>
 
@@ -272,7 +273,7 @@ If you would like to have a dedicated master node, then change the node.data pro
 
 <h4 id="4-coordinating-node">（4）coordinating node</h4>
 
-<p>通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.</p>
+<p>注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.</p>
 
 <h3 id="2-storage-model">2. Storage Model</h3>
 
@@ -297,13 +298,13 @@ Doc 2: Insight Data Science Fellows Program</p>
 
 <p>When you send a request to the coordinating node to index a new document, the following set of operations take place:</p>
 
-<p>es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shardroute起来，
-es再通过murmur3 hash算法将documentId进行取值，得到shard。<code>shard = hash(document_id) % (num_of_primary_shards)</code>。
-当节点收到 coordinating node 的reques，request会被写入到 translog中，document会被放进 memory buffer（<a href="http://www.linfo.org/buffer.html），">http://www.linfo.org/buffer.html），</a>
+<p>es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shard route起来，
+es再通过 murmur3 hash算法将documentId进行取值，得到shard。<code>shard = hash(document_id) % (num_of_primary_shards)</code>。
+当节点收到 coordinating node 的 request ，request 会被写入到 translog 中，document 会被放进 memory buffer（<a href="http://www.linfo.org/buffer.html），">http://www.linfo.org/buffer.html），</a>
 如果在primary shard上执行成功，reques也会被发送到 replica shard上，
 当 translog fsynced （<a href="https://linux.die.net/man/2/fsync）">https://linux.die.net/man/2/fsync）</a> on all primary and replica shards.client receives acknowledgement that the request was successful。</p>
 
-<p>memory buffer会周期性更新，contents会被写到一个 a new segment in filesystem cache ，
+<p>memory buffer会周期性更新 (defaults to 1 sec)，contents 会被写到一个 a new segment in filesystem cache ，
 This segment is not yet fsync’ed, however, the segment is open and the contents are available for search.</p>
 
 <p>The translog is emptied and filesystem cache is fsync’ed every 30 minutes or when the translog gets too big. 这个过程称为flush
@@ -367,7 +368,7 @@ How to ensure consistent writes and reads?</p>
   </p>
   <p class="copyright-item">
     <span class="item-title">LastMod</span>
-    <span class="item-content">2018-03-22</span>
+    <span class="item-content">2018-04-22</span>
   </p>
   
   <p class="copyright-item">
@@ -408,9 +409,9 @@ How to ensure consistent writes and reads?</p>
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/java/javanio/">
+          <a class="prev" href="/post/%E5%BF%83%E5%BE%97/first/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">JavaNIO</span>
+            <span class="prev-text nav-default">学习心得</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
@@ -432,7 +433,7 @@ How to ensure consistent writes and reads?</p>
     <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
   <script type="text/javascript">
   const gitment = new Gitment({
-    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    id: '2018-04-22 00:00:00 \x2b0000 UTC',
     title: 'es架构-1',
     link: decodeURI(location.href),
     desc: 'es设计架构，良心参考资料： https:\/\/blog.insightdatascience.com\/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https:\/\/blog.insightdatascience.com\/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https:\/\/blog.insightdatascience.com\/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster 很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要',

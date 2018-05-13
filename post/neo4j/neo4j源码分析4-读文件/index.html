@@ -215,8 +215,9 @@
 
 <p>然而我们可以先看看如何读数据，写数据的。第一是找到java类 <code>PhysicalLogCommandReaderV3_0_2</code>。我们可以看到里面有很多读文件处理的方法，主要是<code>neostore.transaction.db.0</code>这个文件，好像是日志文件。</p>
 
-<p>然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：
-new RecordStorageEngine()
+<p>然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：</p>
+
+<pre><code class="language-jva">new RecordStorageEngine()
 neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
 return new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );
@@ -225,7 +226,8 @@ store = openStore( storeType );
 Object store = type.open( this );
 return neoStores.createNodeStore( getStoreName() );
 return initialize( new NodeStore( storeFile, config, idGeneratorFactory, pageCache, logProvider,(DynamicArrayStore) getOrCreateStore( StoreType.NODE_LABEL ), recordFormats, openOptions ) );
-new CommonAbstractStore()</p>
+new CommonAbstractStore()
+</code></pre>
 
 <p>同理，我们还可以在 RelationshipStore PropertyStore TokenStore AbstractDynamicStore 等store中打上断点，了解调用栈。所有的存储文件如下：</p>
 
@@ -297,8 +299,9 @@ void openIdGenerator()
 }
 </code></pre>
 
-<p>IdGenerator 的功能是分配id，每一种存储格式都有自己的id，所以在 CommonAbstractStore 中都有这个属性。idGenerator负责分配和释放id，所以它里面要有最大的id，已经已经释放的id。
-最大的id可以用到下一次分配id，已经释放的也可以用于分配。进一步了解功能可以在 IdGeneratorImplTest 中调试。我们可以用二进制文件编辑器打开<code>neostore.nodestore.db.id</code>看看。</p>
+<p>IdGenerator 的功能是分配id，每一种存储格式都有自己的id，所以在 CommonAbstractStore 中都有这个属性。idGenerator负责分配和释放id，所以它里面要有最大的id，已经已经释放的id。</p>
+
+<p>最大的id可以用到下一次分配id，已经释放的也可以用于分配。进一步了解功能可以在 IdGeneratorImplTest 中调试。我们可以用二进制文件编辑器打开<code>neostore.nodestore.db.id</code>看看。</p>
 
 <pre><code>0000 0000 0000 0000 0b00 0000 0000 0000
 0000 0000 0000 0000 0100 0000 0000 0000
@@ -379,9 +382,11 @@ you no longer have an immediate use for the contents of the file, it can be &quo
 
 <p>一旦一个文件被映射到页面缓存，它就不再被直接通过文件系统访问，因为页面缓存将保持内存的变化，认为它正在管理唯一权威的副本。</p>
 
-<p>一个文件被map多次，返回的是同一个 PageCache，对应的 reference counter +1，
-Unmapping decrements the reference counter, discarding the PagedFile from the cache if the counter reaches zero.
-If the last reference was unmapped, then all dirty pages for that file will be flushed before the file is discarded from the cache。</p>
+<p>一个文件被map多次，返回的是同一个 PageCache，对应的 reference counter +1，</p>
+
+<p>Unmapping decrements the reference counter, discarding the PagedFile from the cache if the counter reaches zero.</p>
+
+<p>If the last reference was unmapped, then all dirty pages for that file will be flushed before the file is discarded from the cache。</p>
 
 <p>page 是一堆data的集合，可以是 file, or the memory allocated for the page cache。We refer to these two types of pages as &ldquo;file pages&rdquo; and &ldquo;cache pages&rdquo; respectively.</p>
 
@@ -461,8 +466,9 @@ If the last reference was unmapped, then all dirty pages for that file will be f
 
 <h2 id="四-commonabstractstore-格式">四、CommonAbstractStore 格式</h2>
 
-<p>这个是一个存储格式的基本实现类，我们现在任何一个Store上面打断点，然后在 CommonAbstractStore 中打断点，开始调试即可。以 NodeStore 为例，在构造方法打断点，在 CommonAbstractStore 的 checkAndLoadStorage 打断点。
-我们找到了调用栈：</p>
+<p>这个是一个存储格式的基本实现类，我们现在任何一个Store上面打断点，然后在 CommonAbstractStore 中打断点，开始调试即可。以 NodeStore 为例，在构造方法打断点，在 CommonAbstractStore 的 checkAndLoadStorage 打断点。</p>
+
+<p>我们找到了调用栈：</p>
 
 <pre><code>neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
@@ -486,8 +492,9 @@ loadStorage( filePageSize );
 
 <h2 id="四-abstractdynamicstore-文件格式">四、AbstractDynamicStore 文件格式</h2>
 
-<p>neo4j 中对于字符串等变长值的保存策略是用一组定长的 block 来保存，block之间用单向链表链接。
-例如 neostore.propertystore.db.arrays 和 neostore.propertystore.db.strings 类 AbstractDynamicStore 实现了该功能，文件结构在 DynamicRecordFormat 中有解释。</p>
+<p>neo4j 中对于字符串等变长值的保存策略是用一组定长的 block 来保存，block之间用单向链表链接。</p>
+
+<p>例如 neostore.propertystore.db.arrays 和 neostore.propertystore.db.strings 类 AbstractDynamicStore 实现了该功能，文件结构在 DynamicRecordFormat 中有解释。</p>
 
 <pre><code>private static final int RECORD_HEADER_SIZE = 1/*header byte*/ + 3/*# of bytes*/ + 8/*max size of next reference*/;
 </code></pre>

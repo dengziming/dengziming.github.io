@@ -6,17 +6,725 @@
     <description>Recent content in 源码 on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 23 May 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/%E6%BA%90%E7%A0%81/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>janusgraph源码分析1-下载编译启动</title>
-      <link>https://dengziming.github.io/post/titan/first/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      <title>yarn-api使用</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-api%E4%BD%BF%E7%94%A8/</link>
+      <pubDate>Wed, 23 May 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/titan/first/</guid>
+      <guid>https://dengziming.github.io/post/hadoop/yarn-api%E4%BD%BF%E7%94%A8/</guid>
+      
+        <description>
+
+&lt;p&gt;参考： &lt;a href=&#34;https://ieevee.com/tech/2015/05/05/yarn-dist-shell.html&#34;&gt;https://ieevee.com/tech/2015/05/05/yarn-dist-shell.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;distributeshell&#34;&gt;distributeshell&lt;/h1&gt;
+
+&lt;h2 id=&#34;client解析&#34;&gt;Client解析&lt;/h2&gt;
+
+&lt;p&gt;distShell主要有2个类组成，Client和ApplicationMaster。两个类都带有main入口。Client的主要工作是启动AM，真正要做的任务由AM来调度。 Client的简化框架如下。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static void main(String[] args) {
+    boolean result = false;
+    try {
+      Client client = new Client();  //1 创建Client对象
+      try {
+        boolean doRun = client.init(args);  //2 初始化
+        if (!doRun) {
+          System.exit(0);
+        }
+      }
+      result = client.run();   //3 运行
+    }
+    if (result) {
+      System.exit(0);
+    }
+    System.exit(2);
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;1-创建client对象&#34;&gt;1 创建Client对象&lt;/h3&gt;
+
+&lt;p&gt;创建时会指定本Client要用到的AM。 创建yarnClient。yarn将client与RM的交互抽象出了编程库YarnClient，用以应用程序提交、状态查询和控制等，简化应用程序。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;  public Client(Configuration conf) throws Exception  {
+    this(		//指定AM
+      &amp;quot;org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster&amp;quot;,
+      conf);
+  Client(String appMasterMainClass, Configuration conf) {
+    this.conf = conf;
+    this.appMasterMainClass = appMasterMainClass;
+    yarnClient = YarnClient.createYarnClient();		//创建yarnClient
+    yarnClient.init(conf);
+    opts = new Options();	//创建opts，后面解析参数的时候用
+    opts.addOption(&amp;quot;appname&amp;quot;, true, &amp;quot;Application Name. Default value - DistributedShell&amp;quot;);
+    opts.addOption(&amp;quot;priority&amp;quot;, true, &amp;quot;Application Priority. Default 0&amp;quot;);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;2-初始化&#34;&gt;2 初始化&lt;/h3&gt;
+
+&lt;p&gt;init会解析命令行传入的参数，例如使用的jar包、内存大小、cpu个数等。 代码里使用GnuParser解析：init时定义所有的参数opts（可以认为是一个模板），
+然后将opts和实际的args传入解析后得到一个CommnadLine对象，后面查询选项直接操作该CommnadLine对象即可，如cliParser.hasOption(&amp;ldquo;help&amp;rdquo;)和cliParser.getOptionValue(&amp;ldquo;jar&amp;rdquo;)。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt; public boolean init(String[] args) throws ParseException {
+    CommandLine cliParser = new GnuParser().parse(opts, args);
+    amMemory = Integer.parseInt(cliParser.getOptionValue(&amp;quot;master_memory&amp;quot;, &amp;quot;10&amp;quot;));
+    amVCores = Integer.parseInt(cliParser.getOptionValue(&amp;quot;master_vcores&amp;quot;, &amp;quot;1&amp;quot;));
+    shellCommand = cliParser.getOptionValue(&amp;quot;shell_command&amp;quot;);
+    appMasterJar = cliParser.getOptionValue(&amp;quot;jar&amp;quot;);
+    ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;3-运行&#34;&gt;3 运行&lt;/h3&gt;
+
+&lt;p&gt;先启动yarnClient，会建立跟RM的RPC连接，之后就跟调用本地方法一样。通过此yarnClient查询NM个数、NM详细信息（ID/地址/Container个数等）、Queue info（其实没用到，示例里只是打印了下调试用）。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public class Client {
+  public boolean run() throws IOException, YarnException {
+    yarnClient.start();
+    YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
+    List&amp;lt;NodeReport&amp;gt; clusterNodeReports = yarnClient.getNodeReports(
+收集提交AM所需的信息。
+    YarnClientApplication app = yarnClient.createApplication();	//创建app
+    GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
+...
+    ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
+    //AM需要的本地资源，如jar包、log文件
+    Map&amp;lt;String, LocalResource&amp;gt; localResources = new HashMap&amp;lt;String, LocalResource&amp;gt;();
+
+    FileSystem fs = FileSystem.get(conf);
+    addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(),
+        localResources, null);
+    ...	//添加localResource
+
+    vargs.add(Environment.JAVA_HOME.$$() + &amp;quot;/bin/java&amp;quot;);
+    vargs.add(&amp;quot;-Xmx&amp;quot; + amMemory + &amp;quot;m&amp;quot;);
+    vargs.add(appMasterMainClass);
+...
+    for (CharSequence str : vargs) {
+      command.append(str).append(&amp;quot; &amp;quot;);	//重新组织命令行
+    }
+	//创建Container加载上下文，包含本地资源，环境变量，实际命令。
+    ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
+      localResources, env, commands, null, null, null);
+
+    Resource capability = Resource.newInstance(amMemory, amVCores);
+    appContext.setResource(capability);		//请求使用的内存、cpu
+
+    appContext.setAMContainerSpec(amContainer);
+    appContext.setQueue(amQueue);
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;重新组织出来的commands如下：&lt;/p&gt;
+
+&lt;p&gt;$JAVA_HOME/bin/java -Xmx10m org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster &amp;ndash;container_memory 10
+提交AM（即appContext），并启动监控。 Client只关心自己提交到RM的AM是否正常运行，而AM内部的多个task，由AM管理。如果Client要查询应用程序的任务信息，需要自己设计与AM的交互。
+    yarnClient.submitApplication(appContext);   //客户端提交AM到RM
+    return monitorApplication(appId);
+总的来说，Client做的事情比较简单，即建立与RM的连接，提交AM，监控AM运行状态。&lt;/p&gt;
+
+&lt;p&gt;有个疑问，走读代码没有看到jar包是怎么送到NM上去的。&lt;/p&gt;
+
+&lt;h2 id=&#34;application-master解析&#34;&gt;Application Master解析&lt;/h2&gt;
+
+&lt;p&gt;AM简化框架如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+
+      boolean doRun = appMaster.init(args);
+      if (!doRun) {
+        System.exit(0);
+      }
+      appMaster.run();
+      result = appMaster.finish();
+// yarn抽象了两个编程库，AMRMClient和NMClient(AM和RM都可以用)，简化AM编程。
+
+// 1 设置RM、NM消息的异步处理方法
+    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
+    amRMClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
+    amRMClient.init(conf);
+    amRMClient.start();
+
+    containerListener = createNMCallbackHandler();
+    nmClientAsync = new NMClientAsyncImpl(containerListener);
+    nmClientAsync.init(conf);
+    nmClientAsync.start();
+// 2 向RM注册
+    RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname,
+        appMasterRpcPort, appMasterTrackingUrl);
+// 3 计算需要的Container，向RM发起请求
+    // Setup ask for containers from RM
+    // Send request for containers to RM
+    // Until we get our fully allocated quota, we keep on polling RM for
+    // containers
+    // Keep looping until all the containers are launched and shell script
+    // executed on them ( regardless of success/failure).
+    for (int i = 0; i &amp;lt; numTotalContainersToRequest; ++i) {
+      ContainerRequest containerAsk = setupContainerAskForRM();
+      amRMClient.addContainerRequest(containerAsk);		//请求指定个数的Container
+    }
+
+  private ContainerRequest setupContainerAskForRM() {
+    Resource capability = Resource.newInstance(containerMemory,
+      containerVirtualCores);		//指定需要的memory/cpu能力
+    ContainerRequest request = new ContainerRequest(capability, null, null,
+        pri);
+
+
+4 // RM分配Container给AM，AM启动任务RMCallbackHandler RM消息的响应，由RMCallbackHandler处理。示例中主要对前两种消息进行了处理。
+
+  private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
+    //处理消息：Container执行完毕。在RM返回的心跳应答中携带。如果心跳应答中有已完成和新分配两种Container，先处理已完成
+    public void onContainersCompleted(List&amp;lt;ContainerStatus&amp;gt; completedContainers) {
+...
+    //处理消息：RM新分配Container。在RM返回的心跳应答中携带
+    public void onContainersAllocated(List&amp;lt;Container&amp;gt; allocatedContainers) {
+
+    public void onShutdownRequest() {done = true;}
+
+    //节点状态变化
+    public void onNodesUpdated(List&amp;lt;NodeReport&amp;gt; updatedNodes) {}
+
+    public float getProgress() {
+onContainersAllocated收到分配的Container之后，会提交任务到NM。
+
+    public void onContainersAllocated(List&amp;lt;Container&amp;gt; allocatedContainers) {
+        LaunchContainerRunnable runnableLaunchContainer =   //创建runnable容器
+            new LaunchContainerRunnable(allocatedContainer, containerListener);
+        Thread launchThread = new Thread(runnableLaunchContainer);	//新建线程
+
+        // launch and start the container on a separate thread to keep
+        // the main thread unblocked
+        // as all containers may not be allocated at one go.
+        launchThreads.add(launchThread);
+        launchThread.start();	//线程中提交Container到NM，不影响主流程
+
+//简单分析下LaunchContainerRunnable。该类实现自Runnable，其run方法准备任务命令（本例即为date）。
+
+  private class LaunchContainerRunnable implements Runnable {
+    public LaunchContainerRunnable(
+        Container lcontainer, NMCallbackHandler containerListener) {
+      this.container = lcontainer;		//创建时记录待使用的Container
+      this.containerListener = containerListener;
+    }
+    public void run() {
+      vargs.add(shellCommand);		//待执行的shell命令
+      vargs.add(shellArgs);			//shell命令参数
+      List&amp;lt;String&amp;gt; commands = new ArrayList&amp;lt;String&amp;gt;();
+      commands.add(command.toString());	//转为commands
+
+      //根据命令、环境变量、本地资源等创建Container加载上下文
+      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(
+              localResources, shellEnv, commands, null, allTokens.duplicate(), null);
+      containerListener.addContainer(container.getId(), container);
+      //异步启动Container
+      nmClientAsync.startContainerAsync(container, ctx);
+// onContainersCompleted的功能比较简单，收到Container执行完毕的消息，检查其执行结果，如果执行失败，则重新发起请求，直到全部完成。
+
+// NMCallbackHandler NM消息的响应，由NMCallbackHandler处理。
+
+//在distShell示例里，回调句柄对NM通知过来的各种事件的处理比较简单，只是修改AM维护的Container执行完成、失败的个数。这样等到有Container执行完毕后，可以重启发起请求。失败处理和上面Container执行完毕消息的处理类似，达到了上面问题里所说的loopback效果。
+
+  static class NMCallbackHandler
+    implements NMClientAsync.CallbackHandler {
+
+    @Override
+    public void onContainerStopped(ContainerId containerId) {
+
+    @Override
+    public void onContainerStatusReceived(ContainerId containerId,
+
+    @Override
+    public void onContainerStarted(ContainerId containerId,
+...
+总的来说，AM做的事就是向RM/NM注册回调函数，然后请求Container；得到Container后提交任务，并跟踪这些任务的执行情况，如果失败了则重新提交，直到全部任务完成。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;unmanagedam&#34;&gt;UnmanagedAM&lt;/h1&gt;
+
+&lt;p&gt;distShell的Client提交AM到RM后，由RM将AM分配到某一个NM上的Container，这样给AM调试带来了困难。yarn提供了一个参数，Client可以设置为Unmanaged，提交AM后，会在客户端本地起一个单独的进程来运行AM。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public class UnmanagedAMLauncher {
+  public void launchAM(ApplicationAttemptId attemptId)
+    //创建新进程
+    Process amProc = Runtime.getRuntime().exec(amCmd, envAMList.toArray(envAM));
+    try {
+      int exitCode = amProc.waitFor();  //等待AM进程结束
+    } finally {
+      amCompleted = true;
+    }
+
+  public boolean run() throws IOException, YarnException {
+      appContext.setUnmanagedAM(true);		//设置为Unmanaged
+      rmClient.submitApplication(appContext);	//提交AM
+
+      ApplicationReport appReport =		//监控AM状态，如果状态变为ACCEPTED，则跳出循环，launchAM。
+          monitorApplication(appId, EnumSet.of(YarnApplicationState.ACCEPTED,
+            YarnApplicationState.KILLED, YarnApplicationState.FAILED,
+            YarnApplicationState.FINISHED));
+
+      if (appReport.getYarnApplicationState() == YarnApplicationState.ACCEPTED) {
+        launchAM(attemptId);
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>Hadoop基础库-</title>
+      <link>https://dengziming.github.io/post/hadoop/first/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/first/</guid>
+      
+        <description>&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&#34;&gt;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>yarn-nodemanager-剖析</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-nodemanager-1/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-nodemanager-1/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;架构&#34;&gt;架构&lt;/h1&gt;
+
+&lt;p&gt;ContainerManagementImpl&lt;/p&gt;
+
+&lt;h1 id=&#34;container-生命周期&#34;&gt;Container 生命周期&lt;/h1&gt;
+
+&lt;p&gt;第一步是 RM 的 applicationMasterLauncher ，创建 ApplicationMasterLauncher 后，遇到 launch 时间 ，
+case LAUNCH: launch(application); =&amp;gt; new AMLauncher(context, application, event, getConfig());&lt;/p&gt;
+
+&lt;p&gt;这个任务放进 队列里面等待执行，一旦执行会调用 launch() 方法，然后调用 containerMgrProxy.startContainers(allRequests); 这是 RPC 调用&lt;/p&gt;
+
+&lt;p&gt;实际上就是 ContainerManagementImpl ，然后会调用 startContainerInternal ，然后就是 new ContainerImpl 。&lt;/p&gt;
+
+&lt;p&gt;这是 APPMaster 启动需要的 container ，实际上还有 APPMaster 调度任务需要更多的 Container ，继续向 ContainerManagementImpl 请求&lt;/p&gt;
+
+&lt;h2 id=&#34;1-资源本地化&#34;&gt;1. 资源本地化&lt;/h2&gt;
+
+&lt;p&gt;实际上就是 ContainerManagementImpl ，然后会调用 startContainerInternal ，然后就是 new ContainerImpl 。
+然后通过 if (null == context.getApplications().putIfAbsent(applicationID,application)) 判断是否是该 NodeManager 第一个 Container ，如果是的话，new ApplicationImpl
+向 ApplicationImpl 发送 ApplicationInitEvent 事件，同时发送 ApplicationContainerInitEvent 事件。&lt;/p&gt;
+
+&lt;p&gt;这些事件会触发 ACL、log等相关的事件， 收到 ApplicationContainerInitEvent 后将 Container 加入 ApplicationImpl 的维护列表。&lt;/p&gt;
+
+&lt;p&gt;logHandle 处理完成之后会发送一个 log 事件，applicationImpl 收到后向 ResourceLocalizeService 发送 事件，
+为 private 和 application 级别的资源创建 LocalResourceTrackerImp ，为下载资源作准备。&lt;/p&gt;
+
+&lt;p&gt;private 的资源用户可见，如果该用户已经提交过了，无需创建。同理，如果 application 已经启动过 container 了，则同一个 application 的新 container 不必在创建。&lt;/p&gt;
+
+&lt;p&gt;经过上面操作后，ResourceLocalizeService 向 ApplicationImpl 发送 Application_Init&lt;/p&gt;
+
+&lt;p&gt;ApplicationImpl 收到 INIT 后，向所有的 ContainerImpl 发送 InitContainer ，ApplicationImpl 也从 ApplicationState.INITING 变为 ApplicationState.RUNNING,&lt;/p&gt;
+
+&lt;p&gt;InitContainer 命令后，和 AuxService 交互，然后从 ContainerLaunchContext 得到各类可见性资源并保存到相应数据结构，然后发送给 ResourceLocalizeService 。&lt;/p&gt;
+
+&lt;p&gt;ResourceLocalizeService 调用 handleInitContainerResources((ContainerLocalizationRequestEvent) event); 实际是 是发送给 LocalResourcesTrackerImpl 。&lt;/p&gt;
+
+&lt;p&gt;LocalResourcesTrackerImpl 会 判断是否需要下载等，为对应的资源创建 LocalizedResource 状态机，将 Request 发送给 LocalizedResource。&lt;/p&gt;
+
+&lt;p&gt;后续还是这样的时间驱动，总之可以概括为 ： NodeManager 上同一个 App 所有的 ContainerImpl 异步并发向向资源下载服务 ResourceLocalizeService 发送待下载的资源，
+ResourceLocalizeService下载完成后会通知依赖资源的所以 Container ，当一个 Container 依赖的资源全部下载完毕，Container 将会进入 运行阶段&lt;/p&gt;
+
+&lt;h2 id=&#34;2-container-运行&#34;&gt;2. Container 运行&lt;/h2&gt;
+
+&lt;p&gt;运行是 ContainerLauncher 服务实现的，主要过程为： 将待运行 Container 所需要的环境变量和运行命令写到 &lt;code&gt;launch_container.sh&lt;/code&gt; 中，
+将启动该脚本的命令写入：&lt;code&gt;default_container_executor.sh&lt;/code&gt; 中。&lt;/p&gt;
+
+&lt;p&gt;通过运行该脚本启动 Container 。主要有四步：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;ContainerImpl 向 ContainersLauncher 发送 Launch_container ，请求启动 container。
+dispatcher.getEventHandler().handle(new ContainersLauncherEvent(this, launcherEvent));&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ContainersLauncher 收到后，&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Application app =context.getApplications().get(containerId.getApplicationAttemptId().getApplicationId());
+ContainerLaunch launch = new ContainerLaunch(context, getConfig(), dispatcher, exec, app,event.getContainer(), dirsHandler, containerManager);
+containerLauncher.submit(launch);
+running.put(containerId, launch);
+break;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ContainerLaunch 放到线程池执行，对应的 call 方法为：&lt;/p&gt;
+
+&lt;p&gt;为 Container 创建 token 文件 和 &lt;code&gt;launch_container.sh&lt;/code&gt; ，将他们保存到 NodeManager 私有目录 nmPrivate 下面， &lt;code&gt;launch_container.sh&lt;/code&gt;包含了运行所以的命令。
+一般都是前面 export 环境变量，最后有个 exec 命令 。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;准备好了 命令，
+&lt;code&gt;Container_Launcher&lt;/code&gt; 首先向 ContainerImpl 发送 &lt;code&gt;Container_LANUCHED&lt;/code&gt; 命令，然他启动监控等。然后调用 ContainerExector launchContainer 启动 Container 。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;然后是启动监控，汇报信息等。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>yarn-resourcemanager-1</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-resourcemanager-1/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-resourcemanager-1/</guid>
+      
+        <description>
+
+&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&#34;&gt;https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;提交应用程序的过程&#34;&gt;提交应用程序的过程&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-yarnclient-submitapplication-appcontext&#34;&gt;1. yarnClient.submitApplication(appContext);&lt;/h2&gt;
+
+&lt;p&gt;新建请求，最终调用： rmClient.submitApplication(request);&lt;/p&gt;
+
+&lt;p&gt;实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request)&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;得到APPID：ApplicationId applicationId = submissionContext.getApplicationId();&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user);&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;放到 rmAppManager 中，rmAppManager 中存放了所有的 application。
+跟进去，发现调用了：&lt;/p&gt;
+
+&lt;p&gt;this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void handle(RMAppEvent event) {
+      ApplicationId appID = event.getApplicationId();
+      RMApp rmApp = this.rmContext.getRMApps().get(appID);
+      if (rmApp != null) {
+        try {
+          rmApp.handle(event);
+        } catch (Throwable t) {
+          LOG.error(&amp;quot;Error in handling event type &amp;quot; + event.getType()
+              + &amp;quot; for application &amp;quot; + appID, t);
+        }
+      }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后导致这个 applicationId 所在的 RMAppEvent 状态机发生变化。&lt;/p&gt;
+
+&lt;h2 id=&#34;2-registerapplicationmasterresponse-response-amrmclient-registerapplicationmaster-appmasterhostname-appmasterrpcport-appmastertrackingurl&#34;&gt;2.RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname, appMasterRpcPort,appMasterTrackingUrl);&lt;/h2&gt;
+
+&lt;p&gt;注册 ApplicationMaster，注意这段代码是在用户编写的 ApplicationMaster 类中，所以这段代码运行在yarn给APPMaster分配的Container中。&lt;/p&gt;
+
+&lt;p&gt;RegisterApplicationMasterResponse response = client.registerApplicationMaster(appHostName, appHostPort, appTrackingUrl);&lt;/p&gt;
+
+&lt;p&gt;会调用：RegisterApplicationMasterResponse response = rmClient.registerApplicationMaster(request);&lt;/p&gt;
+
+&lt;p&gt;最终会通过RPC调用：ApplicationMasterServeice.registerApplicationMaster(RegisterApplicationMasterRequest request)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.rmContext
+        .getDispatcher()
+        .getEventHandler()
+        .handle(
+          new RMAppAttemptRegistrationEvent(applicationAttemptId, request
+            .getHost(), request.getRpcPort(), request.getTrackingUrl()));
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这种 RMAppAttemptEventType 类型的会 通过handle进行处理：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void handle(RMAppAttemptEvent event) {
+      ApplicationAttemptId appAttemptID = event.getApplicationAttemptId();
+      ApplicationId appAttemptId = appAttemptID.getApplicationId();
+      RMApp rmApp = this.rmContext.getRMApps().get(appAttemptId);
+      if (rmApp != null) {
+        RMAppAttempt rmAppAttempt = rmApp.getRMAppAttempt(appAttemptID);
+        if (rmAppAttempt != null) {
+          try {
+            rmAppAttempt.handle(event);
+          } catch (Throwable t) {
+            LOG.error(&amp;quot;Error in handling event type &amp;quot; + event.getType()
+                + &amp;quot; for applicationAttempt &amp;quot; + appAttemptId, t);
+          }
+        }
+      }
+    }
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;和上面的 RMAppEvent 一样，会进入一个状态机进行处理。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-状态机相互转换细节&#34;&gt;1.状态机相互转换细节&lt;/h3&gt;
+
+&lt;p&gt;上面的过程细化一下：&lt;/p&gt;
+
+&lt;p&gt;RMAppImpl 收到 RMAppEventType.START 事件后，会调用 RMStateStore#storeApplication，以日志记录 RMAppImpl 当前信息，&lt;/p&gt;
+
+&lt;p&gt;至此，RMAppImpl 的运行状态由 NEW 转移为 NEW_SAVING。该步骤就较为复杂了，下面详细介绍下。&lt;/p&gt;
+
+&lt;p&gt;其中 RMAppEventType 注册到中央异步调度器的地方在 ResourceManager.java 中，new ApplicationEventDispatcher(rmContext) 进行处理，
+处理方式很简单：通过appid得到得到 RMAppImpl ，最终会给  RMAppImpl自己处理，进入他的状态机处理。状态机有这么一个事件：&lt;/p&gt;
+
+&lt;p&gt;addTransition(RMAppState.NEW, RMAppState.NEW_SAVING, RMAppEventType.START, new RMAppNewlySavingTransition())&lt;/p&gt;
+
+&lt;p&gt;RMAppNewlySavingTransition 的 transition 就是 app.rmContext.getStateStore().storeNewApplication(app);  实际上就是保存应用的相关信息。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public synchronized void storeNewApplication(RMApp app) {  
+    //app=RMAppImpl  
+    LOG.info(&amp;quot;begin to storeNewApplication,app=&amp;quot;+app.toString());  
+    ApplicationSubmissionContext context = app.getApplicationSubmissionContext();  
+    assert context instanceof ApplicationSubmissionContextPBImpl;  
+    ApplicationState appState =  
+        new ApplicationState(app.getSubmitTime(), app.getStartTime(), context,app.getUser());  
+    dispatcher.getEventHandler().handle(new RMStateStoreAppEvent(appState));  
+  }  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;注意： dispatcher.getEventHandler().handle(new RMStateStoreAppEvent(appState));  这里会调用 RMStateStore 状态机的 transition，实际上就是 store + notifyDoneStoringApplication&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;rmDispatcher.getEventHandler().handle(new RMAppNewSavedEvent(appId, storedException));&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;这个事件又会进入 RMAppImpl 的状态机，对应代码 addTransition(RMAppState.NEW_SAVING, RMAppState.SUBMITTED, RMAppEventType.APP_NEW_SAVED, new AddApplicationToSchedulerTransition())&lt;/p&gt;
+
+&lt;p&gt;调用：app.handler.handle(new AppAddedSchedulerEvent(app.applicationId,app.submissionContext.getQueue(), app.user));&lt;/p&gt;
+
+&lt;p&gt;会触发： RMAppImpl 处理 AppAddedSchedulerEvent&lt;/p&gt;
+
+&lt;p&gt;然后这个事件会分配给：CapacityScheduler ，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;case APP_ADDED:  
+    {  
+      AppAddedSchedulerEvent appAddedEvent = (AppAddedSchedulerEvent) event;  
+      addApplication(appAddedEvent.getApplicationId(),  
+        appAddedEvent.getQueue(), appAddedEvent.getUser());  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;addApplication 会调用 rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.APP_ACCEPTED));&lt;/p&gt;
+
+&lt;p&gt;RMAppImpl 会触发 ：addTransition(RMAppState.SUBMITTED, RMAppState.ACCEPTED,  RMAppEventType.APP_ACCEPTED, new StartAppAttemptTransition())&lt;/p&gt;
+
+&lt;p&gt;对应的transition： createNewAttempt(); handler.handle(new RMAppStartAttemptEvent(currentAttempt.getAppAttemptId(),  transferStateFromPreviousAttempt));&lt;br /&gt;
+实际上就是触发 RMAppAttemptImpl 状态机操作。&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 接受 RMAppAttemptEventType.START 事件后，进行一系列初始化工作。将自身状态由NEW转换为SUBMITTED，并调用 AttemptStartedTransition。&lt;/p&gt;
+
+&lt;p&gt;AttemptStartedTransition appAttempt.eventHandler.handle(new AppAttemptAddedSchedulerEvent(  appAttempt.applicationAttemptId, transferStateFromPreviousAttempt));&lt;/p&gt;
+
+&lt;p&gt;AppAttemptAddedSchedulerEvent 会交给 CapacityScheduler 。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;case APP_ATTEMPT_ADDED:  
+    {  
+      AppAttemptAddedSchedulerEvent appAttemptAddedEvent =  
+          (AppAttemptAddedSchedulerEvent) event;  
+      addApplicationAttempt(appAttemptAddedEvent.getApplicationAttemptId(),  
+        appAttemptAddedEvent.getTransferStateFromPreviousAttempt(),  
+        appAttemptAddedEvent.getShouldNotifyAttemptAdded());  
+    }  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;实际上就是讲这个 attempt 放进队列，等待处理。并且：rmContext.getDispatcher().getEventHandler().handle( new RMAppAttemptEvent(applicationAttemptId, RMAppAttemptEventType.ATTEMPT_ADDED));&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 接受到事件 RMAppAttemptEventType.ATTEMPT_ADDED 后，状态由SUBMITTED转换为SCHEDULED。进入内部类ScheduleTransition的transition函数：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private static final class ScheduleTransition  
+      implements  
+      MultipleArcTransition&amp;lt;RMAppAttemptImpl, RMAppAttemptEvent, RMAppAttemptState&amp;gt; {  
+    @Override  
+    public RMAppAttemptState transition(RMAppAttemptImpl appAttempt,  
+        RMAppAttemptEvent event) {  
+        LOG.info(&amp;quot;class::ScheduleTransition, func::transition, begin.&amp;quot;);  
+      if (!appAttempt.submissionContext.getUnmanagedAM()) {  
+        // Request a container for the AM.  
+        ResourceRequest request =  
+            BuilderUtils.newResourceRequest(  
+                AM_CONTAINER_PRIORITY, ResourceRequest.ANY, appAttempt  
+                    .getSubmissionContext().getResource(), 1);  
+  
+        // SchedulerUtils.validateResourceRequests is not necessary because  
+        // AM resource has been checked when submission  
+        Allocation amContainerAllocation = appAttempt.scheduler.allocate(  
+            appAttempt.applicationAttemptId,  
+            Collections.singletonList(request), EMPTY_CONTAINER_RELEASE_LIST, null, null);  
+        if (amContainerAllocation != null  
+            &amp;amp;&amp;amp; amContainerAllocation.getContainers() != null) {  
+          assert (amContainerAllocation.getContainers().size() == 0);  
+        }  
+        return RMAppAttemptState.SCHEDULED;  
+      } else {  
+        // save state and then go to LAUNCHED state  
+        appAttempt.storeAttempt();  
+        return RMAppAttemptState.LAUNCHED_UNMANAGED_SAVING;  
+      }  
+    }  
+  } 
+   
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里面就是：新建资源 ResourceRequest ，然后 appAttempt.scheduler.allocate&lt;/p&gt;
+
+&lt;p&gt;&amp;mdash;&amp;mdash; 这里断层了,谁触发了 AMContainerImpl 启动和分配 Container，需要后续再看。&lt;/p&gt;
+
+&lt;p&gt;这里有个疑问需要解答一下，之前一直好奇是哪里启动了 AMContainerImpl，上面的 schedule.allocate 将需要的资源提交给 schedule ，实际上 schedule 会分配。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;application.updateResourceRequests(ask);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这一句话，&lt;/p&gt;
+
+&lt;p&gt;以  FairScheduler 为例，启动服务会调用 initScheduler(conf); 里面有三行代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;schedulingThread = new ContinuousSchedulingThread();
+schedulingThread.setName(&amp;quot;FairSchedulerContinuousScheduling&amp;quot;);
+schedulingThread.setDaemon(true);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;会有守护线程调用 continuousSchedulingAttempt(); 实际上会调用：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;    for (NodeId nodeId : nodeIdList) {
+      FSSchedulerNode node = getFSSchedulerNode(nodeId);
+      try {
+        if (node != null &amp;amp;&amp;amp; Resources.fitsIn(minimumAllocation,
+            node.getAvailableResource())) {
+          attemptScheduling(node);
+        }
+      } catch (Throwable ex) {
+        LOG.error(&amp;quot;Error while attempting scheduling for node &amp;quot; + node +
+            &amp;quot;: &amp;quot; + ex.toString(), ex);
+      }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 attemptScheduling(node); 就会创建 AMContainerImpl 实例，至于怎么创建，需要了解各个 Schedule 的内部细节。&lt;/p&gt;
+
+&lt;p&gt;ResourceManager 为应用程序的 AM 分配资源后，创建一个 RMContainerImpl，并向它发送一个 RMContainerEventType.START 事件。&lt;/p&gt;
+
+&lt;p&gt;RMContainerImpl 收到 RMContainerEventType.START 事件后，直接向 RMAppAttemptImpl 发送一个 RMAppAttemptEventType.CONTAINER_ALLOCATED&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 收到 RMAppAttemptEventType.CONTAINER_ALLOCATED 事件后：调用 AMContainerAllocatedTransition：&lt;/p&gt;
+
+&lt;p&gt;transition函数中，调用 scheduler.allocate 获取分配的资源，scheduler 返回资源之前，会向 RMContainerImpl 发送 RMContainerEventType.ALLOCATED事件。&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 收到资源后，向 RMStateStore 发送 MStateStoreEventType.STORE_APP_ATTEMPT 事件请求记录日志。&lt;/p&gt;
+
+&lt;p&gt;至此，RMAppAttemptImpl 状态从 SCHEDULED 转换为 ALLOCATED_SAVING。&lt;/p&gt;
+
+&lt;p&gt;日志记录完成后，RMStateStore 向 RMAppAttemptImpl 发送 RMAppAttemptEventType.ATTEMPT_NEW_SAVED 事件。&lt;/p&gt;
+
+&lt;p&gt;RMAppAttemptImpl 收到 RMAppAttemptEventType.ATTEMPT_NEW_SAVED 事件后，
+向 ApplicationMasterLauncher 发送 AMLauncherEventType.LAUNCH 事件，
+至此，RMAppAttemptImpl 状态从 ALLOCATED_SAVING 转换为 ALLOCATED。&lt;/p&gt;
+
+&lt;p&gt;后面的和这里类似，不过涉及到了 RMContainer状态机，先跳过。&lt;/p&gt;
+
+&lt;h2 id=&#34;3-总结&#34;&gt;3.总结&lt;/h2&gt;
+
+&lt;p&gt;通过这个实例我们大概了解了yarn中的RPC、调度器、服务、状态机配合的过程。
+一般是客户端（可以使用户的client、nodeManager进程或者它启动的container进程）发送请求，中间通过RPC调用了ResourceManager中的某个服务，这个服务会触发一定的事件，并且返回。&lt;/p&gt;
+
+&lt;p&gt;例如客户端提交一个应用程序，首先有个 appid，每个appid对应的有一个 RMApp ，放在 rmAppManager 的一个map中。这个 RMApp 是一个状态机。&lt;/p&gt;
+
+&lt;p&gt;然后会调用 this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));&lt;/p&gt;
+
+&lt;p&gt;调度器会启动对应的 EventHandle 去处理这个事件，而 对应的 EventHandle 会根据appid 通过 rmAppManager 得到对应的 RMApp，调用对应的状态转化函数就实现了状态转化。&lt;/p&gt;
+
+&lt;p&gt;再例如某个container启动 APPMaster，也是调用
+this.rmContext.getDispatcher().getEventHandler().handle
+(new RMAppAttemptRegistrationEvent(applicationAttemptId, request.getHost(), request.getRpcPort(), request.getTrackingUrl()));&lt;/p&gt;
+
+&lt;p&gt;然后调度器会启动对应的 EventHandle 去处理这个事件，而 对应的 EventHandle 会根据appid 通过 rmAppManager 得到对应的 RMApp，
+这时候事件类似是 RMAppAttemptEvent，处理逻辑变了，会在另一个状态机进行操作。&lt;/p&gt;
+
+&lt;h2 id=&#34;4-rmcontainer状态机&#34;&gt;4.RMContainer状态机&lt;/h2&gt;
+
+&lt;p&gt;上面分析了 两个状态机，实际上还有一个 RMContainer ，这个和上面两个类似吧。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>yarn-基础库</title>
+      <link>https://dengziming.github.io/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;yarn-事件库和服务库&#34;&gt;yarn-事件库和服务库&lt;/h1&gt;
+
+&lt;h2 id=&#34;使用&#34;&gt;使用&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;新建Event和EventType&lt;/li&gt;
+&lt;li&gt;新建 AsyncDispatcher 并给 AsyncDispatcher 注册 Event 和对应的 EventHandler&lt;Event&gt;&lt;/li&gt;
+&lt;li&gt;调用 AsyncDispatcher 的 getEventHandler 得到 EventHandler 然后调用 handler 的 handle 方法处理 Event&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;基本原理&#34;&gt;基本原理：&lt;/h2&gt;
+
+&lt;p&gt;AsyncDispatcher 注册 EventHandler&lt;Event&gt; 的过程实际上生成了一个 map，保存了每个事件对应的handler。同时有一个 队列，用于放置 Event&lt;/p&gt;
+
+&lt;p&gt;调用 handle 的时候 将Event放进queue中，内部启动一个线程不断处理 queue的任务。&lt;/p&gt;
+
+&lt;h1 id=&#34;yarn-状态机&#34;&gt;yarn-状态机&lt;/h1&gt;
+
+&lt;h2 id=&#34;使用-1&#34;&gt;使用&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;初始化&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;StateMachineFactory
+.addTransition(JobStateInternal.NEW, JobStateInternal.INITED, JobEventType.JOB_INIT,new InitTransition())
+.addTransition(JobStateInternal.INITED, JobStateInternal.SETUP, JobEventType.JOB_START,new StartTransition())
+.installTopology()
+.make()
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;新建对应的 Transition&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static class InitTransition implements SingleArcTransition&amp;lt;JobStateMachine,JobEvent&amp;gt;{
+
+        @Override
+        public void transition(JobStateMachine job, JobEvent event) {
+            System.out.println(&amp;quot;Receiving event &amp;quot; + event);
+        }
+
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;调用 StateMachine 的 doTransition(event.getType(), event)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;原理&#34;&gt;原理&lt;/h2&gt;
+
+&lt;p&gt;installTopology的时候创建一个拓扑图，记录每个 State 能接受的 Event，以及接受该 Event 后的操作，以及操作后的 State。&lt;/p&gt;
+
+&lt;p&gt;每次有Event传入，调用对应的 Transition ，并且将 此时刻 的状态变为 操作后的状态。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析1-下载编译启动</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/</link>
+      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/</guid>
       
         <description>
 
@@ -168,6 +876,199 @@ yellow open   janusgraph_vertices gE4TSXFATnSZUWYdAf46Xg   5   1          6     
 上述第一次运行问题的原因是 &lt;code&gt;janusgraph-core&lt;/code&gt;需要用到 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;的类，
 但是&lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;是依赖 &lt;code&gt;janusgraph-core&lt;/code&gt;的，所以两个相互依赖了。
 janus的做法是在core中使用反射，所以编译通过了，打包到了一起就没问题了。但是本地运行没法成功。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析1-下载编译启动</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/</link>
+      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/</guid>
+      
+        <description>
+
+&lt;p&gt;#
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+&lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-第一遍调试&#34;&gt;一、第一遍调试&lt;/h2&gt;
+
+&lt;p&gt;还是上次的例子 &lt;code&gt;FirstTest&lt;/code&gt;：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class FirstTest {
+
+    public static void main(String[] args) {
+
+        /*
+         * The example below will open a JanusGraph graph instance and load The Graph of the Gods dataset diagrammed above.
+         * JanusGraphFactory provides a set of static open methods,
+         * each of which takes a configuration as its argument and returns a graph instance.
+         * This tutorial calls one of these open methods on a configuration
+         * that uses the BerkeleyDB storage backend and the Elasticsearch index backend,
+         * then loads The Graph of the Gods using the helper class GraphOfTheGodsFactory.
+         * This section skips over the configuration details, but additional information about storage backends,
+         * index backends, and their configuration are available in
+         * Part III, “Storage Backends”, Part IV, “Index Backends”, and Chapter 13, Configuration Reference.
+         */
+
+        // Loading the Graph of the Gods Into JanusGraph
+        JanusGraph graph = JanusGraphFactory
+                .open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;);
+
+        GraphOfTheGodsFactory.load(graph);
+        GraphTraversalSource g = graph.traversal();
+
+        /*
+         * The typical pattern for accessing data in a graph database is to first locate the entry point into the graph
+         * using a graph index. That entry point is an element (or set of elements) 
+         * — i.e. a vertex or edge. From the entry elements,
+         * a Gremlin path description describes how to traverse to other elements in the graph via the explicit graph structure.
+         * Given that there is a unique index on name property, the Saturn vertex can be retrieved.
+         * The property map (i.e. the key/value pairs of Saturn) can then be examined.
+         * As demonstrated, the Saturn vertex has a name of &amp;quot;saturn, &amp;quot; an age of 10000, and a type of &amp;quot;titan.&amp;quot;
+         * The grandchild of Saturn can be retrieved with a traversal that expresses:
+         * &amp;quot;Who is Saturn’s grandchild?&amp;quot; (the inverse of &amp;quot;father&amp;quot; is &amp;quot;child&amp;quot;). The result is Hercules.
+         */
+        // Global Graph Indices
+        Vertex saturn = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).next();
+        GraphTraversal&amp;lt;Vertex, Map&amp;lt;String, Object&amp;gt;&amp;gt; vertexMapGraphTraversal = g.V(saturn).valueMap();
+
+        GraphTraversal&amp;lt;Vertex, Object&amp;gt; values = g.V(saturn).in(&amp;quot;father&amp;quot;).in(&amp;quot;father&amp;quot;).values(&amp;quot;name&amp;quot;);
+
+        /*
+         * The property place is also in a graph index. The property place is an edge property.
+         * Therefore, JanusGraph can index edges in a graph index.
+         * It is possible to query The Graph of the Gods for all events that have happened within 50 kilometers of Athens
+          * (latitude:37.97 and long:23.72).
+          * Then, given that information, which vertices were involved in those events.
+         */
+		System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50))));
+        System.out.println(g.E().has(&amp;quot;place&amp;quot;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+                .as(&amp;quot;source&amp;quot;).inV()
+                .as(&amp;quot;god2&amp;quot;)
+                .select(&amp;quot;source&amp;quot;).outV()
+                .as(&amp;quot;god1&amp;quot;).select(&amp;quot;god1&amp;quot;, &amp;quot;god2&amp;quot;)
+                .by(&amp;quot;name&amp;quot;));
+    }
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;删除 db 文件夹，打上断点，开始debug，首先进入：JanusGraphFactory.open&lt;/p&gt;
+
+&lt;p&gt;JanusGraphFactory is used to open or instantiate a JanusGraph graph database.
+Opens a {@link JanusGraph} database configured according to the provided configuration.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static JanusGraph open(ReadConfiguration configuration, String backupName) {
+    final ModifiableConfiguration config = new ModifiableConfiguration(ROOT_NS, (WriteConfiguration) configuration, BasicConfiguration.Restriction.NONE);
+    final String graphName = config.has(GRAPH_NAME) ? config.get(GRAPH_NAME) : backupName;
+    final JanusGraphManager jgm = JanusGraphManagerUtility.getInstance();
+    if (null != graphName) {
+        Preconditions.checkState(jgm != null, JANUS_GRAPH_MANAGER_EXPECTED_STATE_MSG);
+        return (JanusGraph) jgm.openGraph(graphName, gName -&amp;gt; new StandardJanusGraph(new GraphDatabaseConfiguration(configuration)));
+    } else {
+        if (jgm != null) {
+            log.warn(&amp;quot;...&amp;quot;);
+        }
+        return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;前面的部分先跳过，然后进入：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1. return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
+    // 构造方法，分为精通代码和构造方法
+    1. 父类：JanusGraphBlueprintsGraph
+        static {
+        TraversalStrategies graphStrategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class).clone()
+                .addStrategies(AdjacentVertexFilterOptimizerStrategy.instance(), JanusGraphLocalQueryOptimizerStrategy.instance(), JanusGraphStepStrategy.instance());
+
+        //Register with cache
+        TraversalStrategies.GlobalCache.registerStrategies(StandardJanusGraph.class, graphStrategies);
+        TraversalStrategies.GlobalCache.registerStrategies(StandardJanusGraphTx.class, graphStrategies);
+        }
+    2. 新建配置，A graph database configuration is uniquely associated with a graph database and must not be used for multiple databases
+    
+    new GraphDatabaseConfiguration(configuration)
+        1. storeManager 
+        final KeyColumnValueStoreManager storeManager = Backend.getStorageManager(localBasicConfiguration);
+        final StoreFeatures storeFeatures = storeManager.getFeatures();
+        2. 检查参数，配置等
+    
+    3. 然后是构造方法
+        1. 成员变量
+        private final SchemaCache.StoreRetrieval typeCacheRetrieval = new SchemaCache.StoreRetrieval() {}
+        2. backend
+        this.backend = configuration.getBackend();
+            1. Backend backend = new Backend(configuration);
+                1. KeyColumnValueStoreManager manager = getStorageManager(configuration);
+                2. indexes = getIndexes(configuration);
+                
+                3. //这里的 KCVS 是 keycolumnvaluestorageManager
+                managementLogManager = getKCVSLogManager(MANAGEMENT_LOG);
+        		txLogManager = getKCVSLogManager(TRANSACTION_LOG);
+        		userLogManager = getLogManager(USER_LOG);
+        		
+        		4. scanner = new StandardScanner(storeManager);
+                
+            2. backend.initialize(configuration);
+                1. store 新建
+                KeyColumnValueStore idStore = storeManager.openDatabase(config.get(IDS_STORE_NAME));
+                KeyColumnValueStore edgeStoreRaw = storeManagerLocking.openDatabase(EDGESTORE_NAME);
+            	KeyColumnValueStore indexStoreRaw = storeManagerLocking.openDatabase(INDEXSTORE_NAME);
+                
+                2. cacheEnabled
+                edgeStore = new NoKCVSCache(edgeStoreRaw);
+                indexStore = new NoKCVSCache(indexStoreRaw);
+            3. storeFeatures = backend.getStoreFeatures();
+        3. 初始化
+        this.idAssigner = config.getIDAssigner(backend);
+        this.idManager = idAssigner.getIDManager();
+        this.serializer = config.getSerializer();
+        StoreFeatures storeFeatures = backend.getStoreFeatures();
+        this.indexSerializer = new IndexSerializer(configuration.getConfiguration(), this.serializer,
+        this.backend.getIndexInformation(), storeFeatures.isDistributed() &amp;amp;&amp;amp; storeFeatures.isKeyOrdered());
+        this.edgeSerializer = new EdgeSerializer(this.serializer);
+        this.vertexExistenceQuery = edgeSerializer.getQuery(BaseKey.VertexExists, Direction.OUT, new EdgeSerializer.TypedInterval[0]).setLimit(1);
+        this.queryCache = new RelationQueryCache(this.edgeSerializer);
+        this.schemaCache = configuration.getTypeCache(typeCacheRetrieval);
+        this.times = configuration.getTimestampProvider();
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后是open完成后：GraphOfTheGodsFactory.load(graph);&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;1. 得到management
+JanusGraphManagement management = graph.openManagement();
+    
+    1. new ManagementSystem
+        1. 启动 tx
+        this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();
+            1.  graph.newTransaction(immutable);
+                StandardJanusGraphTx tx = new StandardJanusGraphTx(this, configuration);
+            	tx.setBackendTransaction(openBackendTransaction(tx));
+            	openTransactions.add(tx);
+2. 得到 PropertyKey
+final PropertyKey name = management.makePropertyKey(&amp;quot;name&amp;quot;).dataType(String.class).make();
+    1. return transaction.makePropertyKey(name);
+        1. return new StandardPropertyKeyMaker(this, name, indexSerializer, attributeHandler);
+            1. super(tx, name, indexSerializer, attributeHandler);
+    2. public StandardPropertyKeyMaker dataType(Class&amp;lt;?&amp;gt; clazz)
+    3. public PropertyKey make()
+        1. TypeDefinitionMap definition = makeDefinition();        
+        2. return tx.makePropertyKey(getName(), definition);
+            1. return (PropertyKey) makeSchemaVertex(JanusGraphSchemaCategory.PROPERTYKEY, name, definition);
+                1. ... 先跳过。
+            
+3. 新建 index
+JanusGraphManagement.IndexBuilder nameIndexBuilder = management.buildIndex(&amp;quot;name&amp;quot;, Vertex.class).addKey(name);
+    1. 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;调用：JanusGraphManagement management = graph.openManagement();然后：management.makeEdgeLabel(&amp;ldquo;father&amp;rdquo;).multiplicity(Multiplicity.MANY2ONE).make();&lt;/p&gt;
 </description>
       
     </item>

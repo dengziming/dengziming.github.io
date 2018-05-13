@@ -105,6 +105,8 @@ percentile_rank&lt;/p&gt;
 &lt;h3 id=&#34;5-键值对&#34;&gt;5.键值对&lt;/h3&gt;
 
 &lt;p&gt;str_to_map(concat_ws(&amp;lsquo;,&amp;rsquo;,collect_set(concat_ws(&amp;rsquo;:&amp;lsquo;, ctime_month, cast(final_score as string) )))) as time2score&lt;/p&gt;
+
+&lt;h3 id=&#34;6-cache-table&#34;&gt;6.cache table&lt;/h3&gt;
 </description>
       
     </item>

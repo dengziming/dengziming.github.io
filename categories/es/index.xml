@@ -6,7 +6,7 @@
     <description>Recent content in Es on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 22 Apr 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/categories/es/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,7 +14,7 @@
     <item>
       <title>es架构-1</title>
       <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
       
       <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-1/</guid>
       
@@ -52,8 +52,9 @@
 
 &lt;h3 id=&#34;1-the-confusion-between-elasticsearch-index-and-lucene-index-other-common-terms&#34;&gt;1.The confusion between Elasticsearch Index and Lucene Index + other common terms…&lt;/h3&gt;
 
-&lt;p&gt;es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。
-每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。&lt;/p&gt;
+&lt;p&gt;es 的 index 是一个组织数据的逻辑空间，就类似一个数据库。es index有一到多个 shards，一个shard就是一个真正存数据的lucene index，内部就是一个搜索引擎。&lt;/p&gt;
+
+&lt;p&gt;每个 shard 都有0到多个replica，es index 有 type 的概念，就好比数据库里面的表，一个type里的所以type有相同的properties，就像schema一样。&lt;/p&gt;
 
 &lt;h3 id=&#34;2-types-of-nodes&#34;&gt;2. Types of nodes&lt;/h3&gt;
 
@@ -74,7 +75,7 @@ If you would like to have a dedicated master node, then change the node.data pro
 
 &lt;h4 id=&#34;4-coordinating-node&#34;&gt;（4）coordinating node&lt;/h4&gt;
 
-&lt;p&gt;通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
+&lt;p&gt;注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
 
 &lt;h3 id=&#34;2-storage-model&#34;&gt;2. Storage Model&lt;/h3&gt;
 
@@ -99,13 +100,13 @@ Doc 2: Insight Data Science Fellows Program&lt;/p&gt;
 
 &lt;p&gt;When you send a request to the coordinating node to index a new document, the following set of operations take place:&lt;/p&gt;
 
-&lt;p&gt;es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shardroute起来，
-es再通过murmur3 hash算法将documentId进行取值，得到shard。&lt;code&gt;shard = hash(document_id) % (num_of_primary_shards)&lt;/code&gt;。
-当节点收到 coordinating node 的reques，request会被写入到 translog中，document会被放进 memory buffer（&lt;a href=&#34;http://www.linfo.org/buffer.html），&#34;&gt;http://www.linfo.org/buffer.html），&lt;/a&gt;
+&lt;p&gt;es所有的节点都包含了集群的元数据信息，包括哪些节点或者，有哪些分片。The coordinating node 通过 documentId将document和他对应的shard route起来，
+es再通过 murmur3 hash算法将documentId进行取值，得到shard。&lt;code&gt;shard = hash(document_id) % (num_of_primary_shards)&lt;/code&gt;。
+当节点收到 coordinating node 的 request ，request 会被写入到 translog 中，document 会被放进 memory buffer（&lt;a href=&#34;http://www.linfo.org/buffer.html），&#34;&gt;http://www.linfo.org/buffer.html），&lt;/a&gt;
 如果在primary shard上执行成功，reques也会被发送到 replica shard上，
 当 translog fsynced （&lt;a href=&#34;https://linux.die.net/man/2/fsync）&#34;&gt;https://linux.die.net/man/2/fsync）&lt;/a&gt; on all primary and replica shards.client receives acknowledgement that the request was successful。&lt;/p&gt;
 
-&lt;p&gt;memory buffer会周期性更新，contents会被写到一个 a new segment in filesystem cache ，
+&lt;p&gt;memory buffer会周期性更新 (defaults to 1 sec)，contents 会被写到一个 a new segment in filesystem cache ，
 This segment is not yet fsync’ed, however, the segment is open and the contents are available for search.&lt;/p&gt;
 
 &lt;p&gt;The translog is emptied and filesystem cache is fsync’ed every 30 minutes or when the translog gets too big. 这个过程称为flush
@@ -164,7 +165,7 @@ How to ensure consistent writes and reads?&lt;/p&gt;
     <item>
       <title>es架构-2</title>
       <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
       
       <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</guid>
       
@@ -266,6 +267,69 @@ Difficulties and trade-offs in calculating search relevance
 Concurrency control
 Why is Elasticsearch near real-time?
 How to ensure consistent writes and reads?&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>es架构-3</title>
+      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-3/</link>
+      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-3/</guid>
+      
+        <description>
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-3&#34;&gt;一、Anatomy of an Elasticsearch Cluster -3&lt;/h2&gt;
+
+&lt;p&gt;上一节我们说了：how Elasticsearch approaches some of the fundamental challenges of a distributed system.这一节的内容主要包括：&lt;/p&gt;
+
+&lt;p&gt;Near real-time search&lt;/p&gt;
+
+&lt;p&gt;Why deep pagination in distributed search can be dangerous?&lt;/p&gt;
+
+&lt;p&gt;Trade-offs in calculating search relevance&lt;/p&gt;
+
+&lt;h3 id=&#34;1-near-real-time-search&#34;&gt;1. Near real-time search&lt;/h3&gt;
+
+&lt;p&gt;尽管改变不会立即可见，但是es确实提供了近实时查询，前面的内容提到，lucene的segment改变提交到磁盘是很消耗性能的。&lt;/p&gt;
+
+&lt;p&gt;为了避免search的同时提交改变到磁盘，es在memory buffer和disk之间提供了一个 filesystem cache，memory buffer 默认1s refreshed 一次，
+一个包含倒排索引的segment也会在 filesystem cache中生成。segment是开放的可以查询。&lt;/p&gt;
+
+&lt;p&gt;filesystem cache有文件句柄而且可以打开，读写，关闭，尽管它在内存中。
+Since, the refresh interval is 1 sec by default,  the changes are not visible right away ，所以是准实时。
+Since, the translog is a persistent record of changes not persisted to the disk, it also helps with the near real-time aspect for CRUD operations.
+在查找相关段之前，在 translog 中搜索任何最近的变化，因此，客户端可以访问近实时的所有变化。&lt;/p&gt;
+
+&lt;p&gt;你可以每次更新后手动刷新index，但是这样会产生很多小segment，不推荐。
+For a search request, all Lucene segments in a given shard of an Elasticsearch index are searched。
+however, fetching all matching documents or documents deep in the resulting pages is dangerous for your Elasticsearch cluster. Let’s see why that is.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-why-deep-pagination-in-distributed-search-can-be-dangerous&#34;&gt;2. Why deep pagination in distributed search can be dangerous?&lt;/h3&gt;
+
+&lt;p&gt;当我们查到的es中有很多匹配到的document，默认返回最相关的10条，分页操作会提供from和size两个参数，然后每个shard上面会产生from+size个结果放进优先队列，最后汇总。&lt;/p&gt;
+
+&lt;p&gt;加入你需要的是10000到100010个结果，每个shard的优先队列会返回10010个结果排序后放进 memory中，这样将会有很大的隐患。
+scroll API （&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html）可以让你返回所有的结果。&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html）可以让你返回所有的结果。&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;前面说到es使用tf-idf算法，分布式系统计算idf时很麻烦的，需要有aggregate操作。es的做法是返回一个local idf：
+Instead, every shard calculates a local idf to assign a relevance score to the resulting documents and returns the result for only the documents on that shard.
+Similarly, all the shards return the resulting documents with relevant scores calculated using local idf and the coordinating node sorts all the results to return the top ones。
+大多数情况可靠，但是数据倾斜时候就不太可靠了。&lt;/p&gt;
+
+&lt;p&gt;对于上面的问题有两种 trade-off，都不太适合大规模数据。一种是只有一个shard，这样local idf就是 globe idf。另一种是 dfs_query_then_search，先把local idf合并成globe idf，然后在计算。&lt;/p&gt;
+
+&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
+
+&lt;p&gt;In the last few posts, we reviewed some of the fundamental principles of Elasticsearch which are important to understand in order to get started.&lt;/p&gt;
+
+&lt;p&gt;接下来，我们要看看他的源码，或者看看怎么和spark、hadoop结合使用。&lt;/p&gt;
 </description>
       
     </item>

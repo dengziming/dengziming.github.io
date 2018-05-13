@@ -166,6 +166,370 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/hadoop/yarn-api%E4%BD%BF%E7%94%A8/">yarn-api使用</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-23 </span>
+      <div class="post-category">
+          
+            <a href="/categories/hadoop%E6%BA%90%E7%A0%81/"> Hadoop源码 </a>
+          
+        </div>
+      <span class="more-meta"> 2617 words </span>
+      <span class="more-meta"> 6 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      参考： https://ieevee.com/tech/2015/05/05/yarn-dist-shell.html distributeshell Client解析 distShell主要有2个类组成，Client和ApplicationMaster。两个类都带有main入口。C
+    </div>
+    <div class="read-more">
+      <a href="/post/hadoop/yarn-api%E4%BD%BF%E7%94%A8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/hadoop/first/">Hadoop基础库-</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/hadoop%E5%9F%BA%E7%A1%80%E5%BA%93-/"> Hadoop基础库- </a>
+          
+        </div>
+      <span class="more-meta"> 6 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      参考资料： https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/
+    </div>
+    <div class="read-more">
+      <a href="/post/hadoop/first/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/hadoop/yarn-nodemanager-1/">yarn-nodemanager-剖析</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/hadoop%E5%9F%BA%E7%A1%80%E5%BA%93-/"> Hadoop基础库- </a>
+          
+        </div>
+      <span class="more-meta"> 944 words </span>
+      <span class="more-meta"> 2 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      架构 ContainerManagementImpl Container 生命周期 第一步是 RM 的 applicationMasterLauncher ，创建 ApplicationMasterLauncher 后，遇到 launch 时间 ， case LAUNCH: launch(application); =&gt; new AMLauncher(context, application, event, getConfig()); 这个任务放进 队列里面等待执行，一旦执行会调用 launch() 方法，然后调用 containerMgrProxy.startContainers(allRequests); 这是 RPC
+    </div>
+    <div class="read-more">
+      <a href="/post/hadoop/yarn-nodemanager-1/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/hadoop/yarn-resourcemanager-1/">yarn-resourcemanager-1</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/hadoop%E6%BA%90%E7%A0%81-/"> Hadoop源码- </a>
+          
+        </div>
+      <span class="more-meta"> 2389 words </span>
+      <span class="more-meta"> 5 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      参考资料： https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/ 提交应用程序的过程 1. yarnClient.submitApplication(appContext); 新建请求，最终调用： rmClient.submitApplication(request); 实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request) 得到APPID：ApplicationId applicationId = submissionContext.getApplicationId(); rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user); 放到
+    </div>
+    <div class="read-more">
+      <a href="/post/hadoop/yarn-resourcemanager-1/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/">yarn-基础库</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/hadoop%E6%BA%90%E7%A0%81/"> Hadoop源码 </a>
+          
+        </div>
+      <span class="more-meta"> 321 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      yarn-事件库和服务库 使用 新建Event和EventType 新建 AsyncDispatcher 并给 AsyncDispatcher 注册 Event 和对应的 EventHandler 调用 AsyncDispatcher 的 getEventHandler 得到 EventHandler 然后调用 handler 的 handle 方法处理 Event 基本原理：
+    </div>
+    <div class="read-more">
+      <a href="/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/">JanusGraph官网文档</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-03 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E8%90%A5/"> 开发经营 </a>
+          
+        </div>
+      <span class="more-meta"> 1001 words </span>
+      <span class="more-meta"> 2 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、JanusGraph Basics 1.config Chapter 5. Schema and Data Modeling 5.1. Defining Edge Labels To define an edge label, call makeEdgeLabel(String) on an open graph or management transaction and provide the name of the edge label as the argument. Edge label names must be unique in the graph. mgmt = graph.openManagement() follow = mgmt.makeEdgeLabel('follow').multiplicity(MULTI).make() mother = mgmt.makeEdgeLabel('mother').multiplicity(MANY2ONE).make() mgmt.commit() 5.2. Defining
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/%E7%90%86%E8%AE%BA/first/">分布式算法理论</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-05-01 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/"> 分布式理论 </a>
+          
+        </div>
+      <span class="more-meta"> 2048 words </span>
+      <span class="more-meta"> 5 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、算法 二、理论 1. Two-phase commit protocol 直接翻译维基百科的解释了： https://en.wikipedia.org/wiki/Two-phase_commit_protocol In transaction processing, databases, and computer networking, the two-phase commit protocol (2PC) is a type of atomic commitment protocol (ACP). 在处理事务、数据库和计算机网络，2PC是一种原子
+    </div>
+    <div class="read-more">
+      <a href="/post/%E7%90%86%E8%AE%BA/first/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/">janusgraph源码分析1-下载编译启动</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-26 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 1754 words </span>
+      <span class="more-meta"> 4 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/">janusgraph源码分析1-下载编译启动</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-26 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 1209 words </span>
+      <span class="more-meta"> 3 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/%E5%BF%83%E5%BE%97/first/">学习心得</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-25 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E5%BF%83%E5%BE%97/"> 学习心得 </a>
+          
+        </div>
+      <span class="more-meta"> 25 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      结硬寨打呆战 独当一面 花时间钻研底层只是 元认知更重要
+    </div>
+    <div class="read-more">
+      <a href="/post/%E5%BF%83%E5%BE%97/first/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-1/">es架构-1</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/es/"> es </a>
+          
+        </div>
+      <span class="more-meta"> 2067 words </span>
+      <span class="more-meta"> 5 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster 很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要
+    </div>
+    <div class="read-more">
+      <a href="/post/es/es%E6%9E%B6%E6%9E%84-1/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-2/">es架构-2</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/es/"> es </a>
+          
+        </div>
+      <span class="more-meta"> 1938 words </span>
+      <span class="more-meta"> 4 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这
+    </div>
+    <div class="read-more">
+      <a href="/post/es/es%E6%9E%B6%E6%9E%84-2/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-3/">es架构-3</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-04-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/es/"> es </a>
+          
+        </div>
+      <span class="more-meta"> 1093 words </span>
+      <span class="more-meta"> 3 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -3 上一节我们说了：how Elasticsearch approaches some of the fundamental challenges of a distributed system.这一节的内容主要包括：
+    </div>
+    <div class="read-more">
+      <a href="/post/es/es%E6%9E%B6%E6%9E%84-3/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/">Java内存区域与内存溢出异常</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-04-20 </span>
@@ -220,370 +584,6 @@
 </article>
 
     
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/project/tianchi/%E5%A4%A9%E6%B1%A0o2o%E7%AB%9E%E8%B5%9B/">spark-天池o2o竞赛</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-15 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%A1%B9%E7%9B%AE/"> 项目 </a>
-          
-        </div>
-      <span class="more-meta"> 7578 words </span>
-      <span class="more-meta"> 16 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      优惠券敏感人群分析 源代码地址放在Reward处。 互联网给我们老百姓带来的最直接的福利要从补贴开始说起，从滴滴快的烧钱大战，美团饿了么的外卖红
-    </div>
-    <div class="read-more">
-      <a href="/post/project/tianchi/%E5%A4%A9%E6%B1%A0o2o%E7%AB%9E%E8%B5%9B/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/project/hadoop/hadoop/">hadoop网站日志分析项目架构</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-30 </span>
-      <div class="post-category">
-          
-            <a href="/categories/hadoop/"> hadoop </a>
-          
-        </div>
-      <span class="more-meta"> 11656 words </span>
-      <span class="more-meta"> 24 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      项目简介：大数据涉及到的业务很多很复杂，从一开始的项目架构，再到后台的网站搭建，以及数据的收集，数据的分析，数据的迁移，业务开发，后台运维，
-    </div>
-    <div class="read-more">
-      <a href="/post/project/hadoop/hadoop/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/java/javanio/">JavaNIO</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/java%E5%9F%BA%E7%A1%80/"> Java基础 </a>
-          
-        </div>
-      <span class="more-meta"> 1907 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      // 参考资料 http://tutorials.jenkov.com/java-nio/nio-vs-io.html#main-differences-between-java-nio-and-io 一、IO和NIO有什么区别 Stream Oriented vs. Buffer Oriented Blocking vs. Non-blocking IO IO是阻塞的，一旦调用了 read() or write()，线程就堵住了，NIO非阻塞。 二、Chan
-    </div>
-    <div class="read-more">
-      <a href="/post/java/javanio/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-1/">es架构-1</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/es/"> es </a>
-          
-        </div>
-      <span class="more-meta"> 2054 words </span>
-      <span class="more-meta"> 5 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster 很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要
-    </div>
-    <div class="read-more">
-      <a href="/post/es/es%E6%9E%B6%E6%9E%84-1/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-2/">es架构-2</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/es/"> es </a>
-          
-        </div>
-      <span class="more-meta"> 1938 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这
-    </div>
-    <div class="read-more">
-      <a href="/post/es/es%E6%9E%B6%E6%9E%84-2/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/first/">janusgraph源码分析1-下载编译启动</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 1754 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/first/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E4%BC%81%E4%B8%9A%E7%89%88%E5%88%86%E6%9E%90/">neo4j企业版分析</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 331 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      阅读neo4j源码是为了改造，所以研究一下企业版的源码。OpenEnterpriseNeoServer 和 CommunityNeoServer 稍微对比一下。 CommunityNeoServer protected static final GraphFactory COMMUNITY_FACTORY = ( config, dependencies
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E4%BC%81%E4%B8%9A%E7%89%88%E5%88%86%E6%9E%90/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/">neo4j存储结构分析</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
-          
-        </div>
-      <span class="more-meta"> 9 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      1.修改配置 待完成
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/">neo4j导数据</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
-          
-        </div>
-      <span class="more-meta"> 320 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      1.修改配置 dbms.security.allow_csv_import_from_file_urls=true &ndash; load csv 命令 dbms.directories.import=import restart neo4j 2.导入数据方法1 load csv with headers from &ldquo;file:///path/to/file&rdquo; as row create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title }); 3. 导入数据方法2 dbms.directories.import=/var/lib/neo4j/import/ 注释： dbms.security.allow_csv_import_from_file_urls=true 将文件放入 ：/var/lib/neo4j/
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/">neo4j源码分析1-编译打包启动</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 1254 words </span>
-      <span class="more-meta"> 3 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/">neo4j源码分析2-启动源码跟踪</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 4396 words </span>
-      <span class="more-meta"> 9 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/">neo4j源码分析3-LifeCycle查看</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 4506 words </span>
-      <span class="more-meta"> 9 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/">neo4j源码分析4-读文件</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 2447 words </span>
-      <span class="more-meta"> 5 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
   </section>
 
   
@@ -614,6 +614,10 @@
     
     <li >
       <a href="/page/2/">2</a>
+    </li>
+    
+    <li >
+      <a href="/page/3/">3</a>
     </li>
     
   </nav>

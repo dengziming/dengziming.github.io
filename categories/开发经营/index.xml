@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>开发经营 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E8%90%A5/</link>
+    <description>Recent content in 开发经营 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 03 May 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E8%90%A5/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>JanusGraph官网文档</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/</link>
+      <pubDate>Thu, 03 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;一-janusgraph-basics&#34;&gt;一、JanusGraph Basics&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-config&#34;&gt;1.config&lt;/h2&gt;
+
+&lt;h2 id=&#34;chapter-5-schema-and-data-modeling&#34;&gt;Chapter 5. Schema and Data Modeling&lt;/h2&gt;
+
+&lt;h3 id=&#34;5-1-defining-edge-labels&#34;&gt;5.1. Defining Edge Labels&lt;/h3&gt;
+
+&lt;p&gt;To define an edge label, call makeEdgeLabel(String) on an open graph or management transaction and provide the name of the edge label as the argument. Edge label names must be unique in the graph.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+follow = mgmt.makeEdgeLabel(&#39;follow&#39;).multiplicity(MULTI).make()
+mother = mgmt.makeEdgeLabel(&#39;mother&#39;).multiplicity(MANY2ONE).make()
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-2-defining-property-keys&#34;&gt;5.2. Defining Property Keys&lt;/h3&gt;
+
+&lt;p&gt;call makePropertyKey(String) on an open graph or management transaction and provide the name of the property key as the argument.&lt;/p&gt;
+
+&lt;p&gt;Use dataType(Class) to define the data type of a property key.&lt;/p&gt;
+
+&lt;p&gt;Use cardinality(Cardinality) to define the allowed cardinality of the values associated with the key on any given vertex.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+birthDate = mgmt.makePropertyKey(&#39;birthDate&#39;).dataType(Long.class).cardinality(Cardinality.SINGLE).make()
+name = mgmt.makePropertyKey(&#39;name&#39;).dataType(String.class).cardinality(Cardinality.SET).make()
+sensorReading = mgmt.makePropertyKey(&#39;sensorReading&#39;).dataType(Double.class).cardinality(Cardinality.LIST).make()
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-3-relation-types&#34;&gt;5.3. Relation Types&lt;/h3&gt;
+
+&lt;p&gt;Edge labels and property keys are jointly referred to as relation types.&lt;/p&gt;
+
+&lt;p&gt;property keys and edge labels cannot have the same name.&lt;/p&gt;
+
+&lt;p&gt;There are methods in the JanusGraph API to query for the existence or retrieve relation types which encompasses both property keys and edge labels.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+if (mgmt.containsRelationType(&#39;name&#39;))
+    name = mgmt.getPropertyKey(&#39;name&#39;)
+mgmt.getRelationTypes(EdgeLabel.class)
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-4-defining-vertex-labels&#34;&gt;5.4. Defining Vertex Labels&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+person = mgmt.makeVertexLabel(&#39;person&#39;).make()
+mgmt.commit()
+// Create a labeled vertex
+person = graph.addVertex(label, &#39;person&#39;)
+// Create an unlabeled vertex
+v = graph.addVertex()
+graph.tx().commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;5-5-automatic-schema-maker&#34;&gt;5.5. Automatic Schema Maker&lt;/h3&gt;
+
+&lt;h3 id=&#34;5-6-changing-schema-elements&#34;&gt;5.6. Changing Schema Elements&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt = graph.openManagement()
+place = mgmt.getPropertyKey(&#39;place&#39;)
+mgmt.changeName(place, &#39;location&#39;)
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note, that schema name changes may not be immediately visible in currently running transactions and other JanusGraph graph instances in the cluster.&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-6-gremlin-query-language&#34;&gt;Chapter 6. Gremlin Query Language&lt;/h2&gt;
+
+&lt;p&gt;Gremlin is a path-oriented language which succinctly expresses complex graph traversals and mutation operations.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://docs.janusgraph.org/latest/gremlin.html&#34;&gt;http://docs.janusgraph.org/latest/gremlin.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;6-1-introductory-traversals&#34;&gt;6.1. Introductory Traversals&lt;/h3&gt;
+
+&lt;p&gt;A Gremlin query is a chain of operations/functions that are evaluated from left to right. A simple grandfather query is provided below over the Graph of the Gods dataset&lt;/p&gt;
+
+&lt;p&gt;和sql相互转换： &lt;a href=&#34;http://sql2gremlin.com/&#34;&gt;http://sql2gremlin.com/&lt;/a&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;explain:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;g: for the current graph traversal.
+V: for all vertices in the graph
+has(&#39;name&#39;, &#39;hercules&#39;): filters the vertices down to those with name property &amp;quot;hercules&amp;quot; (there is only one).
+out(&#39;father&#39;): traverse outgoing father edge’s from Hercules.
+out(&#39;father&#39;): traverse outgoing father edge’s from Hercules&#39; father’s vertex (i.e. Jupiter).
+name: get the name property of the &amp;quot;hercules&amp;quot; vertex’s grandfather.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g
+==&amp;gt;graphtraversalsource[janusgraph[cassandrathrift:127.0.0.1], standard]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;)
+==&amp;gt;v[24]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;)
+==&amp;gt;v[16]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;)
+==&amp;gt;v[20]
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;For a sanity check, it is usually good to look at the properties of each return, not the assigned long id.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).values(&#39;name&#39;)
+==&amp;gt;hercules
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;jupiter
+gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).out(&#39;father&#39;).out(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.V().has(&#39;name&#39;, &#39;hercules&#39;).repeat(out(&#39;father&#39;)).emit().values(&#39;name&#39;)
+==&amp;gt;jupiter
+==&amp;gt;saturn
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; hercules = g.V().has(&#39;name&#39;, &#39;hercules&#39;).next()
+==&amp;gt;v[1536]
+gremlin&amp;gt; g.V(hercules).out(&#39;father&#39;, &#39;mother&#39;).label()
+==&amp;gt;god
+==&amp;gt;human
+gremlin&amp;gt; g.V(hercules).out(&#39;battled&#39;).label()
+==&amp;gt;monster
+==&amp;gt;monster
+==&amp;gt;monster
+gremlin&amp;gt; g.V(hercules).out(&#39;battled&#39;).valueMap()
+==&amp;gt;{name=nemean}
+==&amp;gt;{name=hydra}
+==&amp;gt;{name=cerberus}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;6-2-iterating-the-traversal&#34;&gt;6.2. Iterating the Traversal&lt;/h3&gt;
+
+&lt;p&gt;4steps:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;iterate() - Zero results are expected or can be ignored.
+next() - Get one result. Make sure to check hasNext() first.
+next(int n) - Get the next n results. Make sure to check hasNext() first.
+toList() - Get all results as a list. If there are no results, an empty list is returned.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Traversal t = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;pluto&amp;quot;); // Define a traversal
+// Note the traversal is not executed/iterated yet
+Vertex pluto = null;
+if (t.hasNext()) { // Check if results are available
+    pluto = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;pluto&amp;quot;).next(); // Get one result
+    g.V(pluto).drop().iterate(); // Execute a traversal to drop pluto from graph
+}
+// Note the traversal can be cloned for reuse
+Traversal tt = t.asAdmin().clone();
+if (tt.hasNext()) {
+    System.err.println(&amp;quot;pluto was not dropped!&amp;quot;);
+}
+List&amp;lt;Vertex&amp;gt; gods = g.V().hasLabel(&amp;quot;god&amp;quot;).toList(); // Find all the gods
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;chapter-7-janusgraph-server&#34;&gt;Chapter 7. JanusGraph Server&lt;/h2&gt;
+
+&lt;p&gt;JanusGraph Server 应该就是类似hive的server，能够执行远程的Gremin语句。&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-8-configuredgraphfactory&#34;&gt;Chapter 8. ConfiguredGraphFactory&lt;/h2&gt;
+
+&lt;p&gt;应该是一个通过配置管理多个graph的工厂类。&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-9-indexing-for-better-performance&#34;&gt;Chapter 9. Indexing for Better Performance&lt;/h2&gt;
+
+&lt;p&gt;JanusGraph supports two different kinds of indexing to speed up query processing: graph indexes and vertex-centric indexes.&lt;/p&gt;
+
+&lt;p&gt;Most graph queries start the traversal from a list of vertices or edges that are identified by their properties.
+Graph indexes make these global retrieval operations efficient on large graphs.&lt;/p&gt;
+
+&lt;p&gt;Vertex-centric indexes speed up the actual traversal through the graph, in particular when traversing through vertices with many incident edges.&lt;/p&gt;
+
+&lt;h3 id=&#34;9-1-graph-index&#34;&gt;9.1. Graph Index&lt;/h3&gt;
+
+&lt;h4 id=&#34;9-1-1-composite-index&#34;&gt;9.1.1. Composite Index&lt;/h4&gt;
+
+&lt;p&gt;Mixed indexes - 支持更多谓词查询&lt;/p&gt;
+
+&lt;p&gt;composite indexes -等值查询&lt;/p&gt;
+
+&lt;p&gt;代码： &lt;code&gt;mgmt.buildIndex(&#39;nameAndAge&#39;, Vertex.class).addKey(name).addKey(age).buildMixedIndex(&amp;quot;search&amp;quot;)&lt;/code&gt;
+这里的名字 search 必须在配置中添加： index.search.backend&lt;/p&gt;
+
+&lt;p&gt;查询方式：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;)).has(&#39;age&#39;, inside(20, 50))
+g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;))
+g.V().has(&#39;age&#39;, lt(50))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;9-2-vertex-centric-indexes&#34;&gt;9.2. Vertex-centric Indexes&lt;/h3&gt;
+
+&lt;p&gt;查找和 hercules battled 时间为 10-20 的人。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;h = g.V().has(&#39;name&#39;, &#39;hercules&#39;).next()
+g.V(h).outE(&#39;battled&#39;).has(&#39;time&#39;, inside(10, 20)).inV()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这样会遍历，我们可以添加索引。我们可以： Building a vertex-centric index by time speeds up such traversal queries.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;graph.tx().rollback()  //Never create new indexes while a transaction is active
+mgmt = graph.openManagement()
+time = mgmt.getPropertyKey(&#39;time&#39;)
+battled = mgmt.getEdgeLabel(&#39;battled&#39;)
+mgmt.buildEdgeIndex(battled, &#39;battlesByTime&#39;, Direction.BOTH, Order.decr, time)
+mgmt.commit()
+//Wait for the index to become available
+mgmt.awaitGraphIndexStatus(graph, &#39;battlesByTime&#39;).call()
+//Reindex the existing data
+mgmt = graph.openManagement()
+mgmt.updateIndex(mgmt.getGraphIndex(&amp;quot;battlesByTime&amp;quot;), SchemaAction.REINDEX).get()
+mgmt.commit()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;9-2-1-ordered-traversals&#34;&gt;9.2.1. Ordered Traversals&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;h = g..V().has(&#39;name&#39;, &#39;hercules&#39;).next()
+g.V(h).local(outE(&#39;battled&#39;).order().by(&#39;time&#39;, decr).limit(10)).inV().values(&#39;name&#39;)
+g.V(h).local(outE(&#39;battled&#39;).has(&#39;rating&#39;, 5.0).order().by(&#39;time&#39;, decr).limit(10)).values(&#39;place&#39;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;chapter-10-transactions&#34;&gt;Chapter 10. Transactions&lt;/h2&gt;
+
+&lt;h3 id=&#34;10-1-transaction-handling&#34;&gt;10.1. Transaction Handling&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-2-transactional-scope&#34;&gt;10.2. Transactional Scope&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-3-transaction-failures&#34;&gt;10.3. Transaction Failures&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-4-multi-threaded-transactions&#34;&gt;10.4. Multi-Threaded Transactions&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-5-concurrent-algorithms&#34;&gt;10.5. Concurrent Algorithms&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-6-nested-transactions&#34;&gt;10.6. Nested Transactions&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-7-common-transaction-handling-problems&#34;&gt;10.7. Common Transaction Handling Problems&lt;/h3&gt;
+
+&lt;h3 id=&#34;10-8-transaction-configuration&#34;&gt;10.8. Transaction Configuration&lt;/h3&gt;
+
+&lt;h2 id=&#34;chapter-11-janusgraph-cache&#34;&gt;Chapter 11. JanusGraph Cache&lt;/h2&gt;
+
+&lt;h2 id=&#34;chapter-12-transaction-log&#34;&gt;Chapter 12. Transaction Log&lt;/h2&gt;
+
+&lt;h1 id=&#34;part-iii-storage-backends&#34;&gt;Part III. Storage Backends&lt;/h1&gt;
+
+&lt;p&gt;hbase&lt;/p&gt;
+
+&lt;p&gt;cassandra&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraph graph = JanusGraphFactory.build().
+	set(&amp;quot;storage.backend&amp;quot;, &amp;quot;hbase&amp;quot;).
+	open();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;iv-index-backends&#34;&gt;IV. Index Backends&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Elasticsearch&lt;/li&gt;
+&lt;li&gt;Apache Solr&lt;/li&gt;
+&lt;li&gt;Apache Lucene&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;v-advanced-topics&#34;&gt;V. Advanced Topics&lt;/h1&gt;
+
+&lt;h1 id=&#34;vi-janusgraph-internals&#34;&gt;VI. JanusGraph Internals&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://docs.janusgraph.org/latest/data-model.html&#34;&gt;http://docs.janusgraph.org/latest/data-model.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;chapter-38-janusgraph-data-model&#34;&gt;Chapter 38. JanusGraph Data Model&lt;/h2&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>yarn-resourcemanager-1 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="参考资料： https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/ 提交应用程序的过程 1. yarnClient.submitApplication(appContext); 新建请求，最终调用： rmClient.submitApplication(request); 实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request) 得到APPID：ApplicationId applicationId = submissionContext.getApplicationId(); rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user); 放到" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/hadoop/yarn-resourcemanager-1/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="yarn-resourcemanager-1" />
+<meta property="og:description" content="参考资料： https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/ 提交应用程序的过程 1. yarnClient.submitApplication(appContext); 新建请求，最终调用： rmClient.submitApplication(request); 实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request) 得到APPID：ApplicationId applicationId = submissionContext.getApplicationId(); rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user); 放到" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/hadoop/yarn-resourcemanager-1/" />
+
+
+
+<meta property="article:published_time" content="2018-05-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-05-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="yarn-resourcemanager-1">
+<meta itemprop="description" content="参考资料： https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/ 提交应用程序的过程 1. yarnClient.submitApplication(appContext); 新建请求，最终调用： rmClient.submitApplication(request); 实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request) 得到APPID：ApplicationId applicationId = submissionContext.getApplicationId(); rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user); 放到">
+
+
+<meta itemprop="dateModified" content="2018-05-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="2389">
+
+
+
+<meta itemprop="keywords" content="hadoop,源码," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="yarn-resourcemanager-1"/>
+<meta name="twitter:description" content="参考资料： https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/ 提交应用程序的过程 1. yarnClient.submitApplication(appContext); 新建请求，最终调用： rmClient.submitApplication(request); 实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request) 得到APPID：ApplicationId applicationId = submissionContext.getApplicationId(); rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user); 放到"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">yarn-resourcemanager-1</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-05-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/hadoop%E6%BA%90%E7%A0%81-/"> Hadoop源码- </a>
+            
+          </div>
+        <span class="more-meta"> 2389 words </span>
+        <span class="more-meta"> 5 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li><a href="#提交应用程序的过程">提交应用程序的过程</a>
+<ul>
+<li><a href="#1-yarnclient-submitapplication-appcontext">1. yarnClient.submitApplication(appContext);</a></li>
+<li><a href="#2-registerapplicationmasterresponse-response-amrmclient-registerapplicationmaster-appmasterhostname-appmasterrpcport-appmastertrackingurl">2.RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname, appMasterRpcPort,appMasterTrackingUrl);</a>
+<ul>
+<li><a href="#1-状态机相互转换细节">1.状态机相互转换细节</a></li>
+</ul></li>
+<li><a href="#3-总结">3.总结</a></li>
+<li><a href="#4-rmcontainer状态机">4.RMContainer状态机</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<p>参考资料：</p>
+
+<p><a href="https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/">https://hortonworks.com/blog/apache-hadoop-yarn-resourcemanager/</a></p>
+
+<h1 id="提交应用程序的过程">提交应用程序的过程</h1>
+
+<h2 id="1-yarnclient-submitapplication-appcontext">1. yarnClient.submitApplication(appContext);</h2>
+
+<p>新建请求，最终调用： rmClient.submitApplication(request);</p>
+
+<p>实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request)</p>
+
+<ol>
+<li><p>得到APPID：ApplicationId applicationId = submissionContext.getApplicationId();</p></li>
+
+<li><p>rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user);</p></li>
+</ol>
+
+<p>放到 rmAppManager 中，rmAppManager 中存放了所有的 application。
+跟进去，发现调用了：</p>
+
+<p>this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));</p>
+
+<pre><code class="language-java">public void handle(RMAppEvent event) {
+      ApplicationId appID = event.getApplicationId();
+      RMApp rmApp = this.rmContext.getRMApps().get(appID);
+      if (rmApp != null) {
+        try {
+          rmApp.handle(event);
+        } catch (Throwable t) {
+          LOG.error(&quot;Error in handling event type &quot; + event.getType()
+              + &quot; for application &quot; + appID, t);
+        }
+      }
+    }
+</code></pre>
+
+<p>然后导致这个 applicationId 所在的 RMAppEvent 状态机发生变化。</p>
+
+<h2 id="2-registerapplicationmasterresponse-response-amrmclient-registerapplicationmaster-appmasterhostname-appmasterrpcport-appmastertrackingurl">2.RegisterApplicationMasterResponse response = amRMClient.registerApplicationMaster(appMasterHostname, appMasterRpcPort,appMasterTrackingUrl);</h2>
+
+<p>注册 ApplicationMaster，注意这段代码是在用户编写的 ApplicationMaster 类中，所以这段代码运行在yarn给APPMaster分配的Container中。</p>
+
+<p>RegisterApplicationMasterResponse response = client.registerApplicationMaster(appHostName, appHostPort, appTrackingUrl);</p>
+
+<p>会调用：RegisterApplicationMasterResponse response = rmClient.registerApplicationMaster(request);</p>
+
+<p>最终会通过RPC调用：ApplicationMasterServeice.registerApplicationMaster(RegisterApplicationMasterRequest request)</p>
+
+<pre><code class="language-java">this.rmContext
+        .getDispatcher()
+        .getEventHandler()
+        .handle(
+          new RMAppAttemptRegistrationEvent(applicationAttemptId, request
+            .getHost(), request.getRpcPort(), request.getTrackingUrl()));
+</code></pre>
+
+<p>这种 RMAppAttemptEventType 类型的会 通过handle进行处理：</p>
+
+<pre><code class="language-java">public void handle(RMAppAttemptEvent event) {
+      ApplicationAttemptId appAttemptID = event.getApplicationAttemptId();
+      ApplicationId appAttemptId = appAttemptID.getApplicationId();
+      RMApp rmApp = this.rmContext.getRMApps().get(appAttemptId);
+      if (rmApp != null) {
+        RMAppAttempt rmAppAttempt = rmApp.getRMAppAttempt(appAttemptID);
+        if (rmAppAttempt != null) {
+          try {
+            rmAppAttempt.handle(event);
+          } catch (Throwable t) {
+            LOG.error(&quot;Error in handling event type &quot; + event.getType()
+                + &quot; for applicationAttempt &quot; + appAttemptId, t);
+          }
+        }
+      }
+    }
+  }
+</code></pre>
+
+<p>和上面的 RMAppEvent 一样，会进入一个状态机进行处理。</p>
+
+<h3 id="1-状态机相互转换细节">1.状态机相互转换细节</h3>
+
+<p>上面的过程细化一下：</p>
+
+<p>RMAppImpl 收到 RMAppEventType.START 事件后，会调用 RMStateStore#storeApplication，以日志记录 RMAppImpl 当前信息，</p>
+
+<p>至此，RMAppImpl 的运行状态由 NEW 转移为 NEW_SAVING。该步骤就较为复杂了，下面详细介绍下。</p>
+
+<p>其中 RMAppEventType 注册到中央异步调度器的地方在 ResourceManager.java 中，new ApplicationEventDispatcher(rmContext) 进行处理，
+处理方式很简单：通过appid得到得到 RMAppImpl ，最终会给  RMAppImpl自己处理，进入他的状态机处理。状态机有这么一个事件：</p>
+
+<p>addTransition(RMAppState.NEW, RMAppState.NEW_SAVING, RMAppEventType.START, new RMAppNewlySavingTransition())</p>
+
+<p>RMAppNewlySavingTransition 的 transition 就是 app.rmContext.getStateStore().storeNewApplication(app);  实际上就是保存应用的相关信息。</p>
+
+<pre><code class="language-java">public synchronized void storeNewApplication(RMApp app) {  
+    //app=RMAppImpl  
+    LOG.info(&quot;begin to storeNewApplication,app=&quot;+app.toString());  
+    ApplicationSubmissionContext context = app.getApplicationSubmissionContext();  
+    assert context instanceof ApplicationSubmissionContextPBImpl;  
+    ApplicationState appState =  
+        new ApplicationState(app.getSubmitTime(), app.getStartTime(), context,app.getUser());  
+    dispatcher.getEventHandler().handle(new RMStateStoreAppEvent(appState));  
+  }  
+</code></pre>
+
+<p>注意： dispatcher.getEventHandler().handle(new RMStateStoreAppEvent(appState));  这里会调用 RMStateStore 状态机的 transition，实际上就是 store + notifyDoneStoringApplication</p>
+
+<p><code>rmDispatcher.getEventHandler().handle(new RMAppNewSavedEvent(appId, storedException));</code></p>
+
+<p>这个事件又会进入 RMAppImpl 的状态机，对应代码 addTransition(RMAppState.NEW_SAVING, RMAppState.SUBMITTED, RMAppEventType.APP_NEW_SAVED, new AddApplicationToSchedulerTransition())</p>
+
+<p>调用：app.handler.handle(new AppAddedSchedulerEvent(app.applicationId,app.submissionContext.getQueue(), app.user));</p>
+
+<p>会触发： RMAppImpl 处理 AppAddedSchedulerEvent</p>
+
+<p>然后这个事件会分配给：CapacityScheduler ，</p>
+
+<pre><code class="language-java">case APP_ADDED:  
+    {  
+      AppAddedSchedulerEvent appAddedEvent = (AppAddedSchedulerEvent) event;  
+      addApplication(appAddedEvent.getApplicationId(),  
+        appAddedEvent.getQueue(), appAddedEvent.getUser());  
+</code></pre>
+
+<p>addApplication 会调用 rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.APP_ACCEPTED));</p>
+
+<p>RMAppImpl 会触发 ：addTransition(RMAppState.SUBMITTED, RMAppState.ACCEPTED,  RMAppEventType.APP_ACCEPTED, new StartAppAttemptTransition())</p>
+
+<p>对应的transition： createNewAttempt(); handler.handle(new RMAppStartAttemptEvent(currentAttempt.getAppAttemptId(),  transferStateFromPreviousAttempt));<br />
+实际上就是触发 RMAppAttemptImpl 状态机操作。</p>
+
+<p>RMAppAttemptImpl 接受 RMAppAttemptEventType.START 事件后，进行一系列初始化工作。将自身状态由NEW转换为SUBMITTED，并调用 AttemptStartedTransition。</p>
+
+<p>AttemptStartedTransition appAttempt.eventHandler.handle(new AppAttemptAddedSchedulerEvent(  appAttempt.applicationAttemptId, transferStateFromPreviousAttempt));</p>
+
+<p>AppAttemptAddedSchedulerEvent 会交给 CapacityScheduler 。</p>
+
+<pre><code class="language-java">case APP_ATTEMPT_ADDED:  
+    {  
+      AppAttemptAddedSchedulerEvent appAttemptAddedEvent =  
+          (AppAttemptAddedSchedulerEvent) event;  
+      addApplicationAttempt(appAttemptAddedEvent.getApplicationAttemptId(),  
+        appAttemptAddedEvent.getTransferStateFromPreviousAttempt(),  
+        appAttemptAddedEvent.getShouldNotifyAttemptAdded());  
+    }  
+</code></pre>
+
+<p>实际上就是讲这个 attempt 放进队列，等待处理。并且：rmContext.getDispatcher().getEventHandler().handle( new RMAppAttemptEvent(applicationAttemptId, RMAppAttemptEventType.ATTEMPT_ADDED));</p>
+
+<p>RMAppAttemptImpl 接受到事件 RMAppAttemptEventType.ATTEMPT_ADDED 后，状态由SUBMITTED转换为SCHEDULED。进入内部类ScheduleTransition的transition函数：</p>
+
+<pre><code class="language-java">private static final class ScheduleTransition  
+      implements  
+      MultipleArcTransition&lt;RMAppAttemptImpl, RMAppAttemptEvent, RMAppAttemptState&gt; {  
+    @Override  
+    public RMAppAttemptState transition(RMAppAttemptImpl appAttempt,  
+        RMAppAttemptEvent event) {  
+        LOG.info(&quot;class::ScheduleTransition, func::transition, begin.&quot;);  
+      if (!appAttempt.submissionContext.getUnmanagedAM()) {  
+        // Request a container for the AM.  
+        ResourceRequest request =  
+            BuilderUtils.newResourceRequest(  
+                AM_CONTAINER_PRIORITY, ResourceRequest.ANY, appAttempt  
+                    .getSubmissionContext().getResource(), 1);  
+  
+        // SchedulerUtils.validateResourceRequests is not necessary because  
+        // AM resource has been checked when submission  
+        Allocation amContainerAllocation = appAttempt.scheduler.allocate(  
+            appAttempt.applicationAttemptId,  
+            Collections.singletonList(request), EMPTY_CONTAINER_RELEASE_LIST, null, null);  
+        if (amContainerAllocation != null  
+            &amp;&amp; amContainerAllocation.getContainers() != null) {  
+          assert (amContainerAllocation.getContainers().size() == 0);  
+        }  
+        return RMAppAttemptState.SCHEDULED;  
+      } else {  
+        // save state and then go to LAUNCHED state  
+        appAttempt.storeAttempt();  
+        return RMAppAttemptState.LAUNCHED_UNMANAGED_SAVING;  
+      }  
+    }  
+  } 
+   
+</code></pre>
+
+<p>这里面就是：新建资源 ResourceRequest ，然后 appAttempt.scheduler.allocate</p>
+
+<p>&mdash;&mdash; 这里断层了,谁触发了 AMContainerImpl 启动和分配 Container，需要后续再看。</p>
+
+<p>这里有个疑问需要解答一下，之前一直好奇是哪里启动了 AMContainerImpl，上面的 schedule.allocate 将需要的资源提交给 schedule ，实际上 schedule 会分配。</p>
+
+<pre><code class="language-java">application.updateResourceRequests(ask);
+</code></pre>
+
+<p>这一句话，</p>
+
+<p>以  FairScheduler 为例，启动服务会调用 initScheduler(conf); 里面有三行代码：</p>
+
+<pre><code class="language-java">schedulingThread = new ContinuousSchedulingThread();
+schedulingThread.setName(&quot;FairSchedulerContinuousScheduling&quot;);
+schedulingThread.setDaemon(true);
+</code></pre>
+
+<p>会有守护线程调用 continuousSchedulingAttempt(); 实际上会调用：</p>
+
+<pre><code class="language-java">    for (NodeId nodeId : nodeIdList) {
+      FSSchedulerNode node = getFSSchedulerNode(nodeId);
+      try {
+        if (node != null &amp;&amp; Resources.fitsIn(minimumAllocation,
+            node.getAvailableResource())) {
+          attemptScheduling(node);
+        }
+      } catch (Throwable ex) {
+        LOG.error(&quot;Error while attempting scheduling for node &quot; + node +
+            &quot;: &quot; + ex.toString(), ex);
+      }
+    }
+</code></pre>
+
+<p>这个 attemptScheduling(node); 就会创建 AMContainerImpl 实例，至于怎么创建，需要了解各个 Schedule 的内部细节。</p>
+
+<p>ResourceManager 为应用程序的 AM 分配资源后，创建一个 RMContainerImpl，并向它发送一个 RMContainerEventType.START 事件。</p>
+
+<p>RMContainerImpl 收到 RMContainerEventType.START 事件后，直接向 RMAppAttemptImpl 发送一个 RMAppAttemptEventType.CONTAINER_ALLOCATED</p>
+
+<p>RMAppAttemptImpl 收到 RMAppAttemptEventType.CONTAINER_ALLOCATED 事件后：调用 AMContainerAllocatedTransition：</p>
+
+<p>transition函数中，调用 scheduler.allocate 获取分配的资源，scheduler 返回资源之前，会向 RMContainerImpl 发送 RMContainerEventType.ALLOCATED事件。</p>
+
+<p>RMAppAttemptImpl 收到资源后，向 RMStateStore 发送 MStateStoreEventType.STORE_APP_ATTEMPT 事件请求记录日志。</p>
+
+<p>至此，RMAppAttemptImpl 状态从 SCHEDULED 转换为 ALLOCATED_SAVING。</p>
+
+<p>日志记录完成后，RMStateStore 向 RMAppAttemptImpl 发送 RMAppAttemptEventType.ATTEMPT_NEW_SAVED 事件。</p>
+
+<p>RMAppAttemptImpl 收到 RMAppAttemptEventType.ATTEMPT_NEW_SAVED 事件后，
+向 ApplicationMasterLauncher 发送 AMLauncherEventType.LAUNCH 事件，
+至此，RMAppAttemptImpl 状态从 ALLOCATED_SAVING 转换为 ALLOCATED。</p>
+
+<p>后面的和这里类似，不过涉及到了 RMContainer状态机，先跳过。</p>
+
+<h2 id="3-总结">3.总结</h2>
+
+<p>通过这个实例我们大概了解了yarn中的RPC、调度器、服务、状态机配合的过程。
+一般是客户端（可以使用户的client、nodeManager进程或者它启动的container进程）发送请求，中间通过RPC调用了ResourceManager中的某个服务，这个服务会触发一定的事件，并且返回。</p>
+
+<p>例如客户端提交一个应用程序，首先有个 appid，每个appid对应的有一个 RMApp ，放在 rmAppManager 的一个map中。这个 RMApp 是一个状态机。</p>
+
+<p>然后会调用 this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));</p>
+
+<p>调度器会启动对应的 EventHandle 去处理这个事件，而 对应的 EventHandle 会根据appid 通过 rmAppManager 得到对应的 RMApp，调用对应的状态转化函数就实现了状态转化。</p>
+
+<p>再例如某个container启动 APPMaster，也是调用
+this.rmContext.getDispatcher().getEventHandler().handle
+(new RMAppAttemptRegistrationEvent(applicationAttemptId, request.getHost(), request.getRpcPort(), request.getTrackingUrl()));</p>
+
+<p>然后调度器会启动对应的 EventHandle 去处理这个事件，而 对应的 EventHandle 会根据appid 通过 rmAppManager 得到对应的 RMApp，
+这时候事件类似是 RMAppAttemptEvent，处理逻辑变了，会在另一个状态机进行操作。</p>
+
+<h2 id="4-rmcontainer状态机">4.RMContainer状态机</h2>
+
+<p>上面分析了 两个状态机，实际上还有一个 RMContainer ，这个和上面两个类似吧。</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-05-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/hadoop/">hadoop</a>
+          
+          <a href="/tags/%E6%BA%90%E7%A0%81/">源码</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/hadoop/yarn-nodemanager-1/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">yarn-nodemanager-剖析</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/hadoop/yarn-%E5%9F%BA%E7%A1%80%E5%BA%93/">
+            <span class="next-text nav-default">yarn-基础库</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-05-22 00:00:00 \x2b0000 UTC',
+    title: 'yarn-resourcemanager-1',
+    link: decodeURI(location.href),
+    desc: '参考资料： https:\/\/hortonworks.com\/blog\/apache-hadoop-yarn-resourcemanager\/ 提交应用程序的过程 1. yarnClient.submitApplication(appContext); 新建请求，最终调用： rmClient.submitApplication(request); 实际上会通过RPC调用 ClientRMService.submitApplication(SubmitApplicationRequest request) 得到APPID：ApplicationId applicationId = submissionContext.getApplicationId(); rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user); 放到',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>
