@@ -44,17 +44,6 @@
     </item>
     
     <item>
-      <title>Hadoop基础库 </title>
-      <link>https://dengziming.github.io/categories/hadoop%E5%9F%BA%E7%A1%80%E5%BA%93-/</link>
-      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/categories/hadoop%E5%9F%BA%E7%A1%80%E5%BA%93-/</guid>
-      
-        <description></description>
-      
-    </item>
-    
-    <item>
       <title>Hadoop源码</title>
       <link>https://dengziming.github.io/categories/hadoop%E6%BA%90%E7%A0%81/</link>
       <pubDate>Wed, 23 May 2018 00:00:00 +0000</pubDate>
@@ -66,11 +55,11 @@
     </item>
     
     <item>
-      <title>Hadoop源码 </title>
-      <link>https://dengziming.github.io/categories/hadoop%E6%BA%90%E7%A0%81-/</link>
-      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      <title>Java</title>
+      <link>https://dengziming.github.io/categories/java/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/categories/hadoop%E6%BA%90%E7%A0%81-/</guid>
+      <guid>https://dengziming.github.io/categories/java/</guid>
       
         <description></description>
       
@@ -156,7 +145,7 @@
     <item>
       <title>源码分析</title>
       <link>https://dengziming.github.io/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</link>
-      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      <pubDate>Tue, 03 Jul 2018 00:00:00 +0000</pubDate>
       
       <guid>https://dengziming.github.io/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</guid>
       

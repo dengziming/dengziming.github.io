@@ -75,7 +75,7 @@ If you would like to have a dedicated master node, then change the node.data pro
 
 &lt;h4 id=&#34;4-coordinating-node&#34;&gt;（4）coordinating node&lt;/h4&gt;
 
-&lt;p&gt;注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
+&lt;p&gt;注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而 balance the load.&lt;/p&gt;
 
 &lt;h3 id=&#34;2-storage-model&#34;&gt;2. Storage Model&lt;/h3&gt;
 
@@ -1097,7 +1097,11 @@ mysql建表语句文件里有。&lt;/p&gt;&lt;/li&gt;
       
       <guid>https://dengziming.github.io/post/%E6%95%B0%E6%8D%AE%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/</guid>
       
-        <description>&lt;p&gt;我不太喜欢一直把技术当黑箱使用，需要花时间理解底层原理。参考资料：&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
+        <description>&lt;p&gt;我不太喜欢一直把技术当黑箱使用，需要花时间理解底层原理。参考资料：&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://coding-geek.com/how-databases-work/&#34;&gt;http://coding-geek.com/how-databases-work/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://blog.jobbole.com/100349/&#34;&gt;http://blog.jobbole.com/100349/&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;You can google by yourself “how does a relational database work” to see how few results there are. Moreover, those articles are short.&lt;/p&gt;
 

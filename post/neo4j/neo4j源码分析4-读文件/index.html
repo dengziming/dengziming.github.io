@@ -217,7 +217,7 @@
 
 <p>然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：</p>
 
-<pre><code class="language-jva">new RecordStorageEngine()
+<pre><code class="language-java">new RecordStorageEngine()
 neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
 return new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );

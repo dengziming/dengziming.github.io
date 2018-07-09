@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="4506">
+<meta itemprop="wordCount" content="4492">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 4506 words </span>
+        <span class="more-meta"> 4492 words </span>
         <span class="more-meta"> 9 min read </span>
       </div>
     </header>
@@ -283,7 +283,7 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
         createRelationshipTypeCreator( config, dataSourceManager, idGeneratorFactory ) ) ));
 </code></pre>
 
-<p>这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。</p>
+<p>这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，看名字应该是属性标签和关系等存储相关，先跳过。</p>
 
 <p>然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。</p>
 
@@ -349,9 +349,9 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 }
 </code></pre>
 
-<p>IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。</p>
+<p>IndexingService 的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。</p>
 
-<p>NativeLabelScanStore的init，我也先不跳进去了。</p>
+<p>NativeLabelScanStore 的init，我也先不跳进去了。</p>
 
 <p>再看start：</p>
 

@@ -6,10 +6,146 @@
     <description>Recent content in 源码 on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Wed, 23 May 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 03 Jul 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/%E6%BA%90%E7%A0%81/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>janusgraph主要类分析</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%905-%E4%B8%BB%E8%A6%81%E7%B1%BB/</link>
+      <pubDate>Tue, 03 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%905-%E4%B8%BB%E8%A6%81%E7%B1%BB/</guid>
+      
+        <description></description>
+      
+    </item>
+    
+    <item>
+      <title>resourcemanager</title>
+      <link>https://dengziming.github.io/post/hadoop/hadoopha/</link>
+      <pubDate>Wed, 23 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/hadoopha/</guid>
+      
+        <description>
+
+&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;h1 id=&#34;hadoopha&#34;&gt;HadoopHa&lt;/h1&gt;
+
+&lt;p&gt;hadoop 有两个NameNode，Active NameNode和Standby NameNode，通过 DFSZKFailoverController extends ZKFailoverController 进行切换。
+ZKFailoverController通过HealthMonitor线程能及时检测到NameNode的健康状况，在主NameNode故障时借助Zookeeper实现自动的主备选举和切换。
+DataNode 会同时向主NameNode和备NameNode上报数据块的位置信息，但只接收来自active namenode的读写命令。&lt;/p&gt;
+
+&lt;p&gt;为啥把监控分开?&lt;/p&gt;
+
+&lt;p&gt;显然，我们不能在NN进程内进行心跳等信息同步，最简单的原因，一次FullGC就可以让NN挂起十几分钟，所以，必须要有一个独立的短小精悍的watchdog来专门负责监控。这也是一个松耦合的设计，便于扩展或更改。&lt;/p&gt;
+
+&lt;p&gt;通过隔离和Quorum Journal Manager(QJM)共享存储空间实现HDFS HA&lt;/p&gt;
+
+&lt;h1 id=&#34;dfszkfailovercontroller&#34;&gt;DFSZKFailoverController&lt;/h1&gt;
+
+&lt;p&gt;启动代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;  public static void main(String args[])
+      throws Exception {
+    if (DFSUtil.parseHelpArgument(args, 
+        ZKFailoverController.USAGE, System.out, true)) {
+      System.exit(0);
+    }
+    
+    GenericOptionsParser parser = new GenericOptionsParser(
+        new HdfsConfiguration(), args);
+    DFSZKFailoverController zkfc = DFSZKFailoverController.create(
+        parser.getConfiguration());
+    {
+        NNHAServiceTarget localTarget = new NNHAServiceTarget(
+        localNNConf, nsId, nnId);
+        return new DFSZKFailoverController(localNNConf, localTarget);
+    }
+    
+    System.exit(zkfc.run(parser.getRemainingArgs()));
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;run 的步骤：
+initZK();
+formatZK(force, interactive);
+initRPC();
+initHM();
+startRPC();
+mainLoop();&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;initZK();
+{
+    elector = new ActiveStandbyElector(zkQuorum,
+        zkTimeout, getParentZnode(), zkAcls, zkAuths,
+        new ElectorCallbacks(), maxRetryNum);
+    {
+    	new ElectorCallbacks()
+    	  // 临时节点ActiveStandbyElectorLock，用于标识锁
+    	zkLockFilePath = znodeWorkingDir + &amp;quot;/&amp;quot; + LOCK_FILENAME;
+    	// 永久节点ActiveBreadCrumb，用于存放active信息
+    	zkBreadCrumbPath = znodeWorkingDir + &amp;quot;/&amp;quot; + BREADCRUMB_FILENAME;
+    	this.maxRetryNum = maxRetryNum;
+    	// createConnection for future API calls
+    	// 创建zk连接
+    	createConnection();
+    	{
+    	      // 不幸的是，zk的构造方法连接上zk之后，可能马上触发连接事件。
+  			  // 因此如果构造zk之后注册watcher，可能不会捕获到连接事件。
+  			  // 取而代之的方法是，先构造Watcher，在设置了zk的引用之前，使它阻塞所有的事件
+  			  
+  			  watcher = new WatcherWithClientRef();
+  			  ZooKeeper zk = new ZooKeeper(zkHostPort, zkSessionTimeout, watcher);
+  			  // 在watcher中设置zk的引用
+  			  watcher.setZooKeeperRef(zk);
+  			  // Wait for the asynchronous success/failure. This may throw an exception
+  			  // if we don&#39;t connect within the session timeout.
+  			  watcher.waitForZKConnectionEvent(zkSessionTimeout);
+  			  
+  			  for (ZKAuthInfo auth : zkAuthInfo) {
+  			    zk.addAuthInfo(auth.getScheme(), auth.getAuth());
+  			  }
+  			  return zk;
+    	      }
+    	  }
+    	}
+}
+
+formatZK(force, interactive);
+initRPC();
+{
+    new ZKFCRpcServer(conf, bindAddr, this, getPolicyProvider());
+    {
+          this.zkfc = zkfc;
+  			// 使用protocol buffer序列化
+  			RPC.setProtocolEngine(conf, ZKFCProtocolPB.class,
+  			    ProtobufRpcEngine.class);
+  			ZKFCProtocolServerSideTranslatorPB translator =
+  			    new ZKFCProtocolServerSideTranslatorPB(this);
+  			BlockingService service = ZKFCProtocolService
+  			    .newReflectiveBlockingService(translator);
+  			// 使用hadoop rpc接口得到rpc server
+  			// ZKFCProtocol是rpc协议，service是rpc协议的实现类
+  			// ZKFCProtocolPB是protobuf rpc接口的一个过渡类
+  			this.server = new RPC.Builder(conf).setProtocol(ZKFCProtocolPB.class)
+  			    .setInstance(service).setBindAddress(bindAddr.getHostName())
+  			    .setPort(bindAddr.getPort()).setNumHandlers(HANDLER_COUNT)
+  			    .setVerbose(false).build();
+    }
+}
+initHM();
+startRPC();
+mainLoop();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;WatcherWithClientRef 在构造zk时被注册为默认watcher，主要监听连接或者断开事件。当调用initZk之后，watcher.process会对事件进行处理，连接、断开、过期的状态类型都是EventType.None。&lt;/p&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>yarn-api使用</title>
@@ -279,7 +415,1039 @@ public class UnmanagedAMLauncher {
     </item>
     
     <item>
-      <title>Hadoop基础库-</title>
+      <title>hdfs-client</title>
+      <link>https://dengziming.github.io/post/hadoop/hdfs-client/</link>
+      <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/hadoop/hdfs-client/</guid>
+      
+        <description>
+
+&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;p&gt;hadoop 技术内幕丛书&lt;/p&gt;
+
+&lt;h1 id=&#34;写&#34;&gt;写&lt;/h1&gt;
+
+&lt;h1 id=&#34;创建流&#34;&gt;创建流&lt;/h1&gt;
+
+&lt;p&gt;简单写一个 demo 进行测试，通过打断点方法，另外发现一个问题， 在 dfsClient.namenode.create 打断点调试会报错，可能是因为动态代理卡主了 ：&lt;/p&gt;
+
+&lt;p&gt;注意我们上传的文件 nio-data.txt 内容可以进行控制，例如我们写 600 个 a(97)，转换为 DataOutputStream 后的 byte[] 就是 600个97 ，这样调试就知道是哪个数据，600 a 是因为每个chunk的默认大小是 512&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public static void main(String[] args) throws IOException {
+
+    FileSystem fs = FileSystem.get(new Configuration());
+    
+    Path src = new Path(&amp;quot;ideaspace/learn-jvm/src/main/resources/data/nio-data.txt&amp;quot;); //文件里面是一个 java 代码
+    Path desc = new Path(&amp;quot;/tmp/&amp;quot;);
+    if (fs.exists(desc)){
+            fs.delete(desc,true);
+        }
+
+    fs.copyFromLocalFile(src,desc);
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;经过一系列的调用后进入的第一个关键方法是 ：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;@Override
+  public FSDataOutputStream create(final Path f, final FsPermission permission,
+    final EnumSet&amp;lt;CreateFlag&amp;gt; cflags, final int bufferSize,
+    final short replication, final long blockSize, final Progressable progress,
+    final ChecksumOpt checksumOpt) throws IOException {
+    statistics.incrementWriteOps(1);
+    Path absF = fixRelativePart(f);
+    return new FileSystemLinkResolver&amp;lt;FSDataOutputStream&amp;gt;() {
+      @Override
+      public FSDataOutputStream doCall(final Path p)
+          throws IOException, UnresolvedLinkException {
+        final DFSOutputStream dfsos = dfs.create(getPathName(p), permission,
+                cflags, replication, blockSize, progress, bufferSize,
+                checksumOpt);
+        return dfs.createWrappedOutputStream(dfsos, statistics);
+      }
+      @Override
+      public FSDataOutputStream next(final FileSystem fs, final Path p)
+          throws IOException {
+        return fs.create(p, permission, cflags, bufferSize,
+            replication, blockSize, progress, checksumOpt);
+      }
+    }.resolve(this, absF);
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;1-create&#34;&gt;1.create&lt;/h1&gt;
+
+&lt;p&gt;首先是 create，然后是 dfs.createWrappedOutputStream(out, statistics);&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public DFSOutputStream create(String src, 
+                           FsPermission permission,
+                           EnumSet&amp;lt;CreateFlag&amp;gt; flag, 
+                           boolean createParent,
+                           short replication,
+                           long blockSize,
+                           Progressable progress,
+                           int buffersize,
+                           ChecksumOpt checksumOpt,
+                           InetSocketAddress[] favoredNodes) throws IOException {
+  checkOpen();
+  if (permission == null) {
+    permission = FsPermission.getFileDefault();
+  }
+  FsPermission masked = permission.applyUMask(dfsClientConf.uMask);
+  if(LOG.isDebugEnabled()) {
+    LOG.debug(src + &amp;quot;: masked=&amp;quot; + masked);
+  }
+  String[] favoredNodeStrs = null;
+  if (favoredNodes != null) {
+    favoredNodeStrs = new String[favoredNodes.length];
+    for (int i = 0; i &amp;lt; favoredNodes.length; i++) {
+      favoredNodeStrs[i] = 
+          favoredNodes[i].getHostName() + &amp;quot;:&amp;quot; 
+                       + favoredNodes[i].getPort();
+    }
+  }
+  final DFSOutputStream result = DFSOutputStream.newStreamForCreate(this,
+      src, masked, flag, createParent, replication, blockSize, progress,
+      buffersize, dfsClientConf.createChecksum(checksumOpt),
+      favoredNodeStrs);
+  beginFileLease(result.getFileId(), result);
+  return result;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;两个方法比较关键：&lt;/p&gt;
+
+&lt;p&gt;DFSOutputStream.newStreamForCreate 和 beginFileLease(result.getFileId(), result)&lt;/p&gt;
+
+&lt;h2 id=&#34;1-newstreamforcreate-方法是第一次创建真正的-流-类是-dfsoutputstream&#34;&gt;1. newStreamForCreate 方法是第一次创建真正的 流，类是 DFSOutputStream&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;static DFSOutputStream newStreamForCreate(DFSClient dfsClient, String src,
+      FsPermission masked, EnumSet&amp;lt;CreateFlag&amp;gt; flag, boolean createParent,
+      short replication, long blockSize, Progressable progress, int buffersize,
+      DataChecksum checksum, String[] favoredNodes) throws IOException {
+    ...
+    while (shouldRetry) {
+      shouldRetry = false;
+      try {
+        stat = dfsClient.namenode.create(src, masked, dfsClient.clientName,
+            new EnumSetWritable&amp;lt;CreateFlag&amp;gt;(flag), createParent, replication,
+            blockSize, SUPPORTED_CRYPTO_VERSIONS);
+        break;
+      } catch (RemoteException re) {...}
+    Preconditions.checkNotNull(stat, &amp;quot;HdfsFileStatus should not be null!&amp;quot;);
+    final DFSOutputStream out = new DFSOutputStream(dfsClient, src, stat,
+        flag, progress, checksum, favoredNodes);
+    out.start();
+    return out;
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;rpc
+这部分没法调试，因为在远程。只能自己观看
+通过 RPC 调用 NameNodeRpcServer.create -&amp;gt; namesystem.startFile -&amp;gt; startFileInt -&amp;gt; startFileInternal ，先跳过，&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;new DFSOutputStream(dfsClient, src, stat,flag, progress, checksum, favoredNodes);&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/** Construct a new output stream for creating a file. */
+  private DFSOutputStream(DFSClient dfsClient, String src, HdfsFileStatus stat,
+      EnumSet&amp;lt;CreateFlag&amp;gt; flag, Progressable progress,
+      DataChecksum checksum, String[] favoredNodes) throws IOException {
+    this(dfsClient, src, progress, stat, checksum);
+    this.shouldSyncBlock = flag.contains(CreateFlag.SYNC_BLOCK);
+
+    computePacketChunkSize(dfsClient.getConf().writePacketSize, bytesPerChecksum);
+
+    Span traceSpan = null;
+    if (Trace.isTracing()) {
+      traceSpan = Trace.startSpan(this.getClass().getSimpleName()).detach();
+    }
+    streamer = new DataStreamer(stat, traceSpan);
+    if (favoredNodes != null &amp;amp;&amp;amp; favoredNodes.length != 0) {
+      streamer.setFavoredNodes(favoredNodes);
+    }
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;新建 DFSOutputStream 中有个重要的线程 DataStreamer，功能后续研究。
+DFSOutputStream 中的成员变量我们可以好好看看，什么是 checksum，chunk，packet。另外它的父类 FSOutputSummer 也很重要。&lt;/p&gt;
+
+&lt;h2 id=&#34;2-beginfilelease-这个可以暂时忽略-后面专门研究-lease&#34;&gt;2. beginFileLease 这个可以暂时忽略，后面专门研究 lease&lt;/h2&gt;
+
+&lt;p&gt;dfs.createWrappedOutputStream(dfsos, statistics) 对上面创建的流就行一个 包装&lt;/p&gt;
+
+&lt;p&gt;返回 return new HdfsDataOutputStream(dfsos, statistics, startPos);&lt;/p&gt;
+
+&lt;p&gt;至此创建流的过程就完成了。我们大概回顾一下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;DistributedFileSystem.create(final Path f, final FsPermission permission,
+final EnumSet&amp;lt;CreateFlag&amp;gt; cflags, final int bufferSize,
+    final short replication, final long blockSize, final Progressable progress,
+    final ChecksumOpt checksumOpt)
+{
+    // 1. 
+    DFSOutputStream dfsos = DfsClient.create(getPathName(p), permission,
+                cflags, replication, blockSize, progress, bufferSize,
+                checksumOpt)
+    {
+        // 1. 
+        DFSOutputStream.newStreamForCreate(this,
+        	src, masked, flag, createParent, replication, blockSize, progress,
+        	buffersize, dfsClientConf.createChecksum(checksumOpt),
+        	favoredNodeStrs);
+        {
+            // 1.
+            stat = dfsClient.namenode.create(src, masked, dfsClient.clientName,
+                new EnumSetWritable&amp;lt;CreateFlag&amp;gt;(flag), createParent, replication,
+                blockSize, SUPPORTED_CRYPTO_VERSIONS);
+            {
+                // RPC
+            }
+            // 2.
+            final DFSOutputStream out = new DFSOutputStream(dfsClient, src, stat,
+            flag, progress, checksum, favoredNodes);
+            {
+                // 
+                class DataStreamer
+                class Patket
+                streamer = new DataStreamer(stat, traceSpan);
+            }
+            
+        }
+        // 2.
+        beginFileLease(result.getFileId(), result);
+    }
+                
+    // 2. 
+    return dfs.createWrappedOutputStream(dfsos, statistics);
+    {
+        return new HdfsDataOutputStream(dfsos, statistics, startPos);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;首先是 DistributedFileSystem 创建，然后调用 DfsClient 的 create ，DfsClient需要创建流和lease，创建流 由 DFSOutputStream 完成，
+DFSOutputStream 需要分别和namenode、datanode通信。DFSOutputStream 内部有 Packet 和 DataStreamer，继承自 FSOutputSummer ，FSOutputSummer 完成了write的真正逻辑&lt;/p&gt;
+
+&lt;h1 id=&#34;2-out-write-buf-0-bytesread&#34;&gt;2. out.write(buf, 0, bytesRead)&lt;/h1&gt;
+
+&lt;p&gt;创建完成后就是写数据，HdfsDataOutputStream 写数据比较复杂，先写到缓存，然后发送。需要做 checksum 检验，然后做成一个 chuck，然后将多个 chuck 合成一个 Packet，然后发送 Packet。&lt;/p&gt;
+
+&lt;p&gt;FSDataOutputStream.out.write(byte[])
+调用过程：
+out.write(bytes) -&amp;gt; FilterOutputStream.write -&amp;gt; DataOutputStream.write -&amp;gt; out.write(byte[], off, len) -&amp;gt; FSOutputSummer.write(byte b[], int off, int len)&lt;/p&gt;
+
+&lt;p&gt;FSOutputSummer.write&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public synchronized void write(byte b[], int off, int len)
+      throws IOException {
+    
+    checkClosed();
+    
+    if (off &amp;lt; 0 || len &amp;lt; 0 || off &amp;gt; b.length - len) {
+      throw new ArrayIndexOutOfBoundsException();
+    }
+    // 循环调用 write ，每次写入 #write1() 长度
+    for (int n=0;n&amp;lt;len;n+=write1(b, off+n, len-n)) {
+    }
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 byte b[] 就是我们的数据流，通过断点我们可以看到是600个97，也就是600个a。&lt;/p&gt;
+
+&lt;p&gt;write1，这里有几个比较核心的内容，如果写入长度比较大，直接写入流，如果写入比较少，先写到 Buffer，到达一定长度再统一进行写到流。这么做是为了减少拷贝&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private int write1(byte b[], int off, int len) throws IOException {
+  
+  // 写入长度大于本地buf的长度时，直接写入本地buf的长度。
+  if(count==0 &amp;amp;&amp;amp; len&amp;gt;=buf.length) {
+    // local buffer is empty and user buffer size &amp;gt;= local buffer size, so
+    // simply checksum the user buffer and send it directly to the underlying
+    // stream
+    final int length = buf.length;
+    writeChecksumChunks(b, off, length);
+    return length;
+  }
+  // 当len小于本地buf的长度时，先写入buf，当buf写满之后，flushBuffer
+  // copy user data to local buffer
+  
+  int bytesToCopy = buf.length-count; // 这个 count 代表以及复制的数据长度，第一次是 0
+  bytesToCopy = (len&amp;lt;bytesToCopy) ? len : bytesToCopy;  // 这时候就是要复制的数据长度，600
+  System.arraycopy(b, off, buf, count, bytesToCopy);
+  count += bytesToCopy;
+  if (count == buf.length) {
+    // local buffer is full
+    flushBuffer();
+  } 
+  return bytesToCopy;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看到，写入数据大的话，直接调用 writeChecksumChunks 将buf长度大小的数据生成 chunksum ，
+（chunksum 是检查数据完整性的，相关知识可以查看计算机网络。）并写入 packet中。如果写入数据比较少，直接放进 buffer，等待buffer比较大，再统一flush&lt;/p&gt;
+
+&lt;p&gt;数据写完了关闭流的时候会再调用一次 fulshBuffer ,会调用 writeChecksumChunks&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private void writeChecksumChunks(byte b[], int off, int len)
+throws IOException {
+  // 计算checksum
+  sum.calculateChunkedSums(b, off, len, checksum, 0);
+  for (int i = 0; i &amp;lt; len; i += sum.getBytesPerChecksum()) {
+    int chunkLen = Math.min(sum.getBytesPerChecksum(), len - i);
+    int ckOffset = i / sum.getBytesPerChecksum() * getChecksumSize();
+    // 一个chunk一个chunk的写入packet
+    writeChunk(b, off + i, chunkLen, checksum, ckOffset, getChecksumSize());
+  }
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;sum.calculateChunkedSums 计算校验值，计算完以后b还是 600个97，off和len分别是 0和600，checksum是一个36位的数组，
+但是只有前八位有值：0 = 111,1 = 50,2 = -90,3 = 31,4 = -99,5 = 97,6 = -69,7 = 102。因为每512位生成4个校验码。现在是600位，需要8个。
+然后写出 chunk，chunk的长度为： 512，所以这里会调用两次 writeChunk。&lt;/p&gt;
+
+&lt;p&gt;writeChunk 先将 chunk 写入 currentPacket 中，当currentPacket写满之后调用 waitAndQueueCurrentPacket，
+将packet放入dataQueue队列，等待DataStreamer线程将packet写入pipeline中，整个block发送完毕之后将发送一个空的packet。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;writeChunk{}
+currentPacket.writeChecksum(checksum, ckoff, cklen);
+currentPacket.writeData(b, offset, len);
+currentPacket.numChunks++;
+bytesCurBlock += len;
+waitAndQueueCurrentPacket()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们把这段代码跑两遍以后，去看看生成的Packet，里面有4个属性：checksumStart = 33,checksumPos = 41,dataStart = 541,dataPos = 1141&lt;/p&gt;
+
+&lt;p&gt;可以看出这几个的意思分别是 check 的开始位置和结束为止，data的开始位置和结束为止，之所以留了 33个位置，是 Packet 的 header。然后还有一个 buffer数组，里面就是按照检查数据和数据。&lt;/p&gt;
+
+&lt;p&gt;这时候 Packet 的结构我们已经一清二楚了。&lt;/p&gt;
+
+&lt;p&gt;相关详细内容可以继续深入查看源码。waitAndQueueCurrentPacket() 可以看具体代码，这时候已经报连接超时异常了。接下来我们调试发送数据到 DataNode。&lt;/p&gt;
+
+&lt;h1 id=&#34;三-dfsoutputstream-datastreamer-发送-packet&#34;&gt;三.DFSOutputStream.DataStreamer 发送 packet&lt;/h1&gt;
+
+&lt;p&gt;上面已经调试到：waitAndQueueCurrentPacket() ,会将 Packet 发送给 DFSOutputStream.DataStreamer&lt;/p&gt;
+
+&lt;p&gt;DFSOutputStream.DataStreamer 是一个线程，里面有个 stage 标识到了哪一步。还有一个 response 用来回复消息。&lt;/p&gt;
+
+&lt;p&gt;DataStreamer 会从 dataQueue 中拿出 packet 发送到 pipeline , 相关代码很长。取出部分：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;synchronized (dataQueue) {
+
+	 // 发送packet，dataQueue为null，则发送一个心跳
+	 if (dataQueue.isEmpty()) {
+	   one = createHeartbeatPacket();
+	 } else {
+	   one = dataQueue.getFirst(); // regular data packet
+	 }
+	}
+	
+        // 建立pipeline
+        setPipeline(nextBlockOutputStream());
+        // 启动ResponseProcessor线程，更新DataStreamer的状态为DATA_STREAMING
+
+// 当前packet是block的最后一个packet，等待接收之前所有packet的ack
+      if (one.lastPacketInBlock) {
+        // wait for all data packets have been successfully acked
+        synchronized (dataQueue) {
+          while (!streamerClosed &amp;amp;&amp;amp; !hasError &amp;amp;&amp;amp; 
+              ackQueue.size() != 0 &amp;amp;&amp;amp; dfsClient.clientRunning) {
+            try {
+              // wait for acks to arrive from datanodes
+              dataQueue.wait(1000);
+            } catch (InterruptedException  e) {
+              DFSClient.LOG.warn(&amp;quot;Caught exception &amp;quot;, e);
+            }
+          }
+        }
+        if (streamerClosed || hasError || !dfsClient.clientRunning) {
+          continue;
+        }
+        stage = BlockConstructionStage.PIPELINE_CLOSE;
+      }
+       
+     
+     // 将 packet 从 dataQueue 移到 ackQueue，准备发送packet
+      synchronized (dataQueue) {
+        // move packet from dataQueue to ackQueue
+        if (!one.isHeartbeatPacket()) {
+          dataQueue.removeFirst();
+          ackQueue.addLast(one);
+          dataQueue.notifyAll();
+        }
+      }
+     // 将packet写入pipeline
+        one.writeTo(blockStream);
+        blockStream.flush();   
+    
+      // 如果当前packet是最后一个，则继续等待此packet的ack，
+      // 然后endBlock
+    if (one.lastPacketInBlock) {
+        // wait for the close packet has been acked
+        synchronized (dataQueue) {
+          while (!streamerClosed &amp;amp;&amp;amp; !hasError &amp;amp;&amp;amp; 
+              ackQueue.size() != 0 &amp;amp;&amp;amp; dfsClient.clientRunning) {
+            dataQueue.wait(1000);// wait for acks to arrive from datanodes
+          }
+        }
+        if (streamerClosed || hasError || !dfsClient.clientRunning) {
+          continue;
+        }
+        endBlock();
+      }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;代码很长也比较杂乱，我们主要看一下 setPipeline(nextBlockOutputStream()); 和 one.writeTo(blockStream);blockStream.flush();  等&lt;/p&gt;
+
+&lt;p&gt;第一步是：one = dataQueue.getFirst();&lt;br /&gt;
+我们看看取到的 Packet 是什么样子：和我们上面发送的一样，buf=[0,0,0(33个0),11,50..(6个检测码),0,0,(很多0)，97,97,97(600个97)，],lastPacketInBlock=false &amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;nextBlockOutputStream 是通过 namenode 得到一个 LocatedBlock ，而 setPipeline 是和 Datanode 的通道。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;nextBlockOutputStream(){
+lb = locateFollowingBlock(startTime,excluded.length &amp;gt; 0 ? excluded : null); 
+-- dfsClient.namenode.addBlock(src, dfsClient.clientName,block, excludedNodes, fileId, favoredNodes);
+
+success = createBlockOutputStream(nodes, storageTypes, 0L, false);
+
+blockStream = out; //给写出流赋值。
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;createBlockOutputStream 对于我们第一次调试来说，关注三个就够了。
+创建连接： /到 datanode 的 socket连接 Socket[addr=/127.0.0.1,port=50010,localport=58006]，
+new Sender(out).writeBlock 建立 block&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;createBlockOutputStream{}
+// 到 datanode 的 socket连接 Socket[addr=/127.0.0.1,port=50010,localport=58006]
+s = createSocketForPipeline(nodes[0], nodes.length, dfsClient);
+long writeTimeout = dfsClient.getDatanodeWriteTimeout(nodes.length);
+
+OutputStream unbufOut = NetUtils.getOutputStream(s, writeTimeout);
+InputStream unbufIn = NetUtils.getInputStream(s);
+IOStreamPair saslStreams = dfsClient.saslClient.socketSend(s,
+  unbufOut, unbufIn, dfsClient, accessToken, nodes[0]);
+unbufOut = saslStreams.out;
+unbufIn = saslStreams.in;
+out = new DataOutputStream(new BufferedOutputStream(unbufOut,
+    HdfsConstants.SMALL_BUFFER_SIZE));
+    
+-- 发送写block请求，
+new Sender(out).writeBlock(blockCopy, nodeStorageTypes[0], accessToken,
+dfsClient.clientName, nodes, nodeStorageTypes, null, bcs, 
+nodes.length, block.getNumBytes(), bytesSent, newGS,
+checksum4WriteBlock, cachingStrategy.get(), isLazyPersistFile);
+
+blockStream = out; //给写出流赋值。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;回到 run 方法，通过 initDataStreaming ，然后调用 one.writeTo(blockStream); 这个 blockStream 上面已经赋值了，就是通过 socket 建立 的连接。这里只是将packet写入pipeline中的第一个dn。&lt;/p&gt;
+
+&lt;p&gt;看看 Packet 的 writeTo 方法，Packet 的成员变量上面写了，是检查点位置，检查长度，数据位置，数据长度，等。&lt;/p&gt;
+
+&lt;p&gt;主要步骤：
+- 计算 pktLen 头长度+检查长度+数据长度
+- 新建Header，包括 packet 是否是最后一个packet的信息等。
+- 判断 checksumPos != dataStart 不等于需要删掉中间的空缺数据，&lt;code&gt;System.arraycopy(buf, checksumStart, buf, dataStart - checksumLen , checksumLen)&lt;/code&gt;
+这个是因为 packet 容量是好几万，我们假设 10000，能容纳的 chunk 是 20个左右，所以应该有 20 * 4 = 80 的检查数据。所以前80个位置留给了检查位置，数据从81开始写。
+但是如果我们没写满一个 Packet，检查数据就不需要80个，数据也是从 81开始写，这就空缺了一些数据。
+- 将 header.getBytes() [0 = 0,1 = 0,2 = 2,3 = 100,4 = 0,5 = 25 &amp;hellip;.(一共33个值)] 的值放到 Packet 的头部。
+- stm.write(buf, headerStart, header.getSerializedSize() + checksumLen + dataLen);&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;void writeTo(DataOutputStream stm) throws IOException {
+  
+  final int dataLen = dataPos - dataStart;  1411 - 541
+  final int checksumLen = checksumPos - checksumStart; 
+  final int pktLen = HdfsConstants.BYTES_IN_INTEGER + dataLen + checksumLen;
+  PacketHeader header = new PacketHeader(
+    pktLen, offsetInBlock, seqno, lastPacketInBlock, dataLen, syncBlock);
+    
+  // checksumPos不等于dataStart时，将checksum移动到data前面，
+  // 紧挨着data，为header空出足够的空间
+  if (checksumPos != dataStart) {
+    // Move the checksum to cover the gap. This can happen for the last
+    // packet or during an hflush/hsync call.
+    System.arraycopy(buf, checksumStart, buf, 
+                     dataStart - checksumLen , checksumLen); 
+    checksumPos = dataStart;
+    checksumStart = checksumPos - checksumLen;
+  }
+  
+  final int headerStart = checksumStart - header.getSerializedSize();
+  assert checksumStart + 1 &amp;gt;= header.getSerializedSize();
+  assert checksumPos == dataStart;
+  assert headerStart &amp;gt;= 0;
+  assert headerStart + header.getSerializedSize() == checksumStart;
+  
+  // Copy the header data into the buffer immediately preceding the checksum
+  // data.
+  
+  // 将header复制到packet的buf中，组成一个完整的packet
+  System.arraycopy(header.getBytes(), 0, buf, headerStart,
+      header.getSerializedSize());
+  
+  // corrupt the data for testing.
+  if (DFSClientFaultInjector.get().corruptPacket()) {
+    buf[headerStart+header.getSerializedSize() + checksumLen + dataLen-1] ^= 0xff;
+  }
+  // Write the now contiguous full packet to the output stream.
+  // 将buf写入输出流中
+  stm.write(buf, headerStart, header.getSerializedSize() + checksumLen + dataLen);
+  
+  // undo corruption.
+  if (DFSClientFaultInjector.get().uncorruptPacket()) {
+    buf[headerStart+header.getSerializedSize() + checksumLen + dataLen-1] ^= 0xff;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们可以看一下 最后的 stm.write， 通过跟踪我们发现最终调用： channel.write(buf);  是通过 NIO实现的。&lt;/p&gt;
+
+&lt;p&gt;最后我们可以看到打印了错误信息： Exception in thread &amp;ldquo;main&amp;rdquo; java.io.IOException: All datanodes 127.0.0.1:50010 are bad. Aborting&amp;hellip;
+这是因为我们调试时间长，连接已经断了。这个错误是哪一步打印的我们后续可以研究研究。&lt;/p&gt;
+
+&lt;p&gt;其实这里有个疑问，这个 Packet 是最后一个 Packet，但是 它的 lastPacketInBlock=false？，其实这个确实不是最后一个，后面还要发送一个空的 Packet，只有 37个字节的头信息。&lt;/p&gt;
+
+&lt;h1 id=&#34;四-dataxceiver-线程写入-datanode&#34;&gt;四、DataXceiver 线程写入 DataNode&lt;/h1&gt;
+
+&lt;p&gt;注意：&lt;/p&gt;
+
+&lt;p&gt;服务端的调试和客户端调试是反过来的，
+需要先 stop-dfs.sh, 然后 &lt;code&gt;hadoop-daemons.sh start namenode&lt;/code&gt; &lt;code&gt;hadoop-daemons.sh start secondarynamenode&lt;/code&gt;  启动 namenode，然后我们在 IDEA 中运行 datanode
+然后我们通过客户端命令: hadoop fs -copyFromLocal data.txt /tmp/data.txt
+另外多线程调试不太方便，每次只能在一个线程打赏断点，否则会跳来跳去很麻烦，我们就在 DataXCerver 的 writeBlock 方法打上断点&lt;/p&gt;
+
+&lt;p&gt;以上的流程可以看做是client端，client端将数据发送到dn上，由dn负责将packet写入本地磁盘，并向下一个dn发送。
+DataXceiverServer 是在 DataNode 启动的线程，run 方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void run() {
+  Peer peer = null;
+  while (datanode.shouldRun &amp;amp;&amp;amp; !datanode.shutdownForUpgrade) {
+    try {
+      // 接收client的socket请求
+      peer = peerServer.accept();
+     
+     // 一个 Daemon线程
+      new Daemon(datanode.threadGroup,
+          DataXceiver.create(peer, datanode, this))
+          .start();
+    } catch 
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里先循环接受请求，每次接受到一个就新建一个线程，加入线程组中。每个 DataXceiver 线程的 run 方法就是处理请求的：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;dataXceiverServer.addPeer(peer, Thread.currentThread(), this);
+peer.setWriteTimeout(datanode.getDnConf().socketWriteTimeout);
+InputStream input = socketIn;
+try {
+  IOStreamPair saslStreams = datanode.saslServer.receive(peer, socketOut,
+    socketIn, datanode.getXferAddress().getPort(),
+    datanode.getDatanodeId());
+  input = new BufferedInputStream(saslStreams.in,
+    HdfsConstants.SMALL_BUFFER_SIZE);
+  socketOut = saslStreams.out;
+} catch 
+
+super.initialize(new DataInputStream(input));
+
+op = readOp();
+processOp(op);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;processOp():&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;switch(op) {
+    case READ_BLOCK:
+      opReadBlock();
+      break;
+    case WRITE_BLOCK:
+      opWriteBlock(in);
+      break;
+
+    default:
+      throw new IOException(&amp;quot;Unknown op &amp;quot; + op + &amp;quot; in data stream&amp;quot;);
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private void opWriteBlock(DataInputStream in) throws IOException {
+    final OpWriteBlockProto proto = OpWriteBlockProto.parseFrom(vintPrefixed(in));
+    final DatanodeInfo[] targets = PBHelper.convert(proto.getTargetsList());
+    TraceScope traceScope = continueTraceSpan(proto.getHeader(),
+        proto.getClass().getSimpleName());
+    try {
+      writeBlock(PBHelper.convert(proto.getHeader().getBaseHeader().getBlock()),
+          PBHelper.convertStorageType(proto.getStorageType()),
+          PBHelper.convert(proto.getHeader().getBaseHeader().getToken()),
+          proto.getHeader().getClientName(),
+          targets,
+          PBHelper.convertStorageTypes(proto.getTargetStorageTypesList(), targets.length),
+          PBHelper.convert(proto.getSource()),
+          fromProto(proto.getStage()),
+          proto.getPipelineSize(),
+          proto.getMinBytesRcvd(), proto.getMaxBytesRcvd(),
+          proto.getLatestGenerationStamp(),
+          fromProto(proto.getRequestedChecksum()),
+          (proto.hasCachingStrategy() ?
+              getCachingStrategy(proto.getCachingStrategy()) :
+            CachingStrategy.newDefaultStrategy()),
+            (proto.hasAllowLazyPersist() ? proto.getAllowLazyPersist() : false));
+     } finally {
+      if (traceScope != null) traceScope.close();
+     }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个方法有我们的断点，我们会在里面进行调试 writeBlock ，大致步骤为：&lt;/p&gt;
+
+&lt;p&gt;新建 给客户端发确认消息的 replyOut 流，
+新建 给其他DataNode 发消息的 mirror 流
+新建 BlockReceiver  接收数据，接收到 Packet 后进行判断，如果不是最后一个，写到输出流，如果是最后一个或者长度为0，不做处理。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public void writeBlock(final ExtendedBlock block,
+    final StorageType storageType, 
+    final Token&amp;lt;BlockTokenIdentifier&amp;gt; blockToken,
+    final String clientname,
+    final DatanodeInfo[] targets,
+    final StorageType[] targetStorageTypes, 
+    final DatanodeInfo srcDataNode,
+    final BlockConstructionStage stage,
+    final int pipelineSize,
+    final long minBytesRcvd,
+    final long maxBytesRcvd,
+    final long latestGenerationStamp,
+    DataChecksum requestedChecksum,
+    CachingStrategy cachingStrategy,
+    final boolean allowLazyPersist) throws IOException {
+    
+    // 我们简单取一部分代码
+    
+    // 输出流，现在在 DataXCerver 中，输入流就是客户端写，输出流自然即时发送到客户端的
+    final DataOutputStream replyOut = new DataOutputStream(
+        new BufferedOutputStream(
+            getOutputStream(),
+            HdfsConstants.SMALL_BUFFER_SIZE));
+    
+    }
+    
+    // 这里一大堆的 mirrorOut 开头的流都是 数据写到 DataNode 后复制副本用的，由于在本地只有一个副本，所以都是 null 
+    DataOutputStream mirrorOut = null;  // stream to next target
+    DataInputStream mirrorIn = null;    // reply from next target
+    Socket mirrorSock = null;           // socket to next target
+    String mirrorNode = null;           // the name:port of next target
+    String firstBadLink = &amp;quot;&amp;quot;;           // first datanode that failed in connection setup
+    Status mirrorInStatus = SUCCESS;
+    final String storageUuid;
+    
+    // 新建 BlockReceiver， BlockReceiver 的作用可以好好看注释，另外它的构造方法也有很大的信息量，其中有个 in 输入流，
+    // 是在 DataXCerver 的 run 方法中：super.initialize(new DataInputStream(input)); 也就是对输入的 socket 流的二层包装
+    blockReceiver = new BlockReceiver(block, storageType, in,
+    peer.getRemoteAddressString(),
+    peer.getLocalAddressString(),
+    stage, latestGenerationStamp, minBytesRcvd, maxBytesRcvd,
+    clientname, srcDataNode, datanode, requestedChecksum,
+    cachingStrategy, allowLazyPersist)
+    
+    // 然后是一大堆的副本拷贝，我们本地调试线跳过。
+    if (targets.length &amp;gt; 0) {// 跳过}
+    
+      // 给客户端发一个应答消息
+      if (isClient &amp;amp;&amp;amp; !isTransfer) {
+        if (LOG.isDebugEnabled() || mirrorInStatus != SUCCESS) {
+          LOG.info(&amp;quot;Datanode &amp;quot; + targets.length +
+                   &amp;quot; forwarding connect ack to upstream firstbadlink is &amp;quot; +
+                   firstBadLink);
+        }
+        BlockOpResponseProto.newBuilder()
+          .setStatus(mirrorInStatus)
+          .setFirstBadLink(firstBadLink)
+          .build()
+          .writeDelimitedTo(replyOut);
+        replyOut.flush();
+      }
+      
+      // 这里开始写数据，
+    blockReceiver.receiveBlock(mirrorOut, mirrorIn, replyOut,mirrorAddr, null, targets, false);
+    
+    // 后续处理
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们看一下 blockReceiver.receiveBlock&lt;/p&gt;
+
+&lt;p&gt;new PacketResponder
+receivePacket()&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// 如果是来自客户端而且传输，新建回复的线程
+if (isClient &amp;amp;&amp;amp; !isTransfer) {
+        responder = new Daemon(datanode.threadGroup, 
+            new PacketResponder(replyOut, mirrIn, downstreams));
+        responder.start(); // start thread to processes responses
+      }
+
+// 循环写
+while (receivePacket() &amp;gt;= 0) { /* R} 这里就是写所在逻辑了
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;receivePacket 方法：&lt;/p&gt;
+
+&lt;p&gt;packetReceiver.receiveNextPacket(in); 接受一个 Packet&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;receivePacket{
+packetReceiver.receiveNextPacket(in);
+
+PacketHeader header = packetReceiver.getHeader();
+
+// 这里把数据写到 副本上面
+//First write the packet to the mirror:
+    if (mirrorOut != null &amp;amp;&amp;amp; !mirrorError) {
+      try {
+        long begin = Time.monotonicNow();
+        packetReceiver.mirrorPacketTo(mirrorOut);
+        mirrorOut.flush();
+        long duration = Time.monotonicNow() - begin;
+        if (duration &amp;gt; datanodeSlowLogThresholdMs) {
+          LOG.warn(&amp;quot;Slow BlockReceiver write packet to mirror took &amp;quot; + duration
+              + &amp;quot;ms (threshold=&amp;quot; + datanodeSlowLogThresholdMs + &amp;quot;ms)&amp;quot;);
+        }
+      } catch (IOException e) {
+        handleMirrorOutError(e);
+      }
+    }
+    
+    // 得到 数据和 检查数据
+    ByteBuffer dataBuf = packetReceiver.getDataSlice();
+    ByteBuffer checksumBuf = packetReceiver.getChecksumSlice();
+    
+    // 如果是最后一个 packet
+    if (lastPacketInBlock || len == 0) {
+      if(LOG.isDebugEnabled()) {
+        LOG.debug(&amp;quot;Receiving an empty packet or the end of the block &amp;quot; + block);
+      }
+      // sync block if requested
+      if (syncBlock) {
+        flushOrSync(true);
+      }
+    } else {
+        。。。。。
+        out.write(dataBuf.array(), startByteToDisk, numBytesToDisk);
+    }
+    // 这里就行 check 很复杂，部分数据的 check 需要重新计算。
+    checksumOut.write(buf);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的代码太复杂，而且调试的时候稍微时间长一点就出现 连接异常。可以通过配置参数解决。
+然后得到了 dataBuf 和 checksumBuf，如果不是最后一个，我们需要写到 DataNode 的具体数据中。
+到这里整个写的操作就完成。中间的 和客户端心跳应答、失败处理。都没有涉及。简单梳理一下：&lt;/p&gt;
+
+&lt;h1 id=&#34;五-pipelineack-和-packetresponder-信息处理&#34;&gt;五、PipeLineAck 和 PacketResponder 信息处理&lt;/h1&gt;
+
+&lt;p&gt;上面的 one.writeTo(blockStream); 代码是将 Packet 写入到输出流，写出之前有一段代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt; // send the packet
+ synchronized (dataQueue) {
+   // move packet from dataQueue to ackQueue
+   if (!one.isHeartbeatPacket()) {
+     dataQueue.removeFirst();
+     ackQueue.addLast(one);
+     dataQueue.notifyAll();
+   }
+ }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;就是将 Packet 放进 ackQueue 中，很明显这又是一个 消费者生产者。&lt;/p&gt;
+
+&lt;p&gt;新建 DataStreamer 的run中，得到输出流，
+建立 pipeLine 之后，会有 initDataStreaming 操作，还要启一个新的线程 ResponseProcessor 接收packet的ack，这个线程在initDataStreaming中启动，并更新DataStreamer线程的状态为DATA_STREAMING
+ResponseProcessor，在 ResponseProcessor 的run方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;synchronized (dataQueue) {
+  one = ackQueue.getFirst();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;注意每次锁住的都是 dataQueue 对象。
+与他对应的是 BlockReceiver 中的 PacketResponder 。 PacketResponder 的 run 方法比较长，主要是按照 packet 的写入顺序发送 ack。&lt;/p&gt;
+
+&lt;p&gt;由于调试器的问题，这里一直跳不进去，能看到大概逻辑： 当数据节点顺利处理完数据，而且当前节点处在数据节点中间（收到下游DataNode的消息）
+如果 ackQueue 中有数据，获取一个记录，接下来如果当前节点位于数据管道的中间，就在mirror流读取下游的确认，我们在本地调试是没有这一步的。&lt;/p&gt;
+
+&lt;p&gt;如果当前节点位于数据管道的最后， 调用 pkt = waitForAckHead(seqno) 从 ackQueue 取出对应的 pkt ，然后调用 lastPacketInBlock = pkt.lastPacketInBlock;
+然后是  if (lastPacketInBlock) {finalizeBlock(startTime);} ，然后是 sendAckUpstream ，这个就是给客户端发送 ack&lt;/p&gt;
+
+&lt;p&gt;然后 ResponseProcessor 中收到了 ack，进行处理。逻辑比较简单，ack.readFields(blockReplyStream) 读取 ask，从输入流中读取的ack的seqno与ackQueue中取得的seqno不一样则抛出异常&lt;/p&gt;
+
+&lt;p&gt;// 接收到ack后，从ackQueue中移除packet
+      synchronized (dataQueue) {
+        lastAckedSeqno = seqno;
+        ackQueue.removeFirst();
+        dataQueue.notifyAll();
+        one.releaseBuffer(byteArrayManager);
+      }
+。&lt;/p&gt;
+
+&lt;h1 id=&#34;6-namenode-处理&#34;&gt;6.NameNode 处理&lt;/h1&gt;
+
+&lt;p&gt;上面我们说了 NameNode 的处理我们没法调试所以我们跳过了NameNode，原因是客户端通过远程的RPC调用执行，这次我们在IDEA启动NameNode，然后查看NameNode是如何处理写文件的。&lt;/p&gt;
+
+&lt;p&gt;通过 RPC 调用 NameNodeRpcServer.create -&amp;gt; namesystem.startFile -&amp;gt; startFileInt -&amp;gt; startFileInternal&lt;/p&gt;
+
+&lt;p&gt;中间有上锁的步骤，还有 BlockManager 的验证，namesystem 中有一个 dir:FSDirectory 的属性，a pure in-memory data structure ，
+里面又有一个 rootDir：INodeDirectory 代表根节点，rootDir 中有一个 List&lt;INode&gt; children 代表所以的文件 ，还有一个 INodeMap 对象，保存。
+注意还有一个 INodesInPath 类，从他的方法我们看出，它代表一个文件递归得到所有父目录的 InpPath 文件。&lt;/p&gt;
+
+&lt;p&gt;startFileInternal 方法主要步骤如下：
+- 根据 src 得到 INodesInPath，再得到 INodeFile 进行检验。
+- newNode = dir.addFile(src, permissions, replication, blockSize,holder, clientMachine);
+- getEditLog().logOpenFile(src, newNode, overwrite, logRetryEntry); 记录日志
+- leaseManager.addLease(newNode.getFileUnderConstructionFeature()&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt; private BlocksMapUpdateInfo startFileInternal(FSPermissionChecker pc, 
+      String src, PermissionStatus permissions, String holder, 
+      String clientMachine, boolean create, boolean overwrite, 
+      boolean createParent, short replication, long blockSize, 
+      boolean isLazyPersist, CipherSuite suite, CryptoProtocolVersion version,
+      EncryptedKeyVersion edek, boolean logRetryEntry)
+
+//得到文件
+final INodeFile myFile = INodeFile.valueOf(inode, src, true);
+
+try {
+      BlocksMapUpdateInfo toRemoveBlocks = null;
+      if (myFile == null) {
+      // 判断是否创建
+        if (!create) {
+          throw new FileNotFoundException(&amp;quot;Can&#39;t overwrite non-existent &amp;quot; +
+              src + &amp;quot; for client &amp;quot; + clientMachine);
+        }
+      } else {
+      // 是否覆盖
+        if (overwrite) {
+          toRemoveBlocks = new BlocksMapUpdateInfo();
+          List&amp;lt;INode&amp;gt; toRemoveINodes = new ChunkedArrayList&amp;lt;INode&amp;gt;();
+          long ret = dir.delete(src, toRemoveBlocks, toRemoveINodes, now());
+          if (ret &amp;gt;= 0) {
+            incrDeletedFileCount(ret);
+            removePathAndBlocks(src, null, toRemoveINodes, true);
+          }
+        } else {
+        // 存在而且不覆盖的情况？操作 lease
+          // If lease soft limit time is expired, recover the lease
+          recoverLeaseInternal(myFile, src, holder, clientMachine, false);
+          throw new FileAlreadyExistsException(src + &amp;quot; for client &amp;quot; +
+              clientMachine + &amp;quot; already exists&amp;quot;);
+        }
+      }
+
+// Always do an implicit mkdirs for parent directory tree.
+// 父目录
+      Path parent = new Path(src).getParent();
+      if (parent != null &amp;amp;&amp;amp; mkdirsRecursively(parent.toString(),
+              permissions, true, now())) {
+              // 添加到 namespace
+        newNode = dir.addFile(src, permissions, replication, blockSize,
+                              holder, clientMachine);
+      }
+      // 操作 lease
+      leaseManager.addLease(newNode.getFileUnderConstructionFeature()
+          .getClientName(), src);
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;INodesInPath：&lt;/p&gt;
+
+&lt;p&gt;newNode = dir.addFile(src, permissions, replication, blockSize,holder, clientMachine);&lt;/p&gt;
+
+&lt;p&gt;这个 dir 是 FSDirectory 类型的变量，最终调用了 INodeDirectory.addChild(INode) 方法，时间上就是给他的 children add 一个 INode&lt;/p&gt;
+
+&lt;p&gt;和 addlease :&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;synchronized Lease addLease(String holder, String src) {
+    Lease lease = getLease(holder);
+    if (lease == null) {
+      lease = new Lease(holder);
+      leases.put(holder, lease);
+      sortedLeases.add(lease);
+    } else {
+      renewLease(lease);
+    }
+    sortedLeasesByPath.put(src, lease);
+    lease.paths.add(src);
+    return lease;
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;  /** Get a lease and start automatic renewal */
+  private void beginFileLease(final long inodeId, final DFSOutputStream out)
+      throws IOException {
+    getLeaseRenewer().put(inodeId, out, this);
+  }
+  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;调用完 startFileInternal 后，会调用
+stat = dir.getFileInfo(src, false, FSDirectory.isReservedRawName(srcArg), true);
+实际上就是得到一个 HdfsFileStatus 的对象，返回给客户端。NameNode 穿件文件元数据信息的过程大致如此。&lt;/p&gt;
+
+&lt;h1 id=&#34;七-datanode-创建文件&#34;&gt;七、DataNode 创建文件&lt;/h1&gt;
+
+&lt;p&gt;上面讲了在 DataNode 的 DataXCeiver 的写数据过程，但是我们忽略了一些和流式接口无关的部分，包括创建数据块等。&lt;/p&gt;
+
+&lt;p&gt;实际上客户端 DFSClient 发送创建元数据给 NameNode 以后，就要根据 HdfsFileStatus 创建到 DataNode 的输出流。
+在 DataStreamer 的 createBlockOutputStream 方法中创建了 blockStream = out，实际上创建之前有个步骤：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// send the request
+new Sender(out).writeBlock(blockCopy, nodeStorageTypes[0], accessToken,
+    dfsClient.clientName, nodes, nodeStorageTypes, null, bcs, 
+    nodes.length, block.getNumBytes(), bytesSent, newGS,
+    checksum4WriteBlock, cachingStrategy.get(), isLazyPersistFile);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 Sender 和 DataXCerver 一样，继承自 DataTransferProtocol ，我们可以理解为 DataTransferProtocol 是客户端和 DataNode 通信协议，通信实现包含了创建 数据块和发送数据，
+而 Sender 和 DataXCerver 就分别是创建数据块和发送数据的实现，分别是 TCP 和 RPC 通信方式实现。&lt;/p&gt;
+
+&lt;p&gt;new Sender(out).writeBlock 只是简单的将信息以 ProtoBuf 的格式发送出去。实际上就是发送了一个 op ，这个 op 服务端会收到并解析，然后根据 op 的值调用不同方法，最后调用了：&lt;/p&gt;
+
+&lt;p&gt;前面分析过： BlockReceiver.receiveBlock 。里面就有构建输出流写出，但是我们没有相关这个输出流是怎么来的，实际上就是一个文件流。我们看一下 BlockReceiver 的构造方法。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.block = block;
+
+switch (stage) {
+        case PIPELINE_SETUP_CREATE:
+          replicaInfo = datanode.data.createRbw(storageType, block, allowLazyPersist);
+          datanode.notifyNamenodeReceivingBlock(
+              block, replicaInfo.getStorageUuid());
+          break;
+
+
+streams = replicaInfo.createStreams(isCreate, requestedChecksum);
+this.out = streams.getDataOut();
+this.checksumOut = new DataOutputStream(new BufferedOutputStream(
+          streams.getChecksumOut(), HdfsConstants.SMALL_BUFFER_SIZE));
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里有个 switch (stage)，实际上写文件都是一个 PIPELINE ，包括输入某个 client - DataNode - DataNode - DataNode ，由于我是本地模式调试，所以感觉不到这种 PIPELINE 的模式而已。&lt;/p&gt;
+
+&lt;p&gt;datanode.data 是一个 FSDataSetImpl 类型的变量，控制着整个 DataNode 的文件信息。类型结构大致如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;FSDataSetImpl 
+    DataStorage
+        bpStorageMap&amp;lt;bp,BlockPoolSliceStorage&amp;gt;
+    FSVolumnList
+        List&amp;lt;FSVolumnImpl&amp;gt;
+             bpSlices&amp;lt;bp, BlockPoolSlice&amp;gt;
+    volumeMap:ReplicaMap&amp;lt;bp, Map&amp;lt;blockid, ReplicaInfo&amp;gt;&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;FSDataSetImpl 代表整个 DataNode 的文件存储，FSVolumnList 是因为我们配置的 data 存储路径，可以用逗号隔开，一般情况下配置1个路径，FSVolumnList 里面就一个 FsVolumeImpl。
+FsVolumeImpl 里面有分为 多个 blockpool 存储，一个 blockpool 对应一个文件夹而已，这在一开始版本是没有的。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Storage
+
+  List&amp;lt;StorageDirectory&amp;gt; storageDirs
+  public int   layoutVersion;   // layout version of the storage data
+  public int   namespaceID;     // id of the file system
+  public String clusterID;      // id of the cluster
+  public long  cTime;   
+  static class StorageDirectory
+      File root
+
+DataStorage
+   private String datanodeUuid = null;
+   Map&amp;lt;String, BlockPoolSliceStorage&amp;gt; bpStorageMap
+   
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;FsVolumeImpl&lt;/p&gt;
+
+&lt;p&gt;replicaInfo 保存了文件的位置信息，所以可以用来创建输出流。&lt;/p&gt;
+
+&lt;h1 id=&#34;八-租约处理&#34;&gt;八、租约处理&lt;/h1&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;synchronized void put(final long inodeId, final DFSOutputStream out,
+      final DFSClient dfsc) {
+    if (dfsc.isClientRunning()) {
+      if (!isRunning() || isRenewerExpired()) {
+        //start a new deamon with a new id.
+        final int id = ++currentId;
+        daemon = new Daemon(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug(&amp;quot;Lease renewer daemon for &amp;quot; + clientsString()
+                    + &amp;quot; with renew id &amp;quot; + id + &amp;quot; started&amp;quot;);
+              }
+              LeaseRenewer.this.run(id);
+            } catch(InterruptedException e) {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug(LeaseRenewer.this.getClass().getSimpleName()
+                    + &amp;quot; is interrupted.&amp;quot;, e);
+              }
+            } finally {
+              synchronized(LeaseRenewer.this) {
+                Factory.INSTANCE.remove(LeaseRenewer.this);
+              }
+              if (LOG.isDebugEnabled()) {
+                LOG.debug(&amp;quot;Lease renewer daemon for &amp;quot; + clientsString()
+                    + &amp;quot; with renew id &amp;quot; + id + &amp;quot; exited&amp;quot;);
+              }
+            }
+          }
+          
+          @Override
+          public String toString() {
+            return String.valueOf(LeaseRenewer.this);
+          }
+        });
+        daemon.start();
+      }
+      dfsc.putFileBeingWritten(inodeId, out);
+      emptyTime = Long.MAX_VALUE;
+    }
+  }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;最重要的就是  LeaseRenewer.this.run(id)， 在run中调用renew对租约续约。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;for(long lastRenewed = Time.now(); !Thread.interrupted();
+        Thread.sleep(getSleepPeriod())) {
+      final long elapsed = Time.now() - lastRenewed;
+      if (elapsed &amp;gt;= getRenewalTime()) {
+        try {
+          renew();
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(&amp;quot;Lease renewer daemon for &amp;quot; + clientsString()
+                + &amp;quot; with renew id &amp;quot; + id + &amp;quot; executed&amp;quot;);
+          }
+          lastRenewed = Time.now();
+        } catch (SocketTimeoutException ie) {
+          LOG.warn(&amp;quot;Failed to renew lease for &amp;quot; + clientsString() + &amp;quot; for &amp;quot;
+              + (elapsed/1000) + &amp;quot; seconds.  Aborting ...&amp;quot;, ie);
+          synchronized (this) {
+            while (!dfsclients.isEmpty()) {
+              dfsclients.get(0).abort();
+            }
+          }
+          break;
+        } catch (IOException ie) {
+          LOG.warn(&amp;quot;Failed to renew lease for &amp;quot; + clientsString() + &amp;quot; for &amp;quot;
+              + (elapsed/1000) + &amp;quot; seconds.  Will retry shortly ...&amp;quot;, ie);
+        }
+      }
+
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>resourcemanager</title>
       <link>https://dengziming.github.io/post/hadoop/first/</link>
       <pubDate>Tue, 22 May 2018 00:00:00 +0000</pubDate>
       
@@ -729,7 +1897,7 @@ this.rmContext.getDispatcher().getEventHandler().handle
         <description>
 
 &lt;p&gt;#
-研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了
 &lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;一-下载编译&#34;&gt;一、下载编译&lt;/h2&gt;
@@ -881,7 +2049,7 @@ janus的做法是在core中使用反射，所以编译通过了，打包到了�
     </item>
     
     <item>
-      <title>janusgraph源码分析1-下载编译启动</title>
+      <title>janusgraph源码分析2-实例debug</title>
       <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/</link>
       <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
       
@@ -980,7 +2148,7 @@ Opens a {@link JanusGraph} database configured according to the provided configu
 &lt;p&gt;前面的部分先跳过，然后进入：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;1. return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
-    // 构造方法，分为精通代码和构造方法
+    // 构造方法，分为静态代码和构造方法，这部分目前是跳过，但是后续是重点和核心。
     1. 父类：JanusGraphBlueprintsGraph
         static {
         TraversalStrategies graphStrategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class).clone()
@@ -1069,6 +2237,1593 @@ JanusGraphManagement.IndexBuilder nameIndexBuilder = management.buildIndex(&amp;
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;调用：JanusGraphManagement management = graph.openManagement();然后：management.makeEdgeLabel(&amp;ldquo;father&amp;rdquo;).multiplicity(Multiplicity.MANY2ONE).make();&lt;/p&gt;
+
+&lt;p&gt;然后就是查询数据库：&lt;code&gt;Vertex saturn = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).next();&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;二-第2遍调试&#34;&gt;二、第2遍调试&lt;/h2&gt;
+
+&lt;p&gt;这次我们多关注一点细节实现，包括几个部分：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Backend backend = new Backend(configuration);
+backend.~~~
+
+this.idAssigner = config.getIDAssigner(backend);
+this.idManager = idAssigner.getIDManager();
+
+JanusGraphManagement management = graph.openManagement();
+management.makePropertyKey(&amp;quot;name&amp;quot;).dataType(String.class).make();
+management.buildIndex(&amp;quot;name&amp;quot;, Vertex.class).addKey(name);
+
+Vertex tartarus = tx.addVertex(T.label, &amp;quot;location&amp;quot;, &amp;quot;name&amp;quot;, &amp;quot;tartarus&amp;quot;);
+jupiter.addEdge(&amp;quot;father&amp;quot;, saturn);
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;backend&#34;&gt;Backend&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public StandardJanusGraph(GraphDatabaseConfiguration configuration) 
+{
+    this.backend = configuration.getBackend();
+    {
+        Backend backend = new Backend(configuration);
+        {
+            this.configuration = configuration;
+            KeyColumnValueStoreManager manager = getStorageManager(configuration);
+            {
+                反射生成一个 KeyColumnValueStoreManager 实现类
+            }
+            indexes = getIndexes(configuration);
+            {
+                IndexProvider provider = getImplementationClass(config.restrictTo(index), config.get(INDEX_BACKEND,index),
+                    StandardIndexProvider.getAllProviderClasses());
+                -- org.janusgraph.diskstorage.es.ElasticSearchIndex
+                builder.put(index, provider);
+                builder.build();
+            }
+            storeFeatures = storeManager.getFeatures();
+            {
+                ...
+            }
+            ...
+        }
+        
+        backend.initialize(configuration);
+        {
+            KeyColumnValueStore idStore = storeManager.openDatabase(config.get(IDS_STORE_NAME));
+            {
+                openDatabase(&amp;quot;janusgraph_ids&amp;quot;, EMPTY)
+                {
+                    if (!stores.containsKey(name) || stores.get(name).isClosed()) {
+                         OrderedKeyValueStoreAdapter store = wrapKeyValueStore(manager.openDatabase(name), keyLengths);
+                         {
+                             public BerkeleyJEKeyValueStore openDatabase(String name) throws BackendException 
+                             {
+                                 Database db = environment.openDatabase(null, name, dbConfig);
+                                 BerkeleyJEKeyValueStore store = new BerkeleyJEKeyValueStore(name, db, this);
+                                 stores.put(name, store);
+                             }
+                         }
+                         stores.put(name, store);
+                     }
+                     return stores.get(name);
+                }
+            }
+            
+            KeyColumnValueStore edgeStoreRaw = storeManagerLocking.openDatabase(EDGESTORE_NAME);
+            {
+                同上：  
+                openDatabase(&amp;quot;edgestore&amp;quot;, EMPTY)
+            }
+            KeyColumnValueStore indexStoreRaw = storeManagerLocking.openDatabase(INDEXSTORE_NAME);
+            {
+                同上：  
+                openDatabase(&amp;quot;graphindex&amp;quot;, EMPTY)
+            }
+            
+            txLogManager.openLog(SYSTEM_TX_LOG_NAME);
+            managementLogManager.openLog(SYSTEM_MGMT_LOG_NAME);
+            txLogStore = new NoKCVSCache(storeManager.openDatabase(SYSTEM_TX_LOG_NAME));
+            
+            KeyColumnValueStore systemConfigStore = storeManagerLocking.openDatabase(SYSTEM_PROPERTIES_STORE_NAME);
+            {
+                同上：  
+                openDatabase(&amp;quot;system_properties&amp;quot;, EMPTY)
+            }
+            
+        }
+        storeFeatures = backend.getStoreFeatures();
+    }
+    
+    this.idAssigner = config.getIDAssigner(backend);
+    this.idManager = idAssigner.getIDManager();
+    
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;management&#34;&gt;management&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraphManagement management = graph.openManagement();
+{
+   new ManagementSystem(this,backend.getGlobalSystemConfig(),backend.getSystemMgmtLog(), managementLogger, schemaCache);
+   //参数分别是 graph config Log managementLogger schemaCache
+   {
+       this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();
+       {
+           graph.buildTransaction()
+           {
+               new StandardTransactionBuilder(getConfiguration(), this);
+               {
+                   
+               }
+           }
+           disableBatchLoading()
+           {
+               
+           }
+           start()
+           {
+               new ImmutableTxCfg
+               graph.newTransaction(immutable);
+               {
+                    StandardJanusGraphTx tx = new StandardJanusGraphTx(this, configuration);
+                    {
+                        父类： JanusGraphBlueprintsTransaction
+                        太过复杂，跳过
+                    }
+                    tx.setBackendTransaction(openBackendTransaction(tx));
+                    {
+                        openBackendTransaction(tx)
+                        {
+                            IndexSerializer.IndexInfoRetriever retriever = indexSerializer.getIndexInfoRetriever(tx);
+                            return backend.beginTransaction(tx.getConfiguration(), retriever);
+                            {
+                                StoreTransaction tx = storeManagerLocking.beginTransaction(configuration);
+                                CacheTransaction cacheTx = new CacheTransaction(tx, storeManagerLocking, bufferSize, maxWriteTime, configuration.hasEnabledBatchLoading());
+                                final Map&amp;lt;String, IndexTransaction&amp;gt; indexTx = new HashMap&amp;lt;&amp;gt;(indexes.size());
+        						for (Map.Entry&amp;lt;String, IndexProvider&amp;gt; entry : indexes.entrySet()) {
+        						    indexTx.put(entry.getKey(), new IndexTransaction(entry.getValue(), indexKeyRetriever.get(entry.getKey()), configuration, maxWriteTime));
+        						}
+        						return new BackendTransaction(cacheTx, configuration, storeFeatures,
+                					edgeStore, indexStore, txLogStore,
+                					maxReadTime, indexTx, threadPool);
+                            }
+                        }
+                    }
+                    openTransactions.add(tx);
+                    return tx;
+               }
+           }
+           
+       }
+   }
+}
+
+final PropertyKey name = management.makePropertyKey(&amp;quot;name&amp;quot;).dataType(String.class).make();
+{
+    management.makePropertyKey(&amp;quot;name&amp;quot;)
+    {
+        transaction.makePropertyKey(name);
+        {
+            new StandardPropertyKeyMaker(this, name, indexSerializer, attributeHandler);
+            {
+                super
+                {
+                    StandardRelationTypeMaker
+                }
+            }
+        }
+    }
+    dataType(String.class)
+    {
+        dataType = clazz;
+    }
+    make();
+    {
+        new TypeDefinitionMap();
+        tx.makePropertyKey(getName(), definition);
+        {
+            (PropertyKey) makeSchemaVertex(JanusGraphSchemaCategory.PROPERTYKEY, name, definition);
+            {
+                schemaVertex = new PropertyKeyVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.UserPropertyKey, temporaryIds.nextID()), ElementLifeCycle.New);
+                {
+                    //一层层嵌套
+                    
+                }
+            }
+        }
+    }
+}
+
+management.buildIndex(&amp;quot;name&amp;quot;, Vertex.class).addKey(name).unique().buildCompositeIndex();
+{
+    new IndexBuilder(indexName, ElementCategory.getByClazz(elementType));
+    {
+        
+    }
+    addKey(name)
+    {
+        keys.put(key, null);
+    }
+    unique()
+    {
+        unique = true;
+    }
+    buildCompositeIndex()
+    {
+        createCompositeIndex(indexName, elementCategory, unique, constraint, keyArr);
+        {
+            JanusGraphSchemaVertex indexVertex = transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def);
+            {
+                schemaVertex = new JanusGraphSchemaVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.GenericSchemaType,temporaryIds.nextID()), ElementLifeCycle.New);
+                {
+                    //一层层嵌套
+                    
+                }
+            }
+            addSchemaEdge(indexVertex, keys[i], TypeDefinitionCategory.INDEX_FIELD, paras);
+            
+            updateSchemaVertex(indexVertex);
+            JanusGraphIndexWrapper index = new JanusGraphIndexWrapper(indexVertex.asIndexType());
+            updateIndex(index, SchemaAction.REGISTER_INDEX);
+            return index;
+        }
+    }
+    
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;containsvertexlabel&#34;&gt;containsVertexLabel&lt;/h3&gt;
+
+&lt;p&gt;mgmt.getVertexLabels().iterator()
+mgmt.containsVertexLabel(label)
+这两个方法都可以得到 VertexLABEL&lt;/p&gt;
+
+&lt;p&gt;首先看 mgmt.getVertexLabels().iterator(), 这里面首先通过了 guava 的 abstractIterator 转到一个 ResultSetIterator&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public ResultSetIterator(Iterator&amp;lt;R&amp;gt; inner, int limit) {
+    this.iter = inner;
+    this.limit = limit;
+    count = 0;
+    this.current = null;
+    this.next = nextInternal();
+    {
+        QueryProcessor$LimitAdajustingIterator.hasNext()
+        {
+            ....省去一步调用
+            executor.execute(query, backendQuery, executionInfo, profiler);
+            {
+                iter = new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(), getConversionFunction(query.getResultType()),
+                        retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));
+                {
+                    stream = indexSerializer.query(subQuery, tx).map(r -&amp;gt; {
+                        currentIds.add(r);
+                        return r;
+                    });
+                    {
+                        final List&amp;lt;EntryList&amp;gt; rs = sq.execute(tx);
+                        {
+                            EntryList next =tx.indexQuery(ksq.updateLimit(getLimit()-total));
+                            {
+                                return exe.call();
+                                {
+                                    return cacheEnabled?indexStore.getSlice(query, storeTx):
+                                        indexStore.getSliceNoCache(query, storeTx);
+                                    {
+                                        CassandraThriftKeyColumnValueStore.getNamesSlice(ImmutableList.of(key),query,txh);
+                                    }
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        }
+        
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这上面已经是省略很多步骤的调用栈。。。&lt;/p&gt;
+
+&lt;p&gt;mgmt.containsVertexLabel(label) 调用栈稍微少了一点：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraphSchemaVertex getSchemaVertex(String schemaName)
+{
+    id = retriever.retrieveSchemaByName(schemaName);
+    {
+        JanusGraphVertex v = Iterables.getOnlyElement(QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName), null);
+        {
+            new ResultSetIterator()
+            {
+                ....
+                runWithMetrics
+                iter = new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(), getConversionFunction(query.getResultType()),
+                        retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));
+                {
+                    类似上面
+                }
+            }
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;makevertexlabel&#34;&gt;makeVertexLabel&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt.makeVertexLabel(vType.toString()).make();
+{
+    StandardVertexLabelMaker.make
+    return (VertexLabelVertex)tx.makeSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL,name,def);
+    {
+        
+        public final JanusGraphSchemaVertex makeSchemaVertex(JanusGraphSchemaCategory schemaCategory, String name, TypeDefinitionMap definition) 
+        {
+            1. new VertexLabelVertex
+            schemaVertex = new VertexLabelVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.GenericSchemaType,temporaryIds.nextID()), ElementLifeCycle.New);
+            2. graph.assignID(schemaVertex, BaseVertexLabel.DEFAULT_VERTEXLABEL);
+            
+            3. addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));
+            
+            4. updateSchemaVertex(schemaVertex);
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;assignID应该是 生产者消费者模式。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;IDBlock idBlock = idAuthority.getIDBlock(partition, idNamespace, renewTimeout);
+{
+    long nextStart = getCurrentID(partitionKey);
+    {
+        ......
+        return idStore.getSlice(new KeySliceQuery(partitionKey, LOWER_SLICE, UPPER_SLICE).setLimit(5), txh);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;containspropertykey&#34;&gt;containsPropertyKey&lt;/h3&gt;
+
+&lt;h3 id=&#34;makepropertykey&#34;&gt;makePropertyKey&lt;/h3&gt;
+
+&lt;h3 id=&#34;containsedgelabel&#34;&gt;containsEdgeLabel&lt;/h3&gt;
+
+&lt;h3 id=&#34;makeedgelabel&#34;&gt;makeEdgeLabel&lt;/h3&gt;
+
+&lt;p&gt;基本上和上面类似，接下来深入分析一下这些调用栈涉及到的类。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析3-调用栈</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-%E8%B0%83%E7%94%A8%E6%A0%88/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-%E8%B0%83%E7%94%A8%E6%A0%88/</guid>
+      
+        <description>
+
+&lt;p&gt;我们可以在比较关键的地方大断点，然后分析整个调用栈，进行进一步分析。哪里是关键点是需要一定经验判断的。&lt;/p&gt;
+
+&lt;p&gt;例如我们基于 hadoop spark 等框架的时候，我们写的代码就是关键的，打断点可以看到合适调用，怎么被调用。
+我们关心怎么写数据，可以在和底层数据交互的地方打断点。总之我们关心谁就在哪里打断点。&lt;/p&gt;
+
+&lt;p&gt;记住：打断点的地方基本上是最终的调用点。&lt;/p&gt;
+
+&lt;h2 id=&#34;整体调试找关键&#34;&gt;整体调试找关键&lt;/h2&gt;
+
+&lt;p&gt;首先是存储类，我们使用本地文件存储，存储使用类是：&lt;code&gt;com.sleepycat.je.Database&lt;/code&gt; 这个类具体功能是啥可以具体研究。我们发现它有 get delete put 等方法，我们可以打上断点。然后查看调用栈。&lt;/p&gt;
+
+&lt;p&gt;得到 普通 的调用信息：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;main@1&amp;quot; prio=5 tid=0x1 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at com.sleepycat.je.Database.put(Database.java:1574)
+	  at com.sleepycat.je.Database.put(Database.java:1627)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:195)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:184)
+	  at org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreAdapter.mutate(OrderedKeyValueStoreAdapter.java:99)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration$2.call(KCVSConfiguration.java:154)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration$2.call(KCVSConfiguration.java:149)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:147)
+	  at org.janusgraph.diskstorage.util.BackendOperation$1.call(BackendOperation.java:161)
+	  at org.janusgraph.diskstorage.util.BackendOperation.executeDirect(BackendOperation.java:68)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:54)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:158)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration.set(KCVSConfiguration.java:149)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration.set(KCVSConfiguration.java:126)
+	  at org.janusgraph.diskstorage.configuration.ModifiableConfiguration.set(ModifiableConfiguration.java:40)
+	  at org.janusgraph.diskstorage.configuration.ModifiableConfiguration.setAll(ModifiableConfiguration.java:47)
+	  at org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.&amp;lt;init&amp;gt;(GraphDatabaseConfiguration.java:1266)
+	  at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:160)
+	  at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:131)
+	  at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:78)
+	  at org.janusgraph.test.dengziming.FirstTest.main(FirstTest.java:37)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;从下往上可以看出，顺序：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;new GraphDatabaseConfiguration
+ModifiableConfiguration.setAll(getGlobalSubset(localBasicConfiguration.getAll())); 
+KCVSConfiguration.set(key,value,null,false);
+BackendOperation.execute(new BackendOperation.Transactional&amp;lt;Boolean&amp;gt;() {@Override public Boolean call}
+然后调用 上面new 的 BackendOperation.Transactional 的 call 方法
+然后是 store.mutate
+status = db.put(tx, key.as(ENTRY_FACTORY), value.as(ENTRY_FACTORY));
+put(txn, key, data, Put.OVERWRITE, null);
+result = cursor.putInternal(key, data, putType, options);
+最终调用的是 cursor.putNotify 插入数据。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 put 会多次调用，config 会设置 &amp;ldquo;startup-time&amp;rdquo; 等属性，都是通过这个put方法实现。&lt;/p&gt;
+
+&lt;p&gt;第二次用到这个方法是 创建 VertexLabel 的时候会分配 id， 这时候我们可以看一下更详细的调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;JanusGraphID(0)(4)[0]@5358&amp;quot; prio=5 tid=0x24 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at com.sleepycat.je.dbi.CursorImpl.insertRecordInternal(CursorImpl.java:1364)
+	  at com.sleepycat.je.dbi.CursorImpl.insertOrUpdateRecord(CursorImpl.java:1221)
+	  at com.sleepycat.je.Cursor.putNoNotify(Cursor.java:2962)
+	  at com.sleepycat.je.Cursor.putNotify(Cursor.java:2800)
+	  at com.sleepycat.je.Cursor.putNoDups(Cursor.java:2647)
+	  at com.sleepycat.je.Cursor.putInternal(Cursor.java:2478)
+	  - locked &amp;lt;0x1536&amp;gt; (a com.sleepycat.je.Transaction)
+	  at com.sleepycat.je.Cursor.putInternal(Cursor.java:830)
+	  at com.sleepycat.je.Database.put(Database.java:1574)
+	  at com.sleepycat.je.Database.put(Database.java:1627)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:195)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:184)
+	  at org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreAdapter.mutate(OrderedKeyValueStoreAdapter.java:99)
+	  at org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority.lambda$getIDBlock$1(ConsistentKeyIDAuthority.java:261)
+	  at org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority$$Lambda$71.1795053717.call(Unknown Source:-1)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:147)
+	  at org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority.getIDBlock(ConsistentKeyIDAuthority.java:260)
+	  - locked &amp;lt;0x14f8&amp;gt; (a org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority)
+	  at org.janusgraph.graphdb.database.idassigner.StandardIDPool$IDBlockGetter.call(StandardIDPool.java:288)
+	  at org.janusgraph.graphdb.database.idassigner.StandardIDPool$IDBlockGetter.call(StandardIDPool.java:255)
+	  ...
+	  at java.lang.Thread.run(Thread.java:745)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;上面的调用栈没有显示这么多，实际上我们也没必要关心 &lt;code&gt;com.sleepycat.je.Database.put(Database.java:1627)&lt;/code&gt; 之后的东西，
+因为这些东西都是 数据库的写 API，而生产环境我们会使用 hbase和cassandra ，所以每次只要 debug 到 KeyColumnValueStore 的 相应方法即可，再 debug 就是数据库的方法。&lt;/p&gt;
+
+&lt;p&gt;到这里我们明白，增删改查都是 通过 KeyColumnValueStore 类完成。接下来我们直接在 BerkeleyJEKeyValueStore 的 增删改查方法 打断点就行。&lt;/p&gt;
+
+&lt;h3 id=&#34;management-commit&#34;&gt;management.commit();&lt;/h3&gt;
+
+&lt;p&gt;management 是用来操作 schema 的类，我们可以猜测 schema 也是以系统属性的方式存在数据库中。通过打断点发现，前面的操作都没有触发 BerkeleyJEKeyValueStore 的insert ，直到 commit，
+先取出调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;main@1&amp;quot; prio=5 tid=0x1 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:195)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:184)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEStoreManager.mutateMany(BerkeleyJEStoreManager.java:208)
+	  at org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreManagerAdapter.mutateMany(OrderedKeyValueStoreManagerAdapter.java:125)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction$1.call(CacheTransaction.java:94)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction$1.call(CacheTransaction.java:91)
+	  at org.janusgraph.diskstorage.util.BackendOperation.executeDirect(BackendOperation.java:68)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:54)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction.persist(CacheTransaction.java:91)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction.flushInternal(CacheTransaction.java:139)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction.commit(CacheTransaction.java:196)
+	  at org.janusgraph.diskstorage.BackendTransaction.commitStorage(BackendTransaction.java:134)
+	  at org.janusgraph.graphdb.database.StandardJanusGraph.commit(StandardJanusGraph.java:733)
+	  at org.janusgraph.graphdb.transaction.StandardJanusGraphTx.commit(StandardJanusGraphTx.java:1372)
+	  - locked &amp;lt;0x113a&amp;gt; (a org.janusgraph.graphdb.transaction.StandardJanusGraphTx)
+	  at org.janusgraph.graphdb.database.management.ManagementSystem.commit(ManagementSystem.java:239)
+	  - locked &amp;lt;0x102b&amp;gt; (a org.janusgraph.graphdb.database.management.ManagementSystem)
+	  at org.janusgraph.example.GraphOfTheGodsFactory.load(GraphOfTheGodsFactory.java:111)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里面好像还有锁，这个先不讨论。&lt;/p&gt;
+
+&lt;p&gt;主要的几个调用：&lt;/p&gt;
+
+&lt;p&gt;StandardJanusGraphTx.commit()&lt;/p&gt;
+
+&lt;p&gt;StandardJanusGraph.commit(addedRelations.getAll(), deletedRelations.values(), this); &amp;ndash; 这个 commit 的逻辑挺复杂，需要仔细查看。&lt;/p&gt;
+
+&lt;p&gt;BackendTransaction.commitStorage();&lt;/p&gt;
+
+&lt;p&gt;CacheTransaction.commit()&lt;/p&gt;
+
+&lt;p&gt;OrderedKeyValueStoreManagerAdapter.mutateMany&lt;/p&gt;
+
+&lt;p&gt;BerkeleyJEStoreManager.mutateMany(subMutations, tx);&lt;/p&gt;
+
+&lt;p&gt;BerkeleyJEKeyValueStore.insert();&lt;/p&gt;
+
+&lt;p&gt;然后接下来就是一个个分析这几个类每一个的属性和方法。&lt;/p&gt;
+
+&lt;p&gt;首先看一下类的继承结构&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;SchemaInspector	
+	StandardJanusGraphTx (org.janusgraph.graphdb.transaction)
+	SchemaManager (org.janusgraph.core.schema)
+	    Transaction (org.janusgraph.core)
+	        JanusGraphTransaction (org.janusgraph.core)
+	            JanusGraphBlueprintsTransaction (org.janusgraph.graphdb.tinkerpop)
+	                StandardJanusGraphTx (org.janusgraph.graphdb.transaction)
+	        JanusGraph (org.janusgraph.core)
+	            JanusGraphBlueprintsGraph (org.janusgraph.graphdb.tinkerpop)
+	                StandardJanusGraph (org.janusgraph.graphdb.database)
+	    JanusGraphManagement (org.janusgraph.core.schema)
+	        ManagementSystem (org.janusgraph.graphdb.database.management)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;SchemaInspector 接口定义了检查 schema 的一些方法，
+例如：containsRelationType getRelationType containsPropertyKey getOrCreatePropertyKey getEdgeLabel getOrCreateVertexLabel
+这些方法有四类，分别是是 RelationType 相关的，PropertyKey 相关，EdgeLabel 相关，VertexLabel 相关。这四个代表啥大家应该都清楚了。&lt;/p&gt;
+
+&lt;p&gt;SchemaManager 接口 在 SchemaInspector 的基础上添加了 6 个方法 ：makePropertyKey makeEdgeLabel makeVertexLabel addProperties addProperties addConnection 。
+其实前三个返回的是 Maker，后面三个返回的就是 Label。这六个方法左右主要是给 schema 添加更多信息，例如添加 properties。&lt;/p&gt;
+
+&lt;p&gt;Transaction 继承自 SchemaManager 和 Graph ，定义了 addVertex 和 query 等操作。很奇怪为什么只有 addVertex 没有 addEdge 和 addProperty 的操作。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphManagement 继承自 SchemaManager 和 JanusGraphConfiguration ，定义了 buildEdgeIndex buildPropertyIndex commit 等操作
+大部分都和 index 相关，例如构建查询更新。还有 getRelationTypes getVertexLabels 两个方法。&lt;/p&gt;
+
+&lt;p&gt;ManagementSystem 继承自 JanusGraphManagement ，通过代理 StandardJanusGraphTx ，实现了 getGraphIndex commit 等操作。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphTransaction 继承自 Transaction ，定义了 addVertex getVertex commit rollback 等，和 Transaction 不同的是他的这些方法操作的都是 id，而后者操作的是 用户传入的 String&lt;/p&gt;
+
+&lt;p&gt;JanusGraphBlueprintsTransaction 继承自 JanusGraphTransaction ，目前看到的就是简单封装一下抽象方法，同时实现了 addVertex 方法。&lt;/p&gt;
+
+&lt;p&gt;StandardJanusGraphTx 继承自 JanusGraphBlueprintsTransaction ，实现了抽象的方法。&lt;/p&gt;
+
+&lt;p&gt;JanusGraph 继承自 Transaction， 定义了 buildTransaction openManagement close 等方法。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphBlueprintsGraph 继承自 JanusGraph ，通过 ThreadLocal 实现线程隔离。
+StandardJanusGraph 继承自 JanusGraphBlueprintsGraph 就是我们使用的 Graph 。&lt;/p&gt;
+
+&lt;p&gt;所以了解janus比较重要的是 StandardJanusGraphTx ，了解多线程的 JanusGraphBlueprintsGraph。&lt;/p&gt;
+
+&lt;p&gt;从继承结构大概可以看出所有的操作分为数据操作和 schema 操作，而分别由 JanusGraph 和 JanusGraphManagement 完成，实际上都是代理或者适配装饰了 StandardJanusGraphTx。StandardJanusGraphTx 内容很多。&lt;/p&gt;
+
+&lt;h3 id=&#34;standardjanusgraph&#34;&gt;StandardJanusGraph&lt;/h3&gt;
+
+&lt;p&gt;上面我们已经看出了实际上最重要的就是  StandardJanusGraphTx 的实现逻辑，我们就以他为入口，而不是 main 方法。它的构造方法里面需要用到 StandardJanusGraph ，我们先大概了解一下 。&lt;/p&gt;
+
+&lt;h4 id=&#34;我们先看一下它的属性&#34;&gt;我们先看一下它的属性：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;log
+config
+backend
+idManager
+idAssigner
+times
+indexSerializer
+edgeSerializer
+serializer
+vertexExistenceQuery
+queryCache
+schemaCache
+managementLogger
+shutdownHook
+isOpen
+txCounter
+openTransactions
+name
+typeCacheRetrieval
+SCHEMA_FILTER
+NO_SCHEMA_FILTER
+NO_FILTER
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;GraphDatabaseConfiguration config 是图的配置，由于配置也是保存在数据库，所以也是需要访问数据库的。&lt;/p&gt;
+
+&lt;p&gt;Backend backend 是在 config.getBackend 中初始化的，Backend 的构造方法很复杂，主要创建出了 StoreManager indexes txLogManager 等管理存储很重要的属性。&lt;/p&gt;
+
+&lt;p&gt;idManager 和 idAssigner 都是和 id 相关的。 所属类为 IDManager ，VertexIDAssigner，有比较复杂的id分配算法。&lt;/p&gt;
+
+&lt;p&gt;IndexSerializer 和 EdgeSerializer 、Serializer 用于序列化，Serializer 在 config 中初始化，其他两个都是基于 Serializer 的封装。&lt;/p&gt;
+
+&lt;p&gt;vertexExistenceQuery:SliceQuery queryCache:RelationQueryCache schemaCache:SchemaCache 都是 cache 相关。&lt;/p&gt;
+
+&lt;p&gt;managementLogger 是 用来记录操作日志的。&lt;/p&gt;
+
+&lt;p&gt;typeCacheRetrieval ，看到 Retrieval 就知道是获取某些属性用的，他通过 &lt;code&gt;QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName)&lt;/code&gt; 获得 JanusGraphVertex。&lt;/p&gt;
+
+&lt;h4 id=&#34;然后再看方法&#34;&gt;然后再看方法&lt;/h4&gt;
+
+&lt;p&gt;除了 getset 以外，主要是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;isOpen
+isClosed
+close
+closeInternal
+prepareCommit
+commit
+openManagement
+newTransaction
+buildTransaction
+newThreadBoundTransaction
+newTransaction
+openBackendTransaction
+closeTransaction
+getVertexIDs
+edgeQuery
+edgeMultiQuery
+assignID
+assignID
+acquireLock
+acquireLock
+getTTL
+getTTL
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;和 transaction 有关的打开关闭提交等，查询边和顶点，分配id，获得锁。这里的 edgeQuery 并不是查询边，而是查询 edgestore 这个表格，这个表格存放了所有的数据。
+细心分析发现，这些方法主要都是进行查询操作，得到查询结果 List&lt;EntryList&gt;，并没有进行数据增删改查的操作 API。&lt;/p&gt;
+
+&lt;h3 id=&#34;managementsystem&#34;&gt;ManagementSystem&lt;/h3&gt;
+
+&lt;p&gt;StandardJanusGraph 用来操作数据，而 ManagementSystem 主要是管理 schema。&lt;/p&gt;
+
+&lt;h4 id=&#34;属性&#34;&gt;属性：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;LOGGER
+CURRENT_INSTANCE_SUFFIX
+graph
+sysLog
+managementLogger
+transactionalConfig
+modifyConfig
+userConfig
+schemaCache
+transaction
+updatedTypes
+evictGraphFromCache
+updatedTypeTriggers
+txStartTime
+graphShutdownRequired
+isOpen
+configVerifier
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;graph 和 managementLogger 就是上面的 StandardJanusGraph 和 managementLogger。sysLog 也是和日志有关。&lt;/p&gt;
+
+&lt;p&gt;TransactionalConfiguration 是事务的配置，实际上他应该是记录了变化，能够判断是否有改变，从而进行 commit 和 rollback&lt;/p&gt;
+
+&lt;p&gt;SchemaCache 就是 StandardJanusGraph 的 SchemaCache。&lt;/p&gt;
+
+&lt;p&gt;transaction 是 StandardJanusGraphTx。&lt;/p&gt;
+
+&lt;p&gt;updatedTypes 应该也是记录更新&lt;/p&gt;
+
+&lt;p&gt;其他的暂时还不太懂。&lt;/p&gt;
+
+&lt;h4 id=&#34;方法&#34;&gt;方法：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;IndexBuilder
+GraphCacheEvictionCompleteTrigger
+EmptyIndexJobFuture
+UpdateStatusTrigger
+IndexJobStatus
+IndexIdentifier
+ManagementSystem
+
+getOpenInstancesInternal
+getOpenInstances
+forceCloseInstance
+ensureOpen
+commit
+rollback
+isOpen
+close
+getWrappedTx
+addSchemaEdge
+getSchemaElement
+buildEdgeIndex
+buildEdgeIndex
+buildPropertyIndex
+buildPropertyIndex
+buildRelationTypeIndex
+composeRelationTypeIndexName
+containsRelationIndex
+getRelationIndex
+getRelationIndexes
+getGraphIndexDirect
+containsGraphIndex
+getGraphIndex
+getGraphIndexes
+awaitGraphIndexStatus
+awaitRelationIndexStatus
+checkIndexName
+createMixedIndex
+addIndexKey
+createCompositeIndex
+buildIndex
+updateIndex
+evictGraphFromCache
+setUpdateTrigger
+setStatus
+setStatusVertex
+setStatusEdges
+getIndexJobStatus
+changeName
+updateConnectionEdgeConstraints
+getSchemaVertex
+updateSchemaVertex
+getConsistency
+setConsistency
+getTTL
+setTTL
+setTypeModifier
+containsRelationType
+getRelationType
+containsPropertyKey
+getPropertyKey
+containsEdgeLabel
+getOrCreateEdgeLabel
+getOrCreatePropertyKey
+getEdgeLabel
+makePropertyKey
+makeEdgeLabel
+getRelationTypes
+containsVertexLabel
+getVertexLabel
+getOrCreateVertexLabel
+makeVertexLabel
+addProperties
+addProperties
+addConnection
+getVertexLabels
+get
+set
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;强制关闭、操作事务、添加顶点边Label属性索引。&lt;/p&gt;
+
+&lt;p&gt;索引都是  buildRelationTypeIndex 方法，说明 RelationType(PropertyKey 和 EdgeLabel)才有索引，分别是 graphIndex 和 vertexIncdicentIndex ，VertexLabel 没有索引。
+而 getVertexLabels 等带s的方法 是 调用 QueryUtil.getVertices ，说明得到所有的需要查询数据库。&lt;/p&gt;
+
+&lt;p&gt;很多方法都是直接调用 StandardJanusGraphTx 的 对应方法。但是 build Index 并没有使用到 StandardJanusGraphTx。说明 index 并不是马上就插入数据库？或者因为 Index 建完以后还要等待？？&lt;/p&gt;
+
+&lt;h3 id=&#34;standardjanusgraphtx&#34;&gt;StandardJanusGraphTx&lt;/h3&gt;
+
+&lt;p&gt;上面大致了解了  StandardJanusGraph 和 ManagementSystem ，StandardJanusGraphTx 内部才是最重要的，&lt;/p&gt;
+
+&lt;h4 id=&#34;属性-1&#34;&gt;属性：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;log
+EMPTY_DELETED_RELATIONS
+UNINITIALIZED_LOCKS
+LOCK_TIMEOUT
+MIN_VERTEX_CACHE_SIZE
+graph
+config
+idManager
+idInspector
+attributeHandler
+txHandle
+edgeSerializer
+indexSerializer
+vertexCache
+addedRelations
+deletedRelations
+indexCache
+newVertexIndexEntries
+uniqueLocks
+newTypeCache
+temporaryIds
+times
+isOpen
+existingVertexRetriever
+externalVertexRetriever
+internalVertexRetriever
+edgeProcessor
+edgeProcessorImpl
+elementProcessor
+elementProcessorImpl
+vertexIDConversionFct
+edgeIDConversionFct
+propertyIDConversionFct
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;前面的属性都是在 graph 获得的&lt;/p&gt;
+
+&lt;p&gt;vertexCache = new GuavaVertexCache(effectiveVertexCacheSize,concurrencyLevel,config.getDirtyVertexSize()); 是缓存 vertex 的。&lt;/p&gt;
+
+&lt;p&gt;addedRelations = new ConcurrentBufferAddedRelations(); 是缓存 Relation 的。&lt;/p&gt;
+
+&lt;p&gt;deletedRelations 同上&lt;/p&gt;
+
+&lt;p&gt;indexCache 缓存 index ， 类似 vertexCache ，需要传入一个  retrival&lt;/p&gt;
+
+&lt;p&gt;existingVertexRetriever externalVertexRetriever internalVertexRetriever 都是给 vertexCache 用来查 vertex 的。&lt;/p&gt;
+
+&lt;p&gt;edgeProcessor 是一个 QueryExecutor。用来查询的。&lt;/p&gt;
+
+&lt;p&gt;elementProcessor 一样是用来查询的。&lt;/p&gt;
+
+&lt;h4 id=&#34;方法-1&#34;&gt;方法&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;StandardJanusGraphTx
+setBackendTransaction
+verifyWriteAccess
+verifyAccess
+verifyOpen
+getNextTx
+getConfiguration
+getGraph
+getTxHandle
+getEdgeSerializer
+getIdInspector
+isPartitionedVertex
+getCanonicalVertex
+getOtherPartitionVertex
+getAllRepresentatives
+containsVertex
+isValidVertexId
+getVertex
+getVertices
+getExistingVertex
+getInternalVertex
+addVertex
+addVertex
+addVertex
+getInternalVertices
+validDataType
+verifyAttribute
+removeRelation
+isRemovedRelation
+getLock
+getLock
+getUniquenessLock
+checkPropertyConstraintForVertexOrCreatePropertyConstraint
+checkPropertyConstraintForEdgeOrCreatePropertyConstraint
+checkConnectionConstraintOrCreateConnectionConstraint
+addEdge
+connectRelation
+addProperty
+addProperty
+getEdges
+makeSchemaVertex
+updateSchemaVertex
+makePropertyKey
+makeEdgeLabel
+addSchemaEdge
+addProperties
+addProperties
+addConnection
+getSchemaVertex
+containsRelationType
+getRelationType
+containsPropertyKey
+containsEdgeLabel
+getExistingRelationType
+getPropertyKey
+getOrCreatePropertyKey
+getOrCreatePropertyKey
+getEdgeLabel
+getOrCreateEdgeLabel
+makePropertyKey
+makeEdgeLabel
+getExistingVertexLabel
+containsVertexLabel
+getVertexLabel
+getOrCreateVertexLabel
+makeVertexLabel
+query
+multiQuery
+multiQuery
+executeMultiQuery
+getConversionFunction
+query
+indexQuery
+commit
+rollback
+releaseTransaction
+isOpen
+isClosed
+hasModifications
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;schema 操作的 makeEdgeLabel makePropertyKey 等，数据操作的 getVertex addEdge 等，事务操作的 rollback 等。
+好像没有 index ？因为 index 属于 schema， 相关的方法都是在 management 中完成的。
+实际上，StandardJanusGraphTx 有 addEdge addProperties addVertex 等操作数据的方法，同时还有 makePropertyKey，EdgeLabel 等操作 schema 的方法。
+原因是 makePropertyKey 等 schema 实际上也是以顶点的形式保存在 janus 中，所以 schema 操作本质还是数据操作，只不过这部分数据都会被读入内存。
+所以 schema 操作都会触发 makeSchemaVertex 的方法，makeSchemaVertex 就是添加一个顶点，只不过是 schema 的订单。&lt;/p&gt;
+
+&lt;h3 id=&#34;backendtransaction&#34;&gt;BackendTransaction&lt;/h3&gt;
+
+&lt;p&gt;我们在看 StandardJanusGraphTx 代码的时候 ，发现 BackendTransaction 也很重要，看看他的继承体系&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;BaseTransaction
+	LoggableTransaction (org.janusgraph.diskstorage)
+	    CacheTransaction (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	    IndexTransaction (org.janusgraph.diskstorage.indexing)
+	    BackendTransaction (org.janusgraph.diskstorage)
+	BaseTransactionConfigurable (org.janusgraph.diskstorage)
+	    Transaction in LuceneIndex (org.janusgraph.diskstorage.lucene)
+	    DefaultTransaction (org.janusgraph.diskstorage.util)
+	    StoreTransaction (org.janusgraph.diskstorage.keycolumnvalue)
+	        AbstractStoreTransaction (org.janusgraph.diskstorage.common)
+	            CQLTransaction (org.janusgraph.diskstorage.cql)
+	            BerkeleyJETx (org.janusgraph.diskstorage.berkeleyje)
+	            CassandraTransaction (org.janusgraph.diskstorage.cassandra)
+	            HBaseTransaction (org.janusgraph.diskstorage.hbase)
+	            NoOpStoreTransaction (org.janusgraph.diskstorage.common)
+	            InMemoryTransaction in InMemoryStoreManager (org.janusgraph.diskstorage.keycolumnvalue.inmemory)
+	        CacheTransaction (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	        ExpectedValueCheckingTransaction (org.janusgraph.diskstorage.locking.consistentkey)
+	IndexTransaction (org.janusgraph.diskstorage.indexing)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;BaseTransaction 只有 comimit 和 roolback 两个方法。LoggableTransaction 只有 LoggableTransaction ，BaseTransactionConfigurable 多了一个 getConfiguration 。&lt;/p&gt;
+
+&lt;p&gt;IndexTransaction BackendTransaction CacheTransaction 继承自 LoggableTransaction ， 前者是处理索引，后者可以处理其他的读写事务，最后的是内存中的事务处理。&lt;/p&gt;
+
+&lt;p&gt;IndexTransaction 中有一个 BaseTransaction 属性，用来实现真正的事务读写，实现一般是 IndexProvider 生成，主要是 ES、LUCENE、Solr 三种实现。
+CacheTransaction 中有 StoreTransaction 属性，用来实现持久化。
+BackendTransaction 中则有 CacheTransaction edgeStore indexStore txLogStore Map&lt;String, IndexTransaction&gt; indexTx; 等属性，显然这才是最重要的实现事务管控的类。&lt;/p&gt;
+
+&lt;p&gt;我们通过代码分析可以看出 BackendTransaction 的创建是在 StandardJanusGraph 完成，而使用主要是 StandardJanusGraphTx 。
+StandardJanusGraph 的 newTransaction 创建 BackendTransaction 和 StandardJanusGraphTx ，并进行赋值。
+StandardJanusGraph 什么时候会调用 newTransaction ？一个在 typeCacheRetrieval 中，另一个就是我们代码创建新的 transaction，还有一个是 在没有 transactional isolation 的存储系统上面， commit 的时候需要操作 schema&lt;/p&gt;
+
+&lt;h2 id=&#34;关键类分析&#34;&gt;关键类分析&lt;/h2&gt;
+
+&lt;p&gt;上面整体的调试已经找到了比较关键的大类，以及事务相关的类的关系，我们可以反过来再看一遍调用栈，就更清晰了。现在反过来从细节开始研究具体的类的功能。&lt;/p&gt;
+
+&lt;h3 id=&#34;storemanager&#34;&gt;StoreManager&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;StoreManager
+	KeyValueStoreManager (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    OrderedKeyValueStoreManager (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	        BerkeleyJEStoreManager (org.janusgraph.diskstorage.berkeleyje)
+	AbstractStoreManager (org.janusgraph.diskstorage.common)
+	    DistributedStoreManager (org.janusgraph.diskstorage.common)
+	        CQLStoreManager (org.janusgraph.diskstorage.cql)
+	            CachingCQLStoreManager (org.janusgraph.diskstorage.cql)
+	        AbstractCassandraStoreManager (org.janusgraph.diskstorage.cassandra)
+	            CassandraThriftStoreManager (org.janusgraph.diskstorage.cassandra.thrift)
+	            CassandraEmbeddedStoreManager (org.janusgraph.diskstorage.cassandra.embedded)
+	            AstyanaxStoreManager (org.janusgraph.diskstorage.cassandra.astyanax)
+	        HBaseStoreManager (org.janusgraph.diskstorage.hbase)
+	    LocalStoreManager (org.janusgraph.diskstorage.common)
+	        BerkeleyJEStoreManager (org.janusgraph.diskstorage.berkeleyje)
+	                    LocalStoreManagerSampleImplementation in LocalStoreManagerTest (org.janusgraph.diskstorage.common)
+	            KeyColumnValueStoreManager (org.janusgraph.diskstorage.keycolumnvalue)
+	    CQLStoreManager (org.janusgraph.diskstorage.cql)
+	        CachingCQLStoreManager (org.janusgraph.diskstorage.cql)
+	    OrderedKeyValueStoreManagerAdapter (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    InMemoryStoreManager (org.janusgraph.diskstorage.keycolumnvalue.inmemory)
+	    KCVSManagerProxy (org.janusgraph.diskstorage.keycolumnvalue)
+	        ExpectedValueCheckingStoreManager (org.janusgraph.diskstorage.locking.consistentkey)
+	        TTLKCVSManager (org.janusgraph.diskstorage.keycolumnvalue.ttl)
+	    MetricInstrumentedStoreManager (org.janusgraph.diskstorage.util)
+	    AbstractCassandraStoreManager (org.janusgraph.diskstorage.cassandra)
+	        CassandraThriftStoreManager (org.janusgraph.diskstorage.cassandra.thrift)
+	        CassandraEmbeddedStoreManager (org.janusgraph.diskstorage.cassandra.embedded)
+	        AstyanaxStoreManager (org.janusgraph.diskstorage.cassandra.astyanax)
+	    HBaseStoreManager (org.janusgraph.diskstorage.hbase)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;StoreManager 接口主要功能 beginTransaction 得到一个 StoreTransaction 和 close ，clean 等，还有得到 store 相关的信息。看着上面好像很多继承类，实际上是因为有重复继承导致的。&lt;/p&gt;
+
+&lt;p&gt;KeyValueStoreManager 是测试的。DistributedStoreManager 和 KeyColumnValueStoreManager 是两个抽象，我们使用的 cassandra 和 hbase 的 storeManager 都继承自这两个。
+这几个 storeManager 就有我们需要的操作数据的方法。&lt;/p&gt;
+
+&lt;h3 id=&#34;keycolumnvaluestore-keyvaluestore&#34;&gt;KeyColumnValueStore &amp;amp; KeyValueStore&lt;/h3&gt;
+
+&lt;p&gt;KeyValueStore 是测试的，KeyColumnValueStore 是真正的。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;KeyColumnValueStore
+	KCVSProxy (org.janusgraph.diskstorage.keycolumnvalue)
+	    TTLKCVS (org.janusgraph.diskstorage.keycolumnvalue.ttl)
+	    ExpectedValueCheckingStore (org.janusgraph.diskstorage.locking.consistentkey)
+	    KCVSCache (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	        ExpirationKCVSCache (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	        NoKCVSCache (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	    ReadOnlyKeyColumnValueStore (org.janusgraph.diskstorage.keycolumnvalue)
+	BaseKeyColumnValueAdapter (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    OrderedKeyValueStoreAdapter (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	CQLKeyColumnValueStore (org.janusgraph.diskstorage.cql)
+	HBaseKeyColumnValueStore (org.janusgraph.diskstorage.hbase)
+	CassandraEmbeddedKeyColumnValueStore (org.janusgraph.diskstorage.cassandra.embedded)
+	CassandraThriftKeyColumnValueStore (org.janusgraph.diskstorage.cassandra.thrift)
+	AstyanaxKeyColumnValueStore (org.janusgraph.diskstorage.cassandra.astyanax)
+	MetricInstrumentedStore (org.janusgraph.diskstorage.util)
+	CounterKCVS in KCVSCacheTest (org.janusgraph.diskstorage.cache)
+	InMemoryKeyColumnValueStore (org.janusgraph.diskstorage.keycolumnvalue.inmemory)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;KeyColumnValueStore 的作用我暂时不是很清楚，从继承类的构造方法看，需要传入一个 StoreManager connection table columnFamily store 。大概能猜出一个 Store 代表一个表格，或者代表一个列族，应该是代表某种数据，例如索引，日志等。&lt;/p&gt;
+
+&lt;p&gt;从他的方法可以看出主要是查询库， 如 getKeySlice mutate mutateMany 。&lt;/p&gt;
+
+&lt;p&gt;KCVSCache 也继承自 KeyColumnValueStore，名字可以看出是放在内存的 store ，自然也有 getSlice 等方法，我们可以看他的实现类 ExpirationKCVSCache。
+这个类里面有一个 Cache&lt;KeySliceQuery,EntryList&gt; cache 的对象，用来缓存查询结果。而 KCVSCache 继承自 KCVSProxy ，这个类则代理 KeyColumnValueStore 对象。其实还有一个 TTLKCVS ，应该是带过期时间的 store&lt;/p&gt;
+
+&lt;h3 id=&#34;logmanager&#34;&gt;LogManager&lt;/h3&gt;
+
+&lt;p&gt;LogManager 的注释：Manager interface for opening {@link Log}s against a particular Log implementation.&lt;/p&gt;
+
+&lt;p&gt;KCVSLogManager 实现类的注释：
+Implementation of {@link LogManager} against an arbitrary {@link KeyColumnValueStoreManager}.
+Issues {@link Log} instances which wrap around a {@link KeyColumnValueStore}.&lt;/p&gt;
+
+&lt;p&gt;可以看出 LogManager 主要是将 通过 KeyColumnValueStoreManager 实现 Log，而 log 则是 围绕 KeyColumnValueStore 。&lt;/p&gt;
+
+&lt;p&gt;而我们的log包括三部分： managementLogManager txLogManager userLogManager&lt;/p&gt;
+
+&lt;h3 id=&#34;log&#34;&gt;Log&lt;/h3&gt;
+
+&lt;p&gt;Log 的注释：
+Represents a log that allows content to be added to it in the form of messages and
+to read messages and their content from the log via registered {@link MessageReader}s.&lt;/p&gt;
+
+&lt;p&gt;KCVSLog 的注释很长。可以看出主要通过 KeyColumnValueStore 实现。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/**
+ * Implementation of {@link Log} wrapped around a {@link KeyColumnValueStore}. Each message is written as a column-value pair ({@link Entry})
+ * into a timeslice slot. A timeslice slot is uniquely identified by:
+ * &amp;lt;ul&amp;gt;
+ *     &amp;lt;li&amp;gt;The partition id: On storage backends that are key-ordered, a partition bit width can be configured which configures the number of
+ *     first bits that comprise the partition id. On unordered storage backends, this is always 0&amp;lt;/li&amp;gt;
+ *     &amp;lt;li&amp;gt;A bucket id: The number of parallel buckets that should be maintained is configured by
+ *     {@link org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration#LOG_NUM_BUCKETS}. Messages are written to the buckets
+ *     in round-robin fashion and each bucket is identified by a bucket id.
+ *     Having multiple buckets per timeslice allows for load balancing across multiple keys in the storage backend.&amp;lt;/li&amp;gt;
+ *     &amp;lt;li&amp;gt;The start time of the timeslice: Each time slice is {@link #TIMESLICE_INTERVAL} microseconds long. And all messages that are added between
+ *     start-time and start-time+{@link #TIMESLICE_INTERVAL} end up in the same timeslice. For high throughput logs that might be more messages
+ *     than the underlying storage backend can handle per key. In that case, ensure that (2^(partition-bit-width) x (num-buckets) is large enough
+ *     to distribute the load.&amp;lt;/li&amp;gt;
+ * &amp;lt;/ul&amp;gt;
+ *
+ * Each message is uniquely identified by its timestamp, sender id (which uniquely identifies a particular instance of {@link KCVSLogManager}), and the
+ * message id (which is auto-incrementing). These three data points comprise the column of a log message. The actual content of the message
+ * is written into the value.
+ * &amp;lt;/p&amp;gt;
+ * When {@link MessageReader} are registered, one reader thread per partition id and bucket is created which periodically (as configured) checks for
+ * new messages in the storage backend and invokes the reader. &amp;lt;/br&amp;gt;
+ * Read-markers are maintained (for each partition-id &amp;amp; bucket id combination) under a dedicated key in the same {@link KeyColumnValueStoreManager} as the
+ * log messages. The read markers are updated to the current position before each new iteration of reading messages from the log. If the system fails
+ * while reading a batch of messages, a subsequently restarted log reader may therefore read messages twice. Hence, {@link MessageReader} implementations
+ * should exhibit correct behavior for the (rare) circumstance that messages are read twice.
+ *
+ * Note: All time values in this class are in microseconds. Hence, there are many cases where milliseconds are converted to microseconds.
+ *
+ * @author Matthias Broecheler (me@matthiasb.com)
+ */
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;英语不好就为难了。
+每个消息都由它的时间戳、发件人ID，以及消息ID（它是自动递增的）唯一标识。这三个数据组成包括日志消息的列名。消息的实际内容被写入值中。&lt;/p&gt;
+
+&lt;h3 id=&#34;indexprovider&#34;&gt;IndexProvider&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;IndexProvider (org.janusgraph.diskstorage.indexing)
+    LuceneIndex (org.janusgraph.diskstorage.lucene)
+    TestMockIndexProvider (org.janusgraph.graphdb)
+    SolrIndex (org.janusgraph.diskstorage.solr)
+    ElasticSearchIndex (org.janusgraph.diskstorage.es)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;上面的 IndexTransaction 包含了 对 IndexProvider的操作。&lt;/p&gt;
+
+&lt;h3 id=&#34;vertexidassigner-standardidpool-idblock&#34;&gt;VertexIDAssigner StandardIDPool IDBlock&lt;/h3&gt;
+
+&lt;p&gt;负责分配 id ，分配原则我们通过运行 VertexIDAssignerTest 查看。&lt;/p&gt;
+
+&lt;h3 id=&#34;element&#34;&gt;Element&lt;/h3&gt;
+
+&lt;p&gt;我们在操作的过程中有很多的 Vertex Property Edge 等，实际上都继承自一个 Element，继承体系确实有点吓人，这里就不展示了，几个 schema 都这么多东西，我们先分类。&lt;/p&gt;
+
+&lt;p&gt;首先我们思考一下，为什么会有这么多。其实 gremin 语法本身定义了一堆schema ，而 janus 也有自己的schema ，两个要进行适配器模式，所以还有一组适配器的schema。所以会比较多？&lt;/p&gt;
+
+&lt;p&gt;我们先看一下 gremin 的接口 ,主要有三个，&lt;code&gt;org.apache.tinkerpop.gremlin.structure&lt;/code&gt;下面：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;VertexProperty
+Vertex
+Edge
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;分别代表了属性，顶点，边，然后 gremin 本身对他们进行了一些实现。然后死 janusgraph 的 &lt;code&gt;org.janusgraph.core&lt;/code&gt; 包下面，有很多一些接口：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraphElement
+    JanusGraphVertex
+        InternalVertex (org.janusgraph.graphdb.internal)
+        RelationType (org.janusgraph.core)
+        VertexLabel (org.janusgraph.core)
+	JanusGraphRelation
+		JanusGraphEdge (org.janusgraph.core)
+		    AbstractEdge (org.janusgraph.graphdb.relations)
+		        CacheEdge (org.janusgraph.graphdb.relations)
+		        StandardEdge (org.janusgraph.graphdb.relations)
+		JanusGraphVertexProperty (org.janusgraph.core)
+		    FulgoraVertexProperty (org.janusgraph.graphdb.olap.computer)
+		    AbstractVertexProperty (org.janusgraph.graphdb.relations)
+		        StandardVertexProperty (org.janusgraph.graphdb.relations)
+		        CacheVertexProperty (org.janusgraph.graphdb.relations)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里展示的并不完整。整个 janus 的schema很复杂。只是大概从注释看出，
+在 core 包中，JanusGraphVertex 是顶点，JanusGraphRelation 代表顶点关系，分为属性和边两种 ：JanusGraphVertexProperty 和 JanusGraphEdge。
+在 internal 包中，对 core 包的类添加些 janus 特有的方法。&lt;/p&gt;
+
+&lt;p&gt;另外在 schema 包中还有 RelationType 和 VertexLabel ，两个都是继承自 JanusGraphVertex ，意思是说 VertexLabel VertexProperty EdgeLabel 都是顶点？？？。
+这样就好像明白一点，janus 中的 PropertyKey VertexLabel EdgeLabel 都是以顶点的形式保存起来的。&lt;/p&gt;
+
+&lt;p&gt;所以我们看 Edge 类型继承体系比较简单，就是 CacheEdge (org.janusgraph.graphdb.relations) StandardEdge (org.janusgraph.graphdb.relations) 继承自
+AbstractEdge ，然后继承 JanusGraphEdge，Edge。
+而 Vertex 继承体系很复杂，除了类似 Edge 的继承体系以外，CacheVertex 还多了 JanusGraphSchemaVertex 这个子类，这个子类还有 RelationTypeVertex 和 VertexLabelVertex 两个子类，
+实际上很明显，CacheVertex 的子类 JanusGraphSchemaVertex 代表的就是 graph 的 schema ，也是作为 Vertex 保存的。&lt;/p&gt;
+
+&lt;p&gt;这个给别人讲一句话就懂了，但是自己分析可能要好几个小时才能明白。这也是学习和自己研究的不同。&lt;/p&gt;
+
+&lt;h3 id=&#34;index&#34;&gt;Index&lt;/h3&gt;
+
+&lt;p&gt;索引肯定是数据库的重点，我们到目前没有分析过和所以有关的内容。IndexTransaction 是我们遇到的可能和索引相关的内容了，就从 他开始。
+IndexTransaction 中有个 BaseTransaction 的对象用来实现事务，通过 IndexProvider 来产生。我们以 ElasticSearchIndex 为例，可以看看他的方法。&lt;/p&gt;
+
+&lt;p&gt;例如 register 方法会创建索引，还有 restore 等操作事务的方法。在 ManagementSystem 的 updateIndex 方法中，定义了各种操作 index 的方法。&lt;/p&gt;
+
+&lt;p&gt;Index 类继承了 JanusGraphSchemaElement，主要有两类实现类 JanusGraphIndex 和 RelationTypeIndex 。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphIndex 的实现类是 JanusGraphIndexWrapper 。可以通过 JanusGraphManagement#buildIndex(String, Class) 新建 。&lt;/p&gt;
+
+&lt;p&gt;RelationTypeIndex 的实现类是 RelationTypeIndexWrapper，可以通过
+JanusGraphManagement#buildEdgeIndex(org.janusgraph.core.EdgeLabel, String, org.apache.tinkerpop.gremlin.structure.Direction, org.apache.tinkerpop.gremlin.process.traversal.Order, org.janusgraph.core.PropertyKey&amp;hellip;)
+和 JanusGraphManagement#buildPropertyIndex(org.janusgraph.core.PropertyKey, String, org.apache.tinkerpop.gremlin.process.traversal.Order, org.janusgraph.core.PropertyKey&amp;hellip;)
+两个方法建 RelationTypeIndex。&lt;/p&gt;
+
+&lt;p&gt;IndexType 定义所有的 JanusGraphIndex，实现包括 CompositeIndexType 和 MixedIndexType。&lt;/p&gt;
+
+&lt;p&gt;IndexType IndexProvider 和 Index 的不同在于，Index 和他的实现类 JanusGraphIndex RelationTypeIndexWrapper 都是继承自 JanusGraphSchemaElement ，和 Vertex 一样，代表的是 janus 中的一个顶点。
+IndexType 代表了所以类型 ，IndexProvider 则代表的是和索引相关的操作方法 例如 ElasticSearchIndex SolrIndex LuceneIndex。&lt;/p&gt;
+
+&lt;h3 id=&#34;standardscanner&#34;&gt;StandardScanner&lt;/h3&gt;
+
+&lt;p&gt;在 Backend 构造方法最后有一句 new StandardScanner。我们看看这个是干啥用的，主要调用地方是  buildStoreIndexScanJob 这个方法，我们发现这个新建了一个 Job。
+buildEdgeScanJob 主要就是在 ManagementSystem 的 updateIndex 方法使用，根据方法名可以看出，这是在遍历数据库的job。&lt;/p&gt;
+
+&lt;p&gt;StandardScanner 的重点很明显就是它的内部类 Builder。Builder 内部有一个 ScanJob 的变量，实际上 Builder 就是有个 execute 方法，能够执行 ScanJob ，例如 IndexUpdateJob 和 IndexRepairJob。&lt;/p&gt;
+
+&lt;p&gt;这个越看越复杂，还是后续分析吧。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph线上schema过程Debug</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-schema/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-schema/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;初步调试&#34;&gt;初步调试&lt;/h1&gt;
+
+&lt;h2 id=&#34;回顾&#34;&gt;回顾&lt;/h2&gt;
+
+&lt;p&gt;首先我们通过 debug 官方的 GraphOfGod 大概进行一个简单的调试，然后我们仔细查看 janusgraph 调用栈，分析了关键类。
+这次我们主要看看schema 的建立过程，我们上次分析已经知道，其实 schema也是以Vertex的方式存储在内存和数据库中的。
+通过 CacheVertex 的子类 JanusGraphSchemaVertex 实现。JanusGraphSchemaVertex 有两个个子类，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+AbstractElement (org.janusgraph.graphdb.internal)
+	AbstractVertex (org.janusgraph.graphdb.vertices)
+		StandardVertex (org.janusgraph.graphdb.vertices)
+			CacheVertex (org.janusgraph.graphdb.vertices)
+				JanusGraphSchemaVertex (org.janusgraph.graphdb.types.vertices)
+					RelationTypeVertex (org.janusgraph.graphdb.types.vertices)
+					    PropertyKeyVertex (org.janusgraph.graphdb.types.vertices)
+					    EdgeLabelVertex (org.janusgraph.graphdb.types.vertices)
+					VertexLabelVertex (org.janusgraph.graphdb.types)
+````
+
+中间省略了一些接口。
+
+所以每次 new 一个 EdgeLabelVertex、VertexLabelVertex、PropertyKeyVertex 的时候，调用栈会非常深。
+
+我们大概查看一下这些类的功能。
+
+### AbstractElement
+
+只有一个属性：private long id; 这个id是唯一的。小于0 的是临时id，事务提交时候会分配大于0的id，等于0的是虚拟的并不存在的，大雨0的是物理persist的。
+
+### InternalVertex
+
+图上没有展示 InternalVertex ，这是一个接口，继承自 JanusGraphVertex 和 InternalElement。凡是带 Internal 的都是比原来的多一个 janus 专属方法的类。
+所以 InternalVertex 也是比 JanusGraphVertex 多一些 janus 专属的方法 例如： removeRelation addRelation tx()。
+JanusGraphVertex 中则是 janus 和 gremin 都会有的方法 ， 例如 addEdge property label。
+InternalVertex 有 query() 等方法，
+
+### AbstractVertex
+
+AbstractVertex 继承自 AbstractElement 和 InternalVertex，
+AbstractVertex 比 AbstractElement 的 id 基础上多了一个 StandardJanusGraphTx tx 的属性。也就是多了一个事务空值对象。
+
+### StandardVertex
+
+StandardVertex 继承自 AbstractVertex，多了一个 lifecycle 属性和 volatile AddedRelationsContainer addedRelations 属性。应该是通过缓存空值。
+
+### CacheVertex
+CacheVertex 继承自 StandardVertex 。多了一个 queryCache 属性。
+
+### JanusGraphSchemaVertex 
+
+JanusGraphSchemaVertex 就是保存 Schema 的 Vertex ，分为两类 RelationTypeVertex 和 VertexLabelVertex。其中 RelationTypeVertex 分为 PropertyKeyVertex 和 EdgeLabelVertex。
+
+## 预览
+
+schema 操作是通过 ManagementSystem &amp;lt;: JanusGraphManagement 完成的。ManagementSystem 内容很复杂，上次已经大概看了他的方法和属性，这次我们着重看一下方法的实现，首先还是再次浏览一下方法。
+
+### 属性
+
+```java
+private static final String CURRENT_INSTANCE_SUFFIX = &amp;quot;(current)&amp;quot;;
+
+private final StandardJanusGraph graph;
+private final Log sysLog;
+private final ManagementLogger mgmtLogger;
+
+private final KCVSConfiguration baseConfig;
+private final TransactionalConfiguration transactionalConfig;
+private final ModifiableConfiguration modifyConfig;
+private final UserModifiableConfiguration userConfig;
+private final SchemaCache schemaCache;
+
+private final StandardJanusGraphTx transaction;
+
+private final Set&amp;lt;JanusGraphSchemaVertex&amp;gt; updatedTypes;
+private final List&amp;lt;Callable&amp;lt;Boolean&amp;gt;&amp;gt; updatedTypeTriggers;
+
+private final Instant txStartTime;
+private boolean graphShutdownRequired;
+private boolean isOpen;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;构造方法&#34;&gt;构造方法&lt;/h3&gt;
+
+&lt;p&gt;基本都是直接赋值。StandardJanusGraph 的 openManagement 方法返回一个 ManagementSystem 。&lt;/p&gt;
+
+&lt;h3 id=&#34;instances-操作&#34;&gt;Instances 操作&lt;/h3&gt;
+
+&lt;p&gt;getOpenInstancesInternal
+getOpenInstances
+forceCloseInstance&lt;/p&gt;
+
+&lt;p&gt;判断正在运行的 instance 。&lt;/p&gt;
+
+&lt;h3 id=&#34;commit-和-rollback&#34;&gt;commit 和 rollback&lt;/h3&gt;
+
+&lt;p&gt;commit 方法有四步。
+1. 判断 transactionalConfig 是否变化，如果变化，将变化写出。
+2. transactionalConfig.commit();
+3. transaction.commit();
+4. 判断 updatedTypes 是否有更新，进行 expire 操作。&lt;/p&gt;
+
+&lt;p&gt;rollback 方法，则很简单。直接调用两个 transaction 的 callback ，然后 close。&lt;/p&gt;
+
+&lt;h3 id=&#34;getschemaelement&#34;&gt;getSchemaElement&lt;/h3&gt;
+
+&lt;p&gt;这个方法返回一个 JanusGraphSchemaElement ，但是实际上返回的是 RelationTypeIndexWrapper 或者 JanusGraphIndexWrapper ，原因未知，这两个类上一节介绍过，。&lt;/p&gt;
+
+&lt;h3 id=&#34;buildrelationtypeindex&#34;&gt;buildRelationTypeIndex&lt;/h3&gt;
+
+&lt;p&gt;包括 buildPropertyIndex 和 buildEdgeIndex。
+步骤都是先 生成对应的 RelationTypeMaker，然后 make，然后调用 addSchemaEdge， 最后调用 updateIndex&lt;/p&gt;
+
+&lt;h3 id=&#34;getrelationindex&#34;&gt;getRelationIndex&lt;/h3&gt;
+
+&lt;p&gt;得到 RelationType 的 Index。
+调用 QueryUtil.getVertices(transaction, BaseKey.SchemaName, JanusGraphSchemaCategory.getRelationTypeName(composedName))
+然后 return new RelationTypeIndexWrapper((InternalRelationType) v);&lt;/p&gt;
+
+&lt;h3 id=&#34;getrelationindexes&#34;&gt;getRelationIndexes&lt;/h3&gt;
+
+&lt;p&gt;得到所有的  Indexs。&lt;/p&gt;
+
+&lt;h3 id=&#34;getgraphindexdirect&#34;&gt;getGraphIndexDirect&lt;/h3&gt;
+
+&lt;p&gt;直接调用 transaction.getSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX.getSchemaName(name));
+得到 GraphIndex ，GraphIndex 和 RelationTypeIndex 不一样，一个是基于关系的，前者是基于属性的。&lt;/p&gt;
+
+&lt;h3 id=&#34;getgraphindexes&#34;&gt;getGraphIndexes&lt;/h3&gt;
+
+&lt;p&gt;返回所有的 GraphIndex&lt;/p&gt;
+
+&lt;h3 id=&#34;createmixedindex&#34;&gt;createMixedIndex&lt;/h3&gt;
+
+&lt;p&gt;调用 JanusGraphSchemaVertex indexVertex = transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def); 得到 vertex
+调用 addSchemaEdge(indexVertex, (JanusGraphSchemaVertex) constraint, TypeDefinitionCategory.INDEX_SCHEMA_CONSTRAINT, null); 添加关系
+然后调用 updateSchemaVertex(indexVertex);
+最终 new JanusGraphIndexWrapper(indexVertex.asIndexType());&lt;/p&gt;
+
+&lt;p&gt;可以看出，这个方法其实只是添加了一个顶点，然后和另一个 constraint 顶点简历了一条关系。&lt;/p&gt;
+
+&lt;h3 id=&#34;addindexkey&#34;&gt;addIndexKey&lt;/h3&gt;
+
+&lt;p&gt;给已有的 index 添加一个key，这个应该很复杂，我们先跳过。&lt;/p&gt;
+
+&lt;h3 id=&#34;createcompositeindex&#34;&gt;createCompositeIndex&lt;/h3&gt;
+
+&lt;p&gt;创建 CompositeIndex ，GrpahIndex 分为 CompositeIndex 和 mixedIndex&lt;/p&gt;
+
+&lt;p&gt;创建过程也是 addSchemaEdge ， updateSchemaVertex，updateIndex&lt;/p&gt;
+
+&lt;h3 id=&#34;innerclass&#34;&gt;InnerClass&lt;/h3&gt;
+
+&lt;p&gt;很多内部类：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;IndexBuilder   -- 构建 Index
+EmptyIndexJobFuture -- 提交的job
+UpdateStatusTrigger -- 更新status的触发器
+IndexJobStatus -- job 的 status
+IndexIdentifier  --标识
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;addschemaedge&#34;&gt;addSchemaEdge&lt;/h3&gt;
+
+&lt;p&gt;上面好几个方法都会调用 addSchemaEdge updateSchemaVertex updateIndex ，我们看看这三个方法。&lt;/p&gt;
+
+&lt;p&gt;addSchemaEdge 是私有方法，应该是在内部会调用的。根据名字可以得出这个方法是添加边，而且添加的是 schema 的边，
+我们之前已经知道实际上 schema 都是保存为 vertex，而现在就是给这些 Vertex 添加 Edge，这个边的 EdgeLabel 是 BaseLabel.SchemaDefinitionEdge。
+例如 某个 PropertyKey 添加一个 Index ，实际上会有两个 SchemaVertex，然后给他们建立一个关系。
+我们可以通过查看方法调用时机，基本上是修改 index 或者 schemaVertex ，一般与 updateSchemaVertex 或者 updateIndex 配合执行。&lt;/p&gt;
+
+&lt;p&gt;方法大概步骤就是调用 transaction.addEdge(out, in, BaseLabel.SchemaDefinitionEdge) 得到 Edge，
+然后调用 edge.property(BaseKey.SchemaDefinitionDesc.name(), desc);最后返回 edge。&lt;/p&gt;
+
+&lt;h3 id=&#34;updateschemavertex&#34;&gt;updateSchemaVertex&lt;/h3&gt;
+
+&lt;p&gt;就一句话 transaction.updateSchemaVertex(schemaVertex);&lt;/p&gt;
+
+&lt;h3 id=&#34;updateindex&#34;&gt;updateIndex&lt;/h3&gt;
+
+&lt;p&gt;IndexJobFuture updateIndex(Index index, SchemaAction updateAction)&lt;/p&gt;
+
+&lt;p&gt;SchemaAction 是一个枚举，包括 REGISTER_INDEX REINDEX ENABLE_INDEX DISABLE_INDEX REMOVE_INDEX 。
+IndexJobFuture 代表的是提交了的 job，等待返回结果。&lt;/p&gt;
+
+&lt;p&gt;方法步骤：&lt;/p&gt;
+
+&lt;p&gt;JanusGraphSchemaVertex schemaVertex = getSchemaVertex(index);&lt;/p&gt;
+
+&lt;p&gt;更新 dependentTypes ，实际上就是为了更新 updatedTypes。&lt;/p&gt;
+
+&lt;p&gt;根据不同的请求，调用 setStatus setUpdateTrigger setJob 。这个过程很复杂，后面再讲解。&lt;/p&gt;
+
+&lt;h2 id=&#34;编码调试&#34;&gt;编码调试&lt;/h2&gt;
+
+&lt;h3 id=&#34;managementsystem-构造方法&#34;&gt;ManagementSystem 构造方法&lt;/h3&gt;
+
+&lt;p&gt;调试整个过程总是很麻烦的，我们只能专注某些部分，首先我们主要看一下 ManagementSystem 的构造过程，和使用细节。&lt;/p&gt;
+
+&lt;p&gt;打断点进入构造方法,看这一句代码：&lt;code&gt;this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();&lt;/code&gt; 一步一步进入调用栈&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();
+    return graph.newTransaction(immutable);
+        tx.setBackendTransaction(openBackendTransaction(tx));
+            return backend.beginTransaction(tx.getConfiguration(), retriever);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;在 Backend 的 beginTransaction 方法停下来，首先看看 &lt;code&gt;StoreTransaction tx = storeManagerLocking.beginTransaction(configuration)&lt;/code&gt; 的调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;// 这个 ExpectedValueCheckingStoreManager 继承自 KCVSManagerProxy ，它内部有个 KeyColumnValueStoreManager manager 。显然是代理模式，当然也可以认为是装饰模式。
+StoreTransaction tx = storeManagerLocking.beginTransaction(configuration);
+    StoreTransaction inconsistentTx = manager.beginTransaction(configuration);
+        return new CassandraTransaction(config);
+    StoreTransaction strongConsistentTx = manager.beginTransaction(consistentTxCfg);
+        return new CassandraTransaction(config);
+    ExpectedValueCheckingTransaction wrappedTx = new ExpectedValueCheckingTransaction(inconsistentTx, strongConsistentTx, maxReadTime);
+    return wrappedTx;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出 tx 的大概构造，里面有两个 CassandraTransaction 一个是强一致的，一个是非强一致的。&lt;/p&gt;
+
+&lt;p&gt;然后是 &lt;code&gt;CacheTransaction cacheTx = new CacheTransaction(tx, storeManagerLocking, bufferSize, maxWriteTime, configuration.hasEnabledBatchLoading());&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// CacheTransaction 继承自 StoreTransaction 和 LoggableTransaction ，内部有一个 StoreTransaction 对象，显然也是代理模式或者装饰模式。
+CacheTransaction cacheTx = new CacheTransaction(tx, storeManagerLocking, bufferSize, maxWriteTime, configuration.hasEnabledBatchLoading());
+    就是一堆赋值。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;CacheTransaction 内部有一个 StoreTransaction 也就是 上面的 tx， 然后还有一个 StoreManager storeManagerLocking。&lt;/p&gt;
+
+&lt;p&gt;然后是 &lt;code&gt;indexTx.put(entry.getKey(), new IndexTransaction(entry.getValue() indexKeyRetriever.get(entry.getKey()), configuration, maxWriteTime));&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;indexTx.put(entry.getKey(), new IndexTransaction(entry.getValue(), indexKeyRetriever.get(entry.getKey()), configuration, maxWriteTime));
+    new KeyInformation.IndexRetriever() {...省略代码}
+    new IndexTransaction()
+        index.beginTransaction(config);
+            return new DefaultTransaction(config);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;backend.beginTransaction(tx.getConfiguration(), retriever); 方法中 有很多 Transaction 对象，包括了 cacheTx indexTx 等。BackendTransaction 的构造方法则比较简单，就是直接赋值。&lt;/p&gt;
+
+&lt;p&gt;构造方法讨论到这里，我们可以猜测，ManagementSystem 无论是进行简单 schema 增删改查还是操作索引，
+背后都是通过这个 BackendTransaction 完成，而 BackendTransaction 内部又有 cacheTx 和 indexTx 等对象完成。
+当然还有一个 transactionalConfig 也有一些任务。&lt;/p&gt;
+
+&lt;h3 id=&#34;managementsystem-getvertexlabels&#34;&gt;ManagementSystem getVertexLabels&lt;/h3&gt;
+
+&lt;p&gt;getVertexLabels 方法返回 Iterable&lt;VertexLabel&gt; ，这里可能是通过 guava 进行封装，所以可能调用栈比较深。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;getVertexLabels
+    QueryUtil.getVertices(transaction, BaseKey.SchemaCategory, JanusGraphSchemaCategory.VERTEXLABEL)
+        tx.query().has(key,Cmp.EQUAL,equalityCondition).vertices();
+            1. 
+            return new GraphCentricQueryBuilder(this, graph.getIndexSerializer());
+            3. 
+            return has(key.name(),predicate,condition);
+                // 这一步实际上就加了一个 条件，就是 `~T$SchemaCategory = VERTEXLABEL`
+                constraints.add(new PredicateCondition&amp;lt;String, JanusGraphElement&amp;gt;(key, predicate, condition));
+            3. 
+            GraphCentricQuery query = constructQuery(ElementCategory.VERTEX);
+                 GraphCentricQuery query = constructQueryWithoutProfile(resultType);
+                     省略一大堆复杂代码。
+                     return new GraphCentricQuery(resultType, conditions, orders, query, limit);
+            // 这里是基于guava实现的懒加载模式的 filter
+            Iterables.filter(new QueryProcessor&amp;lt;GraphCentricQuery, JanusGraphElement, JointIndexQuery&amp;gt;(query, tx.elementProcessor), JanusGraphVertex.class);
+
+iterator
+    return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
+        1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
+            Iterator&amp;lt;R&amp;gt; subiter = new LimitAdjustingIterator(subq);
+        2. this.next = nextInternal();
+            hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                    execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
+                        new SubqueryIterator
+                            indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
+                        
+                    
+                  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里我们就已经知道了，其实这里是构造了一个 GraphCentricQuery 封装所有的查询条件逻辑，然后通过 QueryProcessor 进行处理这个 query，调用 next 的时候会进行查询。&lt;/p&gt;
+
+&lt;p&gt;上面我们已经得到了 ResultSetIterator ，接下来我们需要遍历这个 iterator。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;iterator.hasNext
+    1. next = current
+    2. tryToComputeNext()
+    ...
+        1. hasNext:49, ResultSetIterator (org.janusgraph.graphdb.query)
+            return next != null;
+            
+        2. ResultSetIterator (org.janusgraph.graphdb.query).next:65, 
+            1. LimitAdjustingIterator (org.janusgraph.graphdb.query).hasNext:68, 
+                SubqueryIterator (org.janusgraph.graphdb.util).hasNext:79, 
+            2. LimitAdjustingIterator (org.janusgraph.graphdb.query).next:94, 
+                SubqueryIterator (org.janusgraph.graphdb.util).next:90, 
+
+iterator.next()  
+   return result.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的代码比较杂乱，首先是 AbstractIterator 和 Iterators 类，然后是 ResultSetIterator LimitAdjustingIterator SubqueryIterator ，然后还有一个 Stream 类。&lt;/p&gt;
+
+&lt;p&gt;AbstractIterator 和 Iterators  是 guava 提供的工具类，AbstractIterator 通过封装一个 Iterator，达到缓存和懒加载的效果。
+例如 JDBC 的 ResultSet 如果做成一个 Iterator ，每次调用 next 的时候都会移动一次游标，这样就不能多次判断 hasNext。所以可以用 guava 进行封装。&lt;/p&gt;
+
+&lt;p&gt;ResultSetIterator 和 guava 达到的效果类似，通过内部装饰一个 ResultSetIterator 。&lt;/p&gt;
+
+&lt;p&gt;LimitAdjustingIterator 通过一个 getNewIterator 得到一个 懒加载 Iterator，其实也是和 guava 类似，只不过你可以认为它只能查看 limit 个元素，当遍历完这 limit 个元素，会重新从 0 开始 next limit次，然后再开始。
+说的简单一点，如果一个数组有一千个元素，你的迭代器 limit 是 500，那么你只能得到 500 个元素，想要得到500 - 1000 的元素，要重新查询。类似 mysql 的分页&lt;/p&gt;
+
+&lt;p&gt;SubqueryIterator 是代表依次查询的结果。先从 indexCache 查，没有就调用查询，查询结果是一个 List ，得到对应的 iterator 后放在 elementIterator 中。&lt;/p&gt;
+
+&lt;p&gt;到这里我们就大概明白了整个查询过程，&lt;/p&gt;
+
+&lt;h3 id=&#34;containsvertexlabel&#34;&gt;containsVertexLabel&lt;/h3&gt;
+
+&lt;p&gt;containsVertexLabel 方法判断是否存在，直观的方法是直接调用上面的 getVertexLabels 然后判断一下，但是实际上不是这样。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mgmt.containsVertexLabel(vType.toString())
+    transaction.containsVertexLabel(name);
+        return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null;
+        1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt
+        2. JanusGraphSchemaVertex getSchemaVertex(String schemaName)
+            graph.getSchemaCache().getSchemaId(schemaName)
+            1. getSchemaCache 
+            2. StandardSchemaCache.getSchemaId
+                id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，
+                    typeCacheRetrieval.retrieveSchemaByName
+                        StandardJanusGraph.this.newTransaction
+                            QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName)
+                            return v!=null?v.longId():null;
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;containsVertexLabel 会启动一个 transation 通过 name 查询这个 schema 的 typeName 对应的 vertexId。和 getVertexLabels 不太一样。&lt;/p&gt;
+
+&lt;h3 id=&#34;makevertexlabel&#34;&gt;makeVertexLabel&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt.makeVertexLabel(vType.toString()).make();
+    1. makeVertexLabel
+        transaction.makeVertexLabel(name);
+            StandardVertexLabelMaker maker = new StandardVertexLabelMaker(this);
+            maker.name(name);
+    2. make
+        TypeDefinitionMap def = new TypeDefinitionMap();
+        tx.makeSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL,name,def);
+            1. schemaVertex = new VertexLabelVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.GenericSchemaType,temporaryIds.nextID()), ElementLifeCycle.New);
+            2. graph.assignID(schemaVertex, BaseVertexLabel.DEFAULT_VERTEXLABEL);
+                ....
+                element.setId(elementId);
+            3. addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));
+                1. StandardVertexProperty prop = new StandardVertexProperty(IDManager.getTemporaryRelationID(temporaryIds.nextID()), key, (InternalVertex) vertex, normalizedValue, ElementLifeCycle.New);
+                2. connectRelation(prop);
+                    addedRelations.add(r); 
+            4. vertexCache.add(schemaVertex, schemaVertex.longId());
+            
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;makeVertexLabel 最关键的一步就是 addedRelations.add&amp;reg;, 添加关系，这样就能在 commit 的时候写到数据库了。&lt;/p&gt;
+
+&lt;h3 id=&#34;commit&#34;&gt;commit()&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;commit
+    transactionalConfig.commit();
+    transaction.commit();
+         1. graph.commit(addedRelations.getAll(), deletedRelations.values(), this); // 这里的两个集合分别是改变的 schema 
+             
+             
+             1. final BackendTransaction schemaMutator = openBackendTransaction(tx); // 打开一个 transaction
+             2. commitSummary = prepareCommit(addedRelations,deletedRelations, SCHEMA_FILTER, schemaMutator, tx, acquireLocks);
+             3. schemaMutator.commit();
+             
+             4. commitSummary = prepareCommit(addedRelations,deletedRelations, hasTxIsolation? NO_FILTER : NO_SCHEMA_FILTER, mutator, tx, acquireLocks);
+             5. mutator.commit();
+                 1. storeTx.commit();
+                     1. flushInternal();
+                     2. tx.commit();
+                 2. itx.commit();
+                     1. flushInternal();
+                     2. indexTx.commit();
+          2. releaseTransaction();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;其实我这里的注释和官方的不太一样，官方将 graph.commit 分为三部分：&lt;/p&gt;
+
+&lt;p&gt;//1. Finalize transaction
+//2. Assign JanusGraphVertex IDs
+//3. Commit
+//3.1 Log transaction (write-ahead log) if enabled
+//3.2 Commit schema elements and their associated relations in a separate transaction if backend does not support transactional isolation
+//[FAILURE] Exceptions during preparation here cause the entire transaction to fail on transactional systems
+//or just the non-system part on others. Nothing has been persisted unless batch-loading&lt;/p&gt;
+
+&lt;p&gt;经过我的分析，其实这里分两次 prepareCommit + commit ,是根据底层是否支持事务隔离，如果不支持，先 commit 和 schema 相关的变化，否则 schema 和 data 两边一起提交。&lt;/p&gt;
+
+&lt;p&gt;当然这个 wal-log 和 prepareCommit 就大有文章。后续在分析。&lt;/p&gt;
+
+&lt;h3 id=&#34;createcompositeindex-1&#34;&gt;createCompositeIndex&lt;/h3&gt;
+
+&lt;p&gt;建索引，索引类型是 createCompositeIndex&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;buildCompositeIndex:650, ManagementSystem$IndexBuilder (org.janusgraph.graphdb.database.management)
+    1.checkIndexName:489, ManagementSystem (org.janusgraph.graphdb.database.management)
+        getGraphIndex:424, ManagementSystem (org.janusgraph.graphdb.database.management)
+            getSchemaVertex:878, StandardJanusGraphTx (org.janusgraph.graphdb.transaction) 
+                 // 这里 getSchemaVertex 的内容之前已经讨论过。
+    updatedTypes.add((PropertyKeyVertex) key);
+    2. transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def);
+        // 这个之前已经说过，我们在简单过一遍
+        1. graph.assignID(schemaVertex, BaseVertexLabel.DEFAULT_VERTEXLABEL);
+        2. addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));
+    3. addSchemaEdge(indexVertex, keys[i], TypeDefinitionCategory.INDEX_FIELD, paras);
+    4. updateIndex(index, SchemaAction.REGISTER_INDEX);
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;updatedTypes.add((PropertyKeyVertex) key);
+schema 分析主要就是这些，我们还有一些地方没细看，接下来我们把几个复杂的过程分析一下。主要包括查询数据库和 update 索引&lt;/p&gt;
 </description>
       
     </item>

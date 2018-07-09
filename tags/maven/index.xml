@@ -39,20 +39,91 @@
 
 &lt;h3 id=&#34;2-常见异常&#34;&gt;2.常见异常&lt;/h3&gt;
 
-&lt;p&gt;cached in local repository &amp;hellip;
-这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;cached in local repository &amp;hellip;
+这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/p&gt;&lt;/li&gt;
 
-&lt;p&gt;can&amp;rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
-例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 &lt;code&gt;mvn clean install -DskipTests=true -rf :janusgraph-es&lt;/code&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;can&amp;rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
+例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 &lt;code&gt;mvn clean install -DskipTests=true -rf :janusgraph-es&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;p&gt;java return cannot find symbol som.sun.*
-可以换成jdk1.8.&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;java return cannot find symbol com.sun.*
+可以换成 jdk1.8.&lt;/p&gt;&lt;/li&gt;
 
-&lt;p&gt;Missing tools.jar at: /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/Classes/classes.jar. Expression: file.exists()
-cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
+&lt;li&gt;&lt;p&gt;Missing tools.jar at: /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/Classes/classes.jar. Expression: file.exists()&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;原因，maven 的配置文件的 profiles 中有个 profile：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;profile&amp;gt;
+  &amp;lt;id&amp;gt;osx-jdk&amp;lt;/id&amp;gt;
+  &amp;lt;activation&amp;gt;
+    &amp;lt;file&amp;gt;
+      &amp;lt;exists&amp;gt;${java.home}/../Classes/classes.jar&amp;lt;/exists&amp;gt;
+    &amp;lt;/file&amp;gt;
+  &amp;lt;/activation&amp;gt;
+  &amp;lt;dependencies&amp;gt;
+    &amp;lt;dependency&amp;gt;
+      &amp;lt;groupId&amp;gt;jdk.tools&amp;lt;/groupId&amp;gt;
+      &amp;lt;artifactId&amp;gt;jdk.tools&amp;lt;/artifactId&amp;gt;
+      &amp;lt;scope&amp;gt;system&amp;lt;/scope&amp;gt;
+      &amp;lt;version&amp;gt;1.6&amp;lt;/version&amp;gt;
+      &amp;lt;systemPath&amp;gt;${java.home}/../Classes/classes.jar&amp;lt;/systemPath&amp;gt;
+    &amp;lt;/dependency&amp;gt;
+  &amp;lt;/dependencies&amp;gt;
+&amp;lt;/profile&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;activation 代表使用条件，${java.home} 代表 JRE 目录，如果这个文件存在就是用 osx-jdk。现在是因为这个文件不存在，所以只要让这个文件存在即可。&lt;/p&gt;
+
+&lt;p&gt;解决办法：&lt;a href=&#34;https://stackoverflow.com/questions/23971229/maven-install-hadoop-from-source-looking-in-the-wrong-path-for-tools-jar&#34;&gt;https://stackoverflow.com/questions/23971229/maven-install-hadoop-from-source-looking-in-the-wrong-path-for-tools-jar&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
 sudo mkdir Classes
 cd Classes/
 sudo ln -s ../jre/lib/rt.jar classes.jar&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;
+neo4j-3.4/community/dbms/src/main/java/org/neo4j/dbms/diagnostics/jmx/LocalVirtualMachine.java:[23,28] package com.sun.tools.attach does not exist&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这个和上面的错误很类似，上面的错误是因为我们通过在 jre 目录下面做了一个软连接，把 rt.jar 连接到了 classes.jar，classes.jar 包中没有 com.sun.tools.attach，而它需要的是 tools.jar，&lt;/p&gt;
+
+&lt;p&gt;解决办法：&lt;/p&gt;
+
+&lt;p&gt;cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
+sudo rm -rf Classes/classes.jar
+sudo ln -s lib/tools.jar Classes/classes.jar&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;not found: type InputPosition
+not found: value Eagerly&lt;/p&gt;
+
+&lt;p&gt;解决方案：
+一般是 scala 编译器没配置好。重新设置。
+有时候 IDEA 运行没问题，但是打包报这个问题，解决方案？
+目前不知道，重新 import 后，找个类运行一下，然后再打包就成功了。&lt;/p&gt;
+
+&lt;p&gt;mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install -rf :neo4j-cypher-util-3.4&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;
+inspect a maven model for resolution&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Maven -&amp;gt; Reimport&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;
+/Users/dengziming/opt/sourcecode/neo4j-3.4/community/cypher/interpreted-runtime/src/test/scala/org/neo4j/cypher/internal/runtime/interpreted/commands/ComparablePredicateTest.scala:53: warning: a type was inferred to be &lt;code&gt;Any&lt;/code&gt;; this may indicate a programming error.
+[ERROR]     case v: Number if v.doubleValue().isNaN =&amp;gt; Seq(v.doubleValue(), v.floatValue(), v)
+[ERROR]          ^&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这个问题好像没造成停止。&lt;/p&gt;
 
 &lt;h3 id=&#34;3-常用命令&#34;&gt;3.常用命令&lt;/h3&gt;
 

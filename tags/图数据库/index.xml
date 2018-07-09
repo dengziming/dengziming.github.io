@@ -24,6 +24,54 @@
 
 &lt;h2 id=&#34;1-config&#34;&gt;1.config&lt;/h2&gt;
 
+&lt;h2 id=&#34;chapter-3-getting-started&#34;&gt;Chapter 3. Getting Started&lt;/h2&gt;
+
+&lt;p&gt;janus 使用 gremin 的基本语法，详情考：&lt;a href=&#34;http://tinkerpop.apache.org/docs/current/reference/&#34;&gt;http://tinkerpop.apache.org/docs/current/reference/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;基本操作：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; graph = JanusGraphFactory.open(&#39;conf/janusgraph-cassandra-es.properties&#39;)
+==&amp;gt;standardjanusgraph[cassandrathrift:[127.0.0.1]]
+gremlin&amp;gt; GraphOfTheGodsFactory.load(graph)
+==&amp;gt;null
+gremlin&amp;gt; g = graph.traversal()
+==&amp;gt;graphtraversalsource[standardjanusgraph[cassandrathrift:[127.0.0.1]], standard]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里我们首先通过工厂模式 JanusGraphFactory 的 open 方法 打开一个库，然后调用 load 方法，给这个库插入数据和索引，调用 traversal 方法得到一个遍历对象 g，后续操作都基于这个 g。&lt;/p&gt;
+
+&lt;p&gt;这里的配置文件可以修改，如果你不适用 es 作为 索引存储，这样就使用 GraphOfTheGodsFactory.loadWithoutMixedIndex() ，背后就不需要使用索引。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-3-global-graph-indices&#34;&gt;3.3. Global Graph Indices&lt;/h3&gt;
+
+&lt;p&gt;图查询需要有一个点作为入口，然后就是通过相应的接口进行查询：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; saturn = g.V().has(&#39;name&#39;, &#39;saturn&#39;).next()
+==&amp;gt;v[256]
+gremlin&amp;gt; g.V(saturn).valueMap()
+==&amp;gt;[name:[saturn], age:[10000]]
+gremlin&amp;gt; g.V(saturn).in(&#39;father&#39;).in(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;hercules
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里先用 has 方法，得到 name 为 saturn 的一个点 ，然后得到这个点的所有属性，通过入边找到他的 孙子。稍微复杂的查询：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.E().has(&#39;place&#39;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+==&amp;gt;e[a9x-co8-9hx-39s][16424-battled-&amp;gt;4240]
+==&amp;gt;e[9vp-co8-9hx-9ns][16424-battled-&amp;gt;12520]
+gremlin&amp;gt; g.E().has(&#39;place&#39;, geoWithin(Geoshape.circle(37.97, 23.72, 50))).as(&#39;source&#39;).inV().as(&#39;god2&#39;).select(&#39;source&#39;).outV().as(&#39;god1&#39;).select(&#39;god1&#39;, &#39;god2&#39;).by(&#39;name&#39;)
+==&amp;gt;[god1:hercules, god2:hydra]
+==&amp;gt;[god1:hercules, god2:nemean]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里先得到 place 位置在某个圆内的边，然后 通过 as 进行临时命令，然后得到在这个边对应的 in 和 out 的顶点。&lt;/p&gt;
+
+&lt;p&gt;Graph indices （图索引）是 janus 索引的一种，另一种索引是 vertex-centric indices ，它用来在 janus 内部加速遍历，&lt;/p&gt;
+
+&lt;h4 id=&#34;3-3-1-graph-traversal-examples&#34;&gt;3.3.1. Graph Traversal Examples&lt;/h4&gt;
+
+&lt;p&gt;可以查看 &lt;a href=&#34;http://tinkerpop.apache.org/docs/current/reference/&#34;&gt;http://tinkerpop.apache.org/docs/current/reference/&lt;/a&gt;&lt;/p&gt;
+
 &lt;h2 id=&#34;chapter-5-schema-and-data-modeling&#34;&gt;Chapter 5. Schema and Data Modeling&lt;/h2&gt;
 
 &lt;h3 id=&#34;5-1-defining-edge-labels&#34;&gt;5.1. Defining Edge Labels&lt;/h3&gt;
@@ -204,9 +252,10 @@ Graph indexes make these global retrieval operations efficient on large graphs.&
 
 &lt;h4 id=&#34;9-1-1-composite-index&#34;&gt;9.1.1. Composite Index&lt;/h4&gt;
 
-&lt;p&gt;Mixed indexes - 支持更多谓词查询&lt;/p&gt;
+&lt;h3 id=&#34;9-1-2-mixed-indexes-支持更多谓词查询&#34;&gt;9.1.2. Mixed indexes - 支持更多谓词查询&lt;/h3&gt;
 
-&lt;p&gt;composite indexes -等值查询&lt;/p&gt;
+&lt;p&gt;Mixed indexes - 支持更多谓词查询
+composite indexes -等值查询&lt;/p&gt;
 
 &lt;p&gt;代码： &lt;code&gt;mgmt.buildIndex(&#39;nameAndAge&#39;, Vertex.class).addKey(name).addKey(age).buildMixedIndex(&amp;quot;search&amp;quot;)&lt;/code&gt;
 这里的名字 search 必须在配置中添加： index.search.backend&lt;/p&gt;
@@ -218,7 +267,26 @@ g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;))
 g.V().has(&#39;age&#39;, lt(50))
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;p&gt;Graph indexes built against newly defined property keys, i.e. property keys that are defined in the same management transaction as the index, are immediately available. Graph indexes built against property keys that are already in use require the execution of a reindex procedure to ensure that the index contains all previously added elements. Until the reindex procedure has completed, the index will not be available. It is encouraged to define graph indexes in the same transaction as the initial schema.&lt;/p&gt;
+
+&lt;p&gt;新定义的 properties 对应的 Graph indexes 可以马上使用，例如和 index 在一个事务中定义的 property key，马上就能使用。
+对于已经在使用的 property key，需要 reindex 操作完成才能使用，所以尽量在一个事务中完成操作。&lt;/p&gt;
+
+&lt;h4 id=&#34;9-1-3-ordering&#34;&gt;9.1.3. Ordering&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;)).order().by(&#39;age&#39;, decr).limit(10)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Composite Index 不支持 order，调用 order 会很耗性能。
+Mixed indexes 天生支持 order&lt;/p&gt;
+
+&lt;h4 id=&#34;9-1-4-label-constraint&#34;&gt;9.1.4. Label Constraint&lt;/h4&gt;
+
+&lt;p&gt;可能只想在人的 name 上面建索引，其他的顶点并没有 name 属性，这时候最好的办法就是 indexOnly
+&lt;code&gt;mgmt.buildIndex(&#39;byNameAndLabel&#39;, Vertex.class).addKey(name).indexOnly(god).buildCompositeIndex()&lt;/code&gt;&lt;/p&gt;
+
 &lt;h3 id=&#34;9-2-vertex-centric-indexes&#34;&gt;9.2. Vertex-centric Indexes&lt;/h3&gt;
+
+&lt;p&gt;一个顶点的入边可能有很多，遍历这些边很耗时，通过  Vertex-centric Indexes 可以得到哪些需要被选择的。&lt;/p&gt;
 
 &lt;p&gt;查找和 hercules battled 时间为 10-20 的人。&lt;/p&gt;
 
@@ -251,9 +319,30 @@ g.V(h).local(outE(&#39;battled&#39;).has(&#39;rating&#39;, 5.0).order().by(&#39;
 
 &lt;h2 id=&#34;chapter-10-transactions&#34;&gt;Chapter 10. Transactions&lt;/h2&gt;
 
+&lt;p&gt;所有的操作都是在一个 transaction 里面的， graph.tx().createThreadedTx() 创建 ThreadLocal 的 transatlantion 。但并不是 ACID ，因为底层的不支持，手动模拟 ACID 也很负责。&lt;/p&gt;
+
 &lt;h3 id=&#34;10-1-transaction-handling&#34;&gt;10.1. Transaction Handling&lt;/h3&gt;
 
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;graph = JanusGraphFactory.open(&amp;quot;berkeleyje:/tmp/janusgraph&amp;quot;)
+juno = graph.addVertex() //Automatically opens a new transaction
+juno.property(&amp;quot;name&amp;quot;, &amp;quot;juno&amp;quot;)
+graph.tx().commit() //Commits transaction
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的第二段代码自动打开了一个 transaction 。&lt;/p&gt;
+
 &lt;h3 id=&#34;10-2-transactional-scope&#34;&gt;10.2. Transactional Scope&lt;/h3&gt;
+
+&lt;p&gt;图中的每个元素，例如边、顶点都是有 scope 的，按照 TinkerPop 的 transaction 约定，事务在第一条语句执行的时候自动创建，commit 或者 rollback 的时候会被关闭，
+一旦关闭了，在事务中创建的元素都不能用了。但是，JanusGraph will automatically transition vertices and types into the new transactional scope:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;graph = JanusGraphFactory.open(&amp;quot;berkeleyje:/tmp/janusgraph&amp;quot;)
+juno = graph.addVertex() //Automatically opens a new transaction
+graph.tx().commit() //Ends transaction
+juno.property(&amp;quot;name&amp;quot;, &amp;quot;juno&amp;quot;) //Vertex is automatically transitioned
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;但是边就不能这样&lt;/p&gt;
 
 &lt;h3 id=&#34;10-3-transaction-failures&#34;&gt;10.3. Transaction Failures&lt;/h3&gt;
 
@@ -1211,7 +1300,7 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
         createRelationshipTypeCreator( config, dataSourceManager, idGeneratorFactory ) ) ));
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。&lt;/p&gt;
+&lt;p&gt;这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，看名字应该是属性标签和关系等存储相关，先跳过。&lt;/p&gt;
 
 &lt;p&gt;然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。&lt;/p&gt;
 
@@ -1277,9 +1366,9 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。&lt;/p&gt;
+&lt;p&gt;IndexingService 的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。&lt;/p&gt;
 
-&lt;p&gt;NativeLabelScanStore的init，我也先不跳进去了。&lt;/p&gt;
+&lt;p&gt;NativeLabelScanStore 的init，我也先不跳进去了。&lt;/p&gt;
 
 &lt;p&gt;再看start：&lt;/p&gt;
 
@@ -1798,7 +1887,7 @@ indexMap.putIndexProxy( indexId, indexProxy );
 
 &lt;p&gt;然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-jva&#34;&gt;new RecordStorageEngine()
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;new RecordStorageEngine()
 neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
 return new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );

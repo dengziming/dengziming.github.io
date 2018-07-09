@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="203">
+<meta itemprop="wordCount" content="705">
 
 
 
@@ -179,8 +179,8 @@
               <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
             
           </div>
-        <span class="more-meta"> 203 words </span>
-        <span class="more-meta"> 1 min read </span>
+        <span class="more-meta"> 705 words </span>
+        <span class="more-meta"> 2 min read </span>
       </div>
     </header>
 
@@ -229,20 +229,91 @@
 
 <h3 id="2-常见异常">2.常见异常</h3>
 
-<p>cached in local repository &hellip;
-这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。</p>
+<ol>
+<li><p>cached in local repository &hellip;
+这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。</p></li>
 
-<p>can&rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
-例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 <code>mvn clean install -DskipTests=true -rf :janusgraph-es</code></p>
+<li><p>can&rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
+例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 <code>mvn clean install -DskipTests=true -rf :janusgraph-es</code></p></li>
 
-<p>java return cannot find symbol som.sun.*
-可以换成jdk1.8.</p>
+<li><p>java return cannot find symbol com.sun.*
+可以换成 jdk1.8.</p></li>
 
-<p>Missing tools.jar at: /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/Classes/classes.jar. Expression: file.exists()
-cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
+<li><p>Missing tools.jar at: /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/Classes/classes.jar. Expression: file.exists()</p></li>
+</ol>
+
+<p>原因，maven 的配置文件的 profiles 中有个 profile：</p>
+
+<pre><code>&lt;profile&gt;
+  &lt;id&gt;osx-jdk&lt;/id&gt;
+  &lt;activation&gt;
+    &lt;file&gt;
+      &lt;exists&gt;${java.home}/../Classes/classes.jar&lt;/exists&gt;
+    &lt;/file&gt;
+  &lt;/activation&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;jdk.tools&lt;/groupId&gt;
+      &lt;artifactId&gt;jdk.tools&lt;/artifactId&gt;
+      &lt;scope&gt;system&lt;/scope&gt;
+      &lt;version&gt;1.6&lt;/version&gt;
+      &lt;systemPath&gt;${java.home}/../Classes/classes.jar&lt;/systemPath&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/profile&gt;
+</code></pre>
+
+<p>activation 代表使用条件，${java.home} 代表 JRE 目录，如果这个文件存在就是用 osx-jdk。现在是因为这个文件不存在，所以只要让这个文件存在即可。</p>
+
+<p>解决办法：<a href="https://stackoverflow.com/questions/23971229/maven-install-hadoop-from-source-looking-in-the-wrong-path-for-tools-jar">https://stackoverflow.com/questions/23971229/maven-install-hadoop-from-source-looking-in-the-wrong-path-for-tools-jar</a></p>
+
+<p>cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
 sudo mkdir Classes
 cd Classes/
 sudo ln -s ../jre/lib/rt.jar classes.jar</p>
+
+<ol>
+<li>
+neo4j-3.4/community/dbms/src/main/java/org/neo4j/dbms/diagnostics/jmx/LocalVirtualMachine.java:[23,28] package com.sun.tools.attach does not exist</li>
+</ol>
+
+<p>这个和上面的错误很类似，上面的错误是因为我们通过在 jre 目录下面做了一个软连接，把 rt.jar 连接到了 classes.jar，classes.jar 包中没有 com.sun.tools.attach，而它需要的是 tools.jar，</p>
+
+<p>解决办法：</p>
+
+<p>cd /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/
+sudo rm -rf Classes/classes.jar
+sudo ln -s lib/tools.jar Classes/classes.jar</p>
+
+<ol>
+<li></li>
+</ol>
+
+<p>not found: type InputPosition
+not found: value Eagerly</p>
+
+<p>解决方案：
+一般是 scala 编译器没配置好。重新设置。
+有时候 IDEA 运行没问题，但是打包报这个问题，解决方案？
+目前不知道，重新 import 后，找个类运行一下，然后再打包就成功了。</p>
+
+<p>mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install -rf :neo4j-cypher-util-3.4</p>
+
+<ol>
+<li>
+inspect a maven model for resolution</li>
+</ol>
+
+<p>Maven -&gt; Reimport</p>
+
+<ol>
+<li>
+/Users/dengziming/opt/sourcecode/neo4j-3.4/community/cypher/interpreted-runtime/src/test/scala/org/neo4j/cypher/internal/runtime/interpreted/commands/ComparablePredicateTest.scala:53: warning: a type was inferred to be <code>Any</code>; this may indicate a programming error.
+[ERROR]     case v: Number if v.doubleValue().isNaN =&gt; Seq(v.doubleValue(), v.floatValue(), v)
+[ERROR]          ^</li>
+</ol>
+
+<p>这个问题好像没造成停止。</p>
 
 <h3 id="3-常用命令">3.常用命令</h3>
 
@@ -298,7 +369,7 @@ sudo ln -s ../jre/lib/rt.jar classes.jar</p>
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/java/first/">
+          <a class="prev" href="/post/titan/first/">
             <i class="iconfont icon-left"></i>
             <span class="prev-text nav-default">如何在github.io搭建Hugo博客</span>
             <span class="prev-text nav-mobile">Prev</span>

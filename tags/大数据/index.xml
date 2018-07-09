@@ -75,7 +75,7 @@ If you would like to have a dedicated master node, then change the node.data pro
 
 &lt;h4 id=&#34;4-coordinating-node&#34;&gt;（4）coordinating node&lt;/h4&gt;
 
-&lt;p&gt;注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而balance the load.&lt;/p&gt;
+&lt;p&gt;注意没有专门的coordinating node，通过client连上的的es节点称为 coordinating node，将client request 路由到合适的shard。对于读请求，每次选择不同的shard 从而 balance the load.&lt;/p&gt;
 
 &lt;h3 id=&#34;2-storage-model&#34;&gt;2. Storage Model&lt;/h3&gt;
 

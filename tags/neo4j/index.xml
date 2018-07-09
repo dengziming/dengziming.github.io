@@ -1012,7 +1012,7 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
         createRelationshipTypeCreator( config, dataSourceManager, idGeneratorFactory ) ) ));
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，先跳过。&lt;/p&gt;
+&lt;p&gt;这几步用到了 dataSourceManager ，但是具体干啥了暂且不知道，看名字应该是属性标签和关系等存储相关，先跳过。&lt;/p&gt;
 
 &lt;p&gt;然后是 DataSourceModule 的 dataSourceManager.register( neoStoreDataSource );这里我们需要先看看 neoStoreDataSource 是啥。 打断点到 neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource())，然后继续看看。&lt;/p&gt;
 
@@ -1078,9 +1078,9 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;IndexingService的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。&lt;/p&gt;
+&lt;p&gt;IndexingService 的init方法，你可以选择跳进去，但是我不想跳进去了，不然进了但梦空间挑不出来。。。以后再看吧，姑且认为这个类和索引有关。&lt;/p&gt;
 
-&lt;p&gt;NativeLabelScanStore的init，我也先不跳进去了。&lt;/p&gt;
+&lt;p&gt;NativeLabelScanStore 的init，我也先不跳进去了。&lt;/p&gt;
 
 &lt;p&gt;再看start：&lt;/p&gt;
 
@@ -1599,7 +1599,7 @@ indexMap.putIndexProxy( indexId, indexProxy );
 
 &lt;p&gt;然后我们在 NodeStore 类的构造方法打断点。可以找到整个调用的栈帧：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-jva&#34;&gt;new RecordStorageEngine()
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;new RecordStorageEngine()
 neoStores = factory.openAllNeoStores( true );
 return openNeoStores( createStoreIfNotExists, StoreType.values() );
 return new NeoStores( neoStoreFileName, config, idGeneratorFactory, pageCache, logProvider,fileSystemAbstraction, recordFormats, createStoreIfNotExists, storeTypes, openOptions );

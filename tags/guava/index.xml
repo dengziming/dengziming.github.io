@@ -1,0 +1,1089 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Guava on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/guava/</link>
+    <description>Recent content in Guava on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/guava/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>guava学习</title>
+      <link>https://dengziming.github.io/post/java/guava/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/java/guava/</guid>
+      
+        <description>
+
+&lt;p&gt;&lt;a href=&#34;https://www.tutorialspoint.com/guava/guava_optional_class.htm&#34;&gt;https://www.tutorialspoint.com/guava/guava_optional_class.htm&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;optional&#34;&gt;Optional&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.base.Optional;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester guavaTester = new GuavaTester();
+
+      Integer value1 =  null;
+      Integer value2 =  new Integer(10);
+      
+      //Optional.fromNullable - allows passed parameter to be null.
+      Optional&amp;lt;Integer&amp;gt; a = Optional.fromNullable(value1);
+      
+      //Optional.of - throws NullPointerException if passed parameter is null
+      Optional&amp;lt;Integer&amp;gt; b = Optional.of(value2);		
+
+      System.out.println(guavaTester.sum(a,b));
+   }
+
+   public Integer sum(Optional&amp;lt;Integer&amp;gt; a, Optional&amp;lt;Integer&amp;gt; b) {
+      //Optional.isPresent - checks the value is present or not
+      System.out.println(&amp;quot;First parameter is present: &amp;quot; + a.isPresent());
+
+      System.out.println(&amp;quot;Second parameter is present: &amp;quot; + b.isPresent());
+
+      //Optional.or - returns the value if present otherwise returns
+      //the default value passed.
+      Integer value1 = a.or(new Integer(0));	
+
+      //Optional.get - gets the value, value should be present
+      Integer value2 = b.get();
+
+      return value1 + value2;
+   }	
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Optional 主要方法为 fromNullable 、of 、isPresent 、or 、 get
+结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;First parameter is present: false
+Second parameter is present: true
+10
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;preconditions&#34;&gt;Preconditions&lt;/h2&gt;
+
+&lt;p&gt;Preconditions 用来检查参数&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.base.Preconditions;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      GuavaTester guavaTester = new GuavaTester();
+
+      try {
+         System.out.println(guavaTester.sqrt(-3.0));
+      } catch(IllegalArgumentException e) {
+         System.out.println(e.getMessage());
+      }
+
+      try {
+         System.out.println(guavaTester.sum(null,3));
+      } catch(NullPointerException e) {
+         System.out.println(e.getMessage());
+      }
+
+      try {
+         System.out.println(guavaTester.getValue(6));
+      } catch(IndexOutOfBoundsException e) {
+         System.out.println(e.getMessage());
+      }
+   }
+
+   public double sqrt(double input) throws IllegalArgumentException {
+      Preconditions.checkArgument(input &amp;gt; 0.0,
+         &amp;quot;Illegal Argument passed: Negative value %s.&amp;quot;, input);
+      return Math.sqrt(input);
+   }
+
+   public int sum(Integer a, Integer b) {
+      a = Preconditions.checkNotNull(a, &amp;quot;Illegal Argument passed: First parameter is Null.&amp;quot;);
+      b = Preconditions.checkNotNull(b, &amp;quot;Illegal Argument passed: Second parameter is Null.&amp;quot;);
+
+      return a+b;
+   }
+
+   public int getValue(int input) {
+      int[] data = {1,2,3,4,5};
+      Preconditions.checkElementIndex(input,data.length, &amp;quot;Illegal Argument passed: Invalid index.&amp;quot;);
+      return 0;
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出主要方法： checkArgument 、 checkNotNull 、checkElementIndex&lt;/p&gt;
+
+&lt;p&gt;返回结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Illegal Argument passed: Negative value -3.0.
+Illegal Argument passed: First parameter is Null.
+Illegal Argument passed: Invalid index. (6) must be less than size (5)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;ordering&#34;&gt;Ordering&lt;/h2&gt;
+
+&lt;p&gt;enriched comparator&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import com.google.common.collect.Ordering;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      List&amp;lt;Integer&amp;gt; numbers = new ArrayList&amp;lt;Integer&amp;gt;();
+      
+      numbers.add(new Integer(5));
+      numbers.add(new Integer(2));
+      numbers.add(new Integer(15));
+      numbers.add(new Integer(51));
+      numbers.add(new Integer(53));
+      numbers.add(new Integer(35));
+      numbers.add(new Integer(45));
+      numbers.add(new Integer(32));
+      numbers.add(new Integer(43));
+      numbers.add(new Integer(16));
+
+      Ordering ordering = Ordering.natural();
+      System.out.println(&amp;quot;Input List: &amp;quot;);
+      System.out.println(numbers);		
+         
+      Collections.sort(numbers,ordering );
+      System.out.println(&amp;quot;Sorted List: &amp;quot;);
+      System.out.println(numbers);
+         
+      System.out.println(&amp;quot;======================&amp;quot;);
+      System.out.println(&amp;quot;List is sorted: &amp;quot; + ordering.isOrdered(numbers));
+      System.out.println(&amp;quot;Minimum: &amp;quot; + ordering.min(numbers));
+      System.out.println(&amp;quot;Maximum: &amp;quot; + ordering.max(numbers));
+         
+      Collections.sort(numbers,ordering.reverse());
+      System.out.println(&amp;quot;Reverse: &amp;quot; + numbers);
+
+      numbers.add(null);
+      System.out.println(&amp;quot;Null added to Sorted List: &amp;quot;);
+      System.out.println(numbers);		
+
+      Collections.sort(numbers,ordering.nullsFirst());
+      System.out.println(&amp;quot;Null first Sorted List: &amp;quot;);
+      System.out.println(numbers);
+      System.out.println(&amp;quot;======================&amp;quot;);
+
+      List&amp;lt;String&amp;gt; names = new ArrayList&amp;lt;String&amp;gt;();
+      
+      names.add(&amp;quot;Ram&amp;quot;);
+      names.add(&amp;quot;Shyam&amp;quot;);
+      names.add(&amp;quot;Mohan&amp;quot;);
+      names.add(&amp;quot;Sohan&amp;quot;);
+      names.add(&amp;quot;Ramesh&amp;quot;);
+      names.add(&amp;quot;Suresh&amp;quot;);
+      names.add(&amp;quot;Naresh&amp;quot;);
+      names.add(&amp;quot;Mahesh&amp;quot;);
+      names.add(null);
+      names.add(&amp;quot;Vikas&amp;quot;);
+      names.add(&amp;quot;Deepak&amp;quot;);
+
+      System.out.println(&amp;quot;Another List: &amp;quot;);
+      System.out.println(names);
+
+      Collections.sort(names,ordering.nullsFirst().reverse());
+      System.out.println(&amp;quot;Null first then reverse sorted list: &amp;quot;);
+      System.out.println(names);
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出主要方法：natural、Collections.sort(numbers,ordering ) 、min、max、reverse、nullsFirst&lt;/p&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Input List: 
+[5, 2, 15, 51, 53, 35, 45, 32, 43, 16]
+Sorted List: 
+[2, 5, 15, 16, 32, 35, 43, 45, 51, 53]
+======================
+List is sorted: true
+Minimum: 2
+Maximum: 53
+Reverse: [53, 51, 45, 43, 35, 32, 16, 15, 5, 2]
+Null added to Sorted List: 
+[53, 51, 45, 43, 35, 32, 16, 15, 5, 2, null]
+Null first Sorted List: 
+[null, 2, 5, 15, 16, 32, 35, 43, 45, 51, 53]
+======================
+Another List: 
+[Ram, Shyam, Mohan, Sohan, Ramesh, Suresh, Naresh, Mahesh, null, Vikas, Deepak]
+Null first then reverse sorted list: 
+[Vikas, Suresh, Sohan, Shyam, Ramesh, Ram, Naresh, Mohan, Mahesh, Deepak, null]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;objects&#34;&gt;Objects&lt;/h2&gt;
+
+&lt;p&gt;Objects class provides helper functions applicable to all objects such as equals, hashCode, etc.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.base.Objects;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      Student s1 = new Student(&amp;quot;Mahesh&amp;quot;, &amp;quot;Parashar&amp;quot;, 1, &amp;quot;VI&amp;quot;);	
+      Student s2 = new Student(&amp;quot;Suresh&amp;quot;, null, 3, null);	
+	  
+      System.out.println(s1.equals(s2));
+      System.out.println(s1.hashCode());	
+      System.out.println(
+         Objects.toStringHelper(s1)
+         .add(&amp;quot;Name&amp;quot;,s1.getFirstName()+&amp;quot; &amp;quot; + s1.getLastName())
+         .add(&amp;quot;Class&amp;quot;, s1.getClassName())
+         .add(&amp;quot;Roll No&amp;quot;, s1.getRollNo())
+         .toString());
+   }
+}
+
+class Student {
+   private String firstName;
+   private String lastName;
+   private int rollNo;
+   private String className;
+
+   public Student(String firstName, String lastName, int rollNo, String className) {
+      this.firstName = firstName;
+      this.lastName = lastName;
+      this.rollNo = rollNo;
+      this.className = className;		
+   }
+
+   @Override
+   public boolean equals(Object object) {
+      if(!(object instanceof Student) || object == null) {
+         return false;
+      }
+      Student student = (Student)object;
+      // no need to handle null here		
+      // Objects.equal(&amp;quot;test&amp;quot;, &amp;quot;test&amp;quot;) == true
+      // Objects.equal(&amp;quot;test&amp;quot;, null) == false
+      // Objects.equal(null, &amp;quot;test&amp;quot;) == false
+      // Objects.equal(null, null) == true		
+      return Objects.equal(firstName, student.firstName)  // first name can be null
+         &amp;amp;&amp;amp; Objects.equal(lastName, student.lastName)     // last name can be null
+         &amp;amp;&amp;amp; Objects.equal(rollNo, student.rollNo)	
+         &amp;amp;&amp;amp; Objects.equal(className, student.className);  // class name can be null
+   }
+
+   @Override
+   public int hashCode() {
+      //no need to compute hashCode by self
+      return Objects.hashCode(className,rollNo);
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出主要方法： hashCode、equal、toStringHelper 等&lt;/p&gt;
+
+&lt;p&gt;结果&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-false&#34;&gt;85871
+Student{Name=Mahesh Parashar, Class=VI, Roll No=1}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;range&#34;&gt;Range&lt;/h2&gt;
+
+&lt;p&gt;类似 scala&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.collect.ContiguousSet;
+import com.google.common.collect.DiscreteDomain;
+import com.google.common.collect.Range;
+import com.google.common.primitives.Ints;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testRange();
+   }
+
+   private void testRange() {
+
+      //create a range [a,b] = { x | a &amp;lt;= x &amp;lt;= b}
+      Range&amp;lt;Integer&amp;gt; range1 = Range.closed(0, 9);	
+      System.out.print(&amp;quot;[0,9] : &amp;quot;);
+      printRange(range1);		
+      
+      System.out.println(&amp;quot;5 is present: &amp;quot; + range1.contains(5));
+      System.out.println(&amp;quot;(1,2,3) is present: &amp;quot; + range1.containsAll(Ints.asList(1, 2, 3)));
+      System.out.println(&amp;quot;Lower Bound: &amp;quot; + range1.lowerEndpoint());
+      System.out.println(&amp;quot;Upper Bound: &amp;quot; + range1.upperEndpoint());
+
+      //create a range (a,b) = { x | a &amp;lt; x &amp;lt; b}
+      Range&amp;lt;Integer&amp;gt; range2 = Range.open(0, 9);
+      System.out.print(&amp;quot;(0,9) : &amp;quot;);
+      printRange(range2);
+
+      //create a range (a,b] = { x | a &amp;lt; x &amp;lt;= b}
+      Range&amp;lt;Integer&amp;gt; range3 = Range.openClosed(0, 9);
+      System.out.print(&amp;quot;(0,9] : &amp;quot;);
+      printRange(range3);
+
+      //create a range [a,b) = { x | a &amp;lt;= x &amp;lt; b}
+      Range&amp;lt;Integer&amp;gt; range4 = Range.closedOpen(0, 9);
+      System.out.print(&amp;quot;[0,9) : &amp;quot;);
+      printRange(range4);
+
+      //create an open ended range (9, infinity
+      Range&amp;lt;Integer&amp;gt; range5 = Range.greaterThan(9);
+      System.out.println(&amp;quot;(9,infinity) : &amp;quot;);
+      System.out.println(&amp;quot;Lower Bound: &amp;quot; + range5.lowerEndpoint());
+      System.out.println(&amp;quot;Upper Bound present: &amp;quot; + range5.hasUpperBound());
+
+      Range&amp;lt;Integer&amp;gt; range6 = Range.closed(3, 5);	
+      printRange(range6);
+
+      //check a subrange [3,5] in [0,9]
+      System.out.println(&amp;quot;[0,9] encloses [3,5]:&amp;quot; + range1.encloses(range6));
+
+      Range&amp;lt;Integer&amp;gt; range7 = Range.closed(9, 20);	
+      printRange(range7);
+      
+      //check ranges to be connected		
+      System.out.println(&amp;quot;[0,9] is connected [9,20]:&amp;quot; + range1.isConnected(range7));
+      Range&amp;lt;Integer&amp;gt; range8 = Range.closed(5, 15);	
+
+      //intersection
+      printRange(range1.intersection(range8));
+
+      //span
+      printRange(range1.span(range8));
+   }
+
+   private void printRange(Range&amp;lt;Integer&amp;gt; range) {		
+   
+      System.out.print(&amp;quot;[ &amp;quot;);
+      
+      for(int grade : ContiguousSet.create(range, DiscreteDomain.integers())) {
+         System.out.print(grade +&amp;quot; &amp;quot;);
+      }
+      System.out.println(&amp;quot;]&amp;quot;);
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;主要方法：contains 、containsAll、lowerEndpoint、upperEndpoint、open、closed、closedOpen、openClosed、greaterThan、hasUpperBound、encloses&lt;/p&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[0,9] : [ 0 1 2 3 4 5 6 7 8 9 ]
+5 is present: true
+(1,2,3) is present: true
+Lower Bound: 0
+Upper Bound: 9
+(0,9) : [ 1 2 3 4 5 6 7 8 ]
+(0,9] : [ 1 2 3 4 5 6 7 8 9 ]
+[0,9) : [ 0 1 2 3 4 5 6 7 8 ]
+(9,infinity) : 
+Lower Bound: 9
+Upper Bound present: false
+[ 3 4 5 ]
+[0,9] encloses [3,5]:true
+[ 9 10 11 12 13 14 15 16 17 18 19 20 ]
+[0,9] is connected [9,20]:true
+[ 5 6 7 8 9 ]
+[ 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;throwable&#34;&gt;Throwable&lt;/h2&gt;
+
+&lt;p&gt;抛出异常：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.io.IOException;
+
+import com.google.common.base.Objects;
+import com.google.common.base.Throwables;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      GuavaTester tester = new GuavaTester();
+
+      try {
+         tester.showcaseThrowables();
+         
+      } catch (InvalidInputException e) {
+         //get the root cause
+         System.out.println(Throwables.getRootCause(e));
+      
+      } catch (Exception e) {
+         //get the stack trace in string format
+         System.out.println(Throwables.getStackTraceAsString(e));
+      }
+
+      try {
+         tester.showcaseThrowables1();
+
+      } catch (Exception e) {
+         System.out.println(Throwables.getStackTraceAsString(e));
+      }
+   }
+
+   public void showcaseThrowables() throws InvalidInputException {
+      try {
+         sqrt(-3.0);
+      } catch (Throwable e) {
+         //check the type of exception and throw it
+         Throwables.propagateIfInstanceOf(e, InvalidInputException.class);
+         Throwables.propagate(e);
+      }
+   }
+
+   public void showcaseThrowables1() {
+      try {
+         int[] data = {1,2,3};
+         getValue(data, 4);
+      } catch (Throwable e) {
+         Throwables.propagateIfInstanceOf(e, IndexOutOfBoundsException.class);
+         Throwables.propagate(e);
+      }
+   }
+
+   public double sqrt(double input) throws InvalidInputException {
+      if(input &amp;lt; 0) throw new InvalidInputException();
+      return Math.sqrt(input);
+   }
+
+   public double getValue(int[] list, int index) throws IndexOutOfBoundsException {
+      return list[index];
+   }
+
+   public void dummyIO() throws IOException {
+      throw new IOException();
+   }
+}
+
+class InvalidInputException extends Exception {
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;主要方法：
+getStackTraceAsString、propagate、propagateIfInstanceOf、getRootCause
+结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;InvalidInputException
+java.lang.ArrayIndexOutOfBoundsException: 4
+   at GuavaTester.getValue(GuavaTester.java:52)
+   at GuavaTester.showcaseThrowables1(GuavaTester.java:38)
+   at GuavaTester.main(GuavaTester.java:19)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;collections&#34;&gt;Collections&lt;/h2&gt;
+
+&lt;h3 id=&#34;multiset&#34;&gt;Multiset&lt;/h3&gt;
+
+&lt;p&gt;可以有重复元素&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.Iterator;
+import java.util.Set;
+
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+   
+      //create a multiset collection
+      Multiset&amp;lt;String&amp;gt; multiset = HashMultiset.create();
+      
+      multiset.add(&amp;quot;a&amp;quot;);
+      multiset.add(&amp;quot;b&amp;quot;);
+      multiset.add(&amp;quot;c&amp;quot;);
+      multiset.add(&amp;quot;d&amp;quot;);
+      multiset.add(&amp;quot;a&amp;quot;);
+      multiset.add(&amp;quot;b&amp;quot;);
+      multiset.add(&amp;quot;c&amp;quot;);
+      multiset.add(&amp;quot;b&amp;quot;);
+      multiset.add(&amp;quot;b&amp;quot;);
+      multiset.add(&amp;quot;b&amp;quot;);
+      
+      //print the occurrence of an element
+      System.out.println(&amp;quot;Occurrence of &#39;b&#39; : &amp;quot;+multiset.count(&amp;quot;b&amp;quot;));
+      
+      //print the total size of the multiset
+      System.out.println(&amp;quot;Total Size : &amp;quot;+multiset.size());
+      
+      //get the distinct elements of the multiset as set
+      Set&amp;lt;String&amp;gt; set = multiset.elementSet();
+
+      //display the elements of the set
+      System.out.println(&amp;quot;Set [&amp;quot;);
+      
+      for (String s : set) {
+         System.out.println(s);
+      }
+
+      System.out.println(&amp;quot;]&amp;quot;);
+      
+      //display all the elements of the multiset using iterator
+      Iterator&amp;lt;String&amp;gt; iterator  = multiset.iterator();
+      System.out.println(&amp;quot;MultiSet [&amp;quot;);
+
+      while(iterator.hasNext()) {
+         System.out.println(iterator.next());
+      }
+      
+      System.out.println(&amp;quot;]&amp;quot;);
+      
+      //display the distinct elements of the multiset with their occurrence count
+      System.out.println(&amp;quot;MultiSet [&amp;quot;);
+
+      for (Multiset.Entry&amp;lt;String&amp;gt; entry : multiset.entrySet()) {
+         System.out.println(&amp;quot;Element: &amp;quot; + entry.getElement() + &amp;quot;, Occurrence(s): &amp;quot; + entry.getCount());
+      }
+      System.out.println(&amp;quot;]&amp;quot;);
+
+      //remove extra occurrences
+      multiset.remove(&amp;quot;b&amp;quot;,2);
+      
+      //print the occurrence of an element
+      System.out.println(&amp;quot;Occurence of &#39;b&#39; : &amp;quot; + multiset.count(&amp;quot;b&amp;quot;));
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;主要方法：HashMultiset.create();、 add 、count、size、elementSet、iterator、entrySet&lt;/p&gt;
+
+&lt;h3 id=&#34;multimap&#34;&gt;Multimap&lt;/h3&gt;
+
+&lt;p&gt;和MultiSet类似，每个 key 可以隐射多个值&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      GuavaTester tester = new GuavaTester();
+      Multimap&amp;lt;String,String&amp;gt; multimap = tester.getMultimap();
+
+      List&amp;lt;String&amp;gt; lowerList = (List&amp;lt;String&amp;gt;)multimap.get(&amp;quot;lower&amp;quot;);
+      System.out.println(&amp;quot;Initial lower case list&amp;quot;);
+      System.out.println(lowerList.toString());
+
+      lowerList.add(&amp;quot;f&amp;quot;);
+      System.out.println(&amp;quot;Modified lower case list&amp;quot;);
+      System.out.println(lowerList.toString());
+
+      List&amp;lt;String&amp;gt; upperList = (List&amp;lt;String&amp;gt;)multimap.get(&amp;quot;upper&amp;quot;);
+      System.out.println(&amp;quot;Initial upper case list&amp;quot;);
+      System.out.println(upperList.toString());
+
+      upperList.remove(&amp;quot;D&amp;quot;);
+      System.out.println(&amp;quot;Modified upper case list&amp;quot;);
+      System.out.println(upperList.toString());
+
+      Map&amp;lt;String, Collection&amp;lt;String&amp;gt;&amp;gt; map = multimap.asMap();
+      System.out.println(&amp;quot;Multimap as a map&amp;quot;);
+
+      for (Map.Entry&amp;lt;String,  Collection&amp;lt;String&amp;gt;&amp;gt; entry : map.entrySet()) {
+         String key = entry.getKey();
+         Collection&amp;lt;String&amp;gt; value =  multimap.get(&amp;quot;lower&amp;quot;);
+         System.out.println(key + &amp;quot;:&amp;quot; + value);
+      }
+
+      System.out.println(&amp;quot;Keys of Multimap&amp;quot;);
+      Set&amp;lt;String&amp;gt; keys =  multimap.keySet();
+
+      for(String key:keys) {
+         System.out.println(key);
+      }
+
+      System.out.println(&amp;quot;Values of Multimap&amp;quot;);
+      Collection&amp;lt;String&amp;gt; values = multimap.values();
+      System.out.println(values);
+   }
+
+   private Multimap&amp;lt;String,String&amp;gt; getMultimap() {
+
+      //Map&amp;lt;String, List&amp;lt;String&amp;gt;&amp;gt;
+      // lower -&amp;gt; a, b, c, d, e
+      // upper -&amp;gt; A, B, C, D
+
+      Multimap&amp;lt;String,String&amp;gt; multimap = ArrayListMultimap.create();
+
+      multimap.put(&amp;quot;lower&amp;quot;, &amp;quot;a&amp;quot;);
+      multimap.put(&amp;quot;lower&amp;quot;, &amp;quot;b&amp;quot;);
+      multimap.put(&amp;quot;lower&amp;quot;, &amp;quot;c&amp;quot;);
+      multimap.put(&amp;quot;lower&amp;quot;, &amp;quot;d&amp;quot;);
+      multimap.put(&amp;quot;lower&amp;quot;, &amp;quot;e&amp;quot;);
+
+      multimap.put(&amp;quot;upper&amp;quot;, &amp;quot;A&amp;quot;);
+      multimap.put(&amp;quot;upper&amp;quot;, &amp;quot;B&amp;quot;);
+      multimap.put(&amp;quot;upper&amp;quot;, &amp;quot;C&amp;quot;);
+      multimap.put(&amp;quot;upper&amp;quot;, &amp;quot;D&amp;quot;);		
+
+      return multimap;
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Initial lower case list
+[a, b, c, d, e]
+Modified lower case list
+[a, b, c, d, e, f]
+Initial upper case list
+[A, B, C, D]
+Modified upper case list
+[A, B, C]
+Multimap as a map
+upper:[a, b, c, d, e, f]
+lower:[a, b, c, d, e, f]
+Keys of Multimap
+upper
+lower
+Values of Multimap
+[a, b, c, d, e, f, A, B, C]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;bimap&#34;&gt;Bimap&lt;/h3&gt;
+
+&lt;p&gt;A BiMap is a special kind of map which maintains an inverse view of the map while ensuring that no duplicate values are present in the map and a value can be used safely to get the key back.&lt;/p&gt;
+
+&lt;p&gt;biMap 内部将 key value进行反转，保存了一个 value-key的对，保证 Value不重复。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      BiMap&amp;lt;Integer, String&amp;gt; empIDNameMap = HashBiMap.create();
+
+      empIDNameMap.put(new Integer(101), &amp;quot;Mahesh&amp;quot;);
+      empIDNameMap.put(new Integer(102), &amp;quot;Sohan&amp;quot;);
+      empIDNameMap.put(new Integer(103), &amp;quot;Ramesh&amp;quot;);
+
+      //Emp Id of Employee &amp;quot;Mahesh&amp;quot;
+      System.out.println(empIDNameMap.inverse().get(&amp;quot;Mahesh&amp;quot;));
+   }	
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;101
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It is similar to creating a map of maps.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.Map;
+import java.util.Set;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      //Table&amp;lt;R,C,V&amp;gt; == Map&amp;lt;R,Map&amp;lt;C,V&amp;gt;&amp;gt;
+      /*
+      *  Company: IBM, Microsoft, TCS
+      *  IBM 		-&amp;gt; {101:Mahesh, 102:Ramesh, 103:Suresh}
+      *  Microsoft 	-&amp;gt; {101:Sohan, 102:Mohan, 103:Rohan } 
+      *  TCS 		-&amp;gt; {101:Ram, 102: Shyam, 103: Sunil } 
+      * 
+      * */
+      
+      //create a table
+      Table&amp;lt;String, String, String&amp;gt; employeeTable = HashBasedTable.create();
+
+      //initialize the table with employee details
+      employeeTable.put(&amp;quot;IBM&amp;quot;, &amp;quot;101&amp;quot;,&amp;quot;Mahesh&amp;quot;);
+      employeeTable.put(&amp;quot;IBM&amp;quot;, &amp;quot;102&amp;quot;,&amp;quot;Ramesh&amp;quot;);
+      employeeTable.put(&amp;quot;IBM&amp;quot;, &amp;quot;103&amp;quot;,&amp;quot;Suresh&amp;quot;);
+
+      employeeTable.put(&amp;quot;Microsoft&amp;quot;, &amp;quot;111&amp;quot;,&amp;quot;Sohan&amp;quot;);
+      employeeTable.put(&amp;quot;Microsoft&amp;quot;, &amp;quot;112&amp;quot;,&amp;quot;Mohan&amp;quot;);
+      employeeTable.put(&amp;quot;Microsoft&amp;quot;, &amp;quot;113&amp;quot;,&amp;quot;Rohan&amp;quot;);
+
+      employeeTable.put(&amp;quot;TCS&amp;quot;, &amp;quot;121&amp;quot;,&amp;quot;Ram&amp;quot;);
+      employeeTable.put(&amp;quot;TCS&amp;quot;, &amp;quot;122&amp;quot;,&amp;quot;Shyam&amp;quot;);
+      employeeTable.put(&amp;quot;TCS&amp;quot;, &amp;quot;123&amp;quot;,&amp;quot;Sunil&amp;quot;);
+
+      //get Map corresponding to IBM
+      Map&amp;lt;String,String&amp;gt; ibmEmployees =  employeeTable.row(&amp;quot;IBM&amp;quot;);
+
+      System.out.println(&amp;quot;List of IBM Employees&amp;quot;);
+      
+      for(Map.Entry&amp;lt;String, String&amp;gt; entry : ibmEmployees.entrySet()) {
+         System.out.println(&amp;quot;Emp Id: &amp;quot; + entry.getKey() + &amp;quot;, Name: &amp;quot; + entry.getValue());
+      }
+
+      //get all the unique keys of the table
+      Set&amp;lt;String&amp;gt; employers = employeeTable.rowKeySet();
+      System.out.print(&amp;quot;Employers: &amp;quot;);
+      
+      for(String employer: employers) {
+         System.out.print(employer + &amp;quot; &amp;quot;);
+      }
+      
+      System.out.println();
+
+      //get a Map corresponding to 102
+      Map&amp;lt;String,String&amp;gt; EmployerMap =  employeeTable.column(&amp;quot;102&amp;quot;);
+      
+      for(Map.Entry&amp;lt;String, String&amp;gt; entry : EmployerMap.entrySet()) {
+         System.out.println(&amp;quot;Employer: &amp;quot; + entry.getKey() + &amp;quot;, Name: &amp;quot; + entry.getValue());
+      }		
+   }	
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;loadingcache&#34;&gt;LoadingCache&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.MoreObjects;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      //create a cache for employees based on their employee id
+      LoadingCache&amp;lt;String, Employee&amp;gt; employeeCache = 
+         CacheBuilder.newBuilder()
+         .maximumSize(100)                             // maximum 100 records can be cached
+         .expireAfterAccess(30, TimeUnit.MINUTES)      // cache will expire after 30 minutes of access
+         .build(new CacheLoader&amp;lt;String, Employee&amp;gt;() {  // build the cacheloader
+            
+            @Override
+            public Employee load(String empId) throws Exception {
+               //make the expensive call
+               return getFromDatabase(empId);
+            } 
+         });
+
+      try {			
+         //on first invocation, cache will be populated with corresponding
+         //employee record
+         System.out.println(&amp;quot;Invocation #1&amp;quot;);
+         System.out.println(employeeCache.get(&amp;quot;100&amp;quot;));
+         System.out.println(employeeCache.get(&amp;quot;103&amp;quot;));
+         System.out.println(employeeCache.get(&amp;quot;110&amp;quot;));
+         
+         //second invocation, data will be returned from cache
+         System.out.println(&amp;quot;Invocation #2&amp;quot;);
+         System.out.println(employeeCache.get(&amp;quot;100&amp;quot;));
+         System.out.println(employeeCache.get(&amp;quot;103&amp;quot;));
+         System.out.println(employeeCache.get(&amp;quot;110&amp;quot;));
+
+      } catch (ExecutionException e) {
+         e.printStackTrace();
+      }
+   }
+
+   private static Employee getFromDatabase(String empId) {
+   
+      Employee e1 = new Employee(&amp;quot;Mahesh&amp;quot;, &amp;quot;Finance&amp;quot;, &amp;quot;100&amp;quot;);
+      Employee e2 = new Employee(&amp;quot;Rohan&amp;quot;, &amp;quot;IT&amp;quot;, &amp;quot;103&amp;quot;);
+      Employee e3 = new Employee(&amp;quot;Sohan&amp;quot;, &amp;quot;Admin&amp;quot;, &amp;quot;110&amp;quot;);
+
+      Map&amp;lt;String, Employee&amp;gt; database = new HashMap&amp;lt;String, Employee&amp;gt;();
+      
+      database.put(&amp;quot;100&amp;quot;, e1);
+      database.put(&amp;quot;103&amp;quot;, e2);
+      database.put(&amp;quot;110&amp;quot;, e3);
+      
+      System.out.println(&amp;quot;Database hit for&amp;quot; + empId);
+      
+      return database.get(empId);		
+   }
+}
+
+class Employee {
+   String name;
+   String dept;
+   String emplD;
+
+   public Employee(String name, String dept, String empID) {
+      this.name = name;
+      this.dept = dept;
+      this.emplD = empID;
+   }
+   
+   public String getName() {
+      return name;
+   }
+   
+   public void setName(String name) {
+      this.name = name;
+   }
+   
+   public String getDept() {
+      return dept;
+   }
+   
+   public void setDept(String dept) {
+      this.dept = dept;
+   }
+   
+   public String getEmplD() {
+      return emplD;
+   }
+   
+   public void setEmplD(String emplD) {
+      this.emplD = emplD;
+   }
+
+   @Override
+   public String toString() {
+      return MoreObjects.toStringHelper(Employee.class)
+      .add(&amp;quot;Name&amp;quot;, name)
+      .add(&amp;quot;Department&amp;quot;, dept)
+      .add(&amp;quot;Emp Id&amp;quot;, emplD).toString();
+   }	
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Invocation #1
+Database hit for100
+Employee{Name=Mahesh, Department=Finance, Emp Id=100}
+Database hit for103
+Employee{Name=Rohan, Department=IT, Emp Id=103}
+Database hit for110
+Employee{Name=Sohan, Department=Admin, Emp Id=110}
+Invocation #2
+Employee{Name=Mahesh, Department=Finance, Emp Id=100}
+Employee{Name=Rohan, Department=IT, Emp Id=103}
+Employee{Name=Sohan, Department=Admin, Emp Id=110}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出 第一次 invocation 去查数据，第二次直接读的缓存。&lt;/p&gt;
+
+&lt;h2 id=&#34;string&#34;&gt;String&lt;/h2&gt;
+
+&lt;h3 id=&#34;joiner&#34;&gt;Joiner&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.Arrays;
+import com.google.common.base.Joiner;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testJoiner();	
+   }
+
+   private void testJoiner() {
+      System.out.println(Joiner.on(&amp;quot;,&amp;quot;)
+         .skipNulls()
+         .join(Arrays.asList(1,2,3,4,5,null,6)));
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;code&gt;1,2,3,4,5,6&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;splitter&#34;&gt;Splitter&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.base.Splitter;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testSplitter();
+   }
+
+   private void testSplitter() {
+      System.out.println(Splitter.on(&#39;,&#39;)
+         .trimResults()
+         .omitEmptyStrings()
+         .split(&amp;quot;the ,quick, ,brown, fox, jumps, over, the, lazy, little dog.&amp;quot;));
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：[the, quick, brown, fox, jumps, over, the, lazy, little dog.]&lt;/p&gt;
+
+&lt;h3 id=&#34;charmatcher&#34;&gt;CharMatcher&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testCharMatcher();
+   }
+
+   private void testCharMatcher() {
+      System.out.println(CharMatcher.DIGIT.retainFrom(&amp;quot;mahesh123&amp;quot;));    // only the digits
+      System.out.println(CharMatcher.WHITESPACE.trimAndCollapseFrom(&amp;quot;     Mahesh     Parashar &amp;quot;, &#39; &#39;));
+
+      // trim whitespace at ends, and replace/collapse whitespace into single spaces
+      System.out.println(CharMatcher.JAVA_DIGIT.replaceFrom(&amp;quot;mahesh123&amp;quot;, &amp;quot;*&amp;quot;));  // star out all digits
+      System.out.println(CharMatcher.JAVA_DIGIT.or(CharMatcher.JAVA_LOWER_CASE).retainFrom(&amp;quot;mahesh123&amp;quot;));
+
+      // eliminate all characters that aren&#39;t digits or lowercase
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;123
+Mahesh Parashar
+mahesh***
+mahesh123
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;caseformat&#34;&gt;CaseFormat&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import com.google.common.base.CaseFormat;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testCaseFormat();
+   }
+
+   private void testCaseFormat() {
+      String data = &amp;quot;test_data&amp;quot;;
+      System.out.println(CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, &amp;quot;test-data&amp;quot;));
+      System.out.println(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, &amp;quot;test_data&amp;quot;));
+      System.out.println(CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, &amp;quot;test_data&amp;quot;));
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;testData
+testData
+TestData
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;primitive&#34;&gt;Primitive&lt;/h2&gt;
+
+&lt;p&gt;原始类型，例如：ints&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;import java.util.List;
+
+import com.google.common.primitives.Ints;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testInts();
+   }
+
+   private void testInts() {
+      int[] intArray = {1,2,3,4,5,6,7,8,9};
+
+      //convert array of primitives to array of objects
+      List&amp;lt;Integer&amp;gt; objectArray = Ints.asList(intArray);
+      System.out.println(objectArray.toString());
+
+      //convert array of objects to array of primitives
+      intArray = Ints.toArray(objectArray);
+      System.out.print(&amp;quot;[ &amp;quot;);
+      
+      for(int i = 0; i&amp;lt; intArray.length ; i++) {
+         System.out.print(intArray[i] + &amp;quot; &amp;quot;);
+      }
+      
+      System.out.println(&amp;quot;]&amp;quot;);
+      
+      //check if element is present in the list of primitives or not
+      System.out.println(&amp;quot;5 is in list? &amp;quot; + Ints.contains(intArray, 5));
+
+      //Returns the minimum		
+      System.out.println(&amp;quot;Min: &amp;quot; + Ints.min(intArray));
+
+      //Returns the maximum		
+      System.out.println(&amp;quot;Max: &amp;quot; + Ints.max(intArray));
+
+      //get the byte array from an integer
+      byte[] byteArray = Ints.toByteArray(20000);
+      
+      for(int i = 0; i&amp;lt; byteArray.length ; i++) {
+         System.out.print(byteArray[i] + &amp;quot; &amp;quot;);
+      }
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;[1, 2, 3, 4, 5, 6, 7, 8, 9]
+[ 1 2 3 4 5 6 7 8 9 ]
+5 is in list? true
+Min: 1
+Max: 9
+0 0 78 32
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;math&#34;&gt;Math&lt;/h2&gt;
+
+&lt;p&gt;数学计算库&lt;/p&gt;
+
+&lt;h2 id=&#34;iterators&#34;&gt;Iterators&lt;/h2&gt;
+
+&lt;p&gt;使用迭代器简化操作&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt; List&amp;lt;String&amp;gt; list = Lists.newArrayList(&amp;quot;Apple&amp;quot;,&amp;quot;Pear&amp;quot;,&amp;quot;Peach&amp;quot;,&amp;quot;Banana&amp;quot;);
+
+Predicate&amp;lt;String&amp;gt; condition = new Predicate&amp;lt;String&amp;gt;() {
+    @Override
+    public boolean apply(String input) {
+        return ((String)input).startsWith(&amp;quot;P&amp;quot;);
+    }
+};
+boolean allIsStartsWithP = Iterators.all(list.iterator(), condition);
+System.out.println(&amp;quot;all result == &amp;quot; + allIsStartsWithP);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;all方法的第一个参数是Iterator，第二个参数是Predicate&lt;String&gt;的实现，这个方法的意义是不需要我们自己去写while循环了，他的内部实现中帮我们做了循环，把循环体中的条件判断抽象出来了。&lt;/p&gt;
+
+&lt;p&gt;Iterators类中有partition(Iterator iterator, int size)和 paddedPartition(Iterator iterator, int size)两个函数，
+它们都是将iterator中的元素以数量为size分成Iterators.size(iterator) / size + (Iterators.size(iterator) % size == 0 ? 0 : 1)组，
+唯一的区别是partition当最后一组数量不是size个时，不会补充；而paddedPartition当最后一组数量不是size个时，会填充null，使得最后一组元素数量也为size个。如下:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Iterable&amp;lt;String&amp;gt; wyp = Splitter.on(&amp;quot;,&amp;quot;).split(&amp;quot;w,y,p,h,a&amp;quot;);
+Iterator&amp;lt;String&amp;gt; iterator = wyp.iterator();
+UnmodifiableIterator&amp;lt;List&amp;lt;String&amp;gt;&amp;gt; listUnmodifiableIterator = Iterators.partition(iterator, 3);
+while (listUnmodifiableIterator.hasNext()){
+     System.out.println(listUnmodifiableIterator.next());
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;结果：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[w, y, p]
+[h, a]
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

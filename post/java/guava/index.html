@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>guava学习 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="https://www.tutorialspoint.com/guava/guava_optional_class.htm Optional import com.google.common.base.Optional; public class GuavaTester { public static void main(String args[]) { GuavaTester guavaTester = new GuavaTester(); Integer value1 = null; Integer value2 = new Integer(10); //Optional.fromNullable - allows passed parameter to be null. Optional&amp;lt;Integer&amp;gt; a = Optional.fromNullable(value1); //Optional.of - throws NullPointerException if passed parameter is null Optional&amp;lt;Integer&amp;gt; b = Optional.of(value2); System.out.println(guavaTester.sum(a,b)); } public Integer sum(Optional&amp;lt;Integer&amp;gt; a, Optional&amp;lt;Integer&amp;gt; b) { //Optional.isPresent - checks the value is present or" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/java/guava/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="guava学习" />
+<meta property="og:description" content="https://www.tutorialspoint.com/guava/guava_optional_class.htm Optional import com.google.common.base.Optional; public class GuavaTester { public static void main(String args[]) { GuavaTester guavaTester = new GuavaTester(); Integer value1 = null; Integer value2 = new Integer(10); //Optional.fromNullable - allows passed parameter to be null. Optional&lt;Integer&gt; a = Optional.fromNullable(value1); //Optional.of - throws NullPointerException if passed parameter is null Optional&lt;Integer&gt; b = Optional.of(value2); System.out.println(guavaTester.sum(a,b)); } public Integer sum(Optional&lt;Integer&gt; a, Optional&lt;Integer&gt; b) { //Optional.isPresent - checks the value is present or" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/java/guava/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="guava学习">
+<meta itemprop="description" content="https://www.tutorialspoint.com/guava/guava_optional_class.htm Optional import com.google.common.base.Optional; public class GuavaTester { public static void main(String args[]) { GuavaTester guavaTester = new GuavaTester(); Integer value1 = null; Integer value2 = new Integer(10); //Optional.fromNullable - allows passed parameter to be null. Optional&lt;Integer&gt; a = Optional.fromNullable(value1); //Optional.of - throws NullPointerException if passed parameter is null Optional&lt;Integer&gt; b = Optional.of(value2); System.out.println(guavaTester.sum(a,b)); } public Integer sum(Optional&lt;Integer&gt; a, Optional&lt;Integer&gt; b) { //Optional.isPresent - checks the value is present or">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="3520">
+
+
+
+<meta itemprop="keywords" content="guava," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="guava学习"/>
+<meta name="twitter:description" content="https://www.tutorialspoint.com/guava/guava_optional_class.htm Optional import com.google.common.base.Optional; public class GuavaTester { public static void main(String args[]) { GuavaTester guavaTester = new GuavaTester(); Integer value1 = null; Integer value2 = new Integer(10); //Optional.fromNullable - allows passed parameter to be null. Optional&lt;Integer&gt; a = Optional.fromNullable(value1); //Optional.of - throws NullPointerException if passed parameter is null Optional&lt;Integer&gt; b = Optional.of(value2); System.out.println(guavaTester.sum(a,b)); } public Integer sum(Optional&lt;Integer&gt; a, Optional&lt;Integer&gt; b) { //Optional.isPresent - checks the value is present or"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">guava学习</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/java/"> java </a>
+            
+          </div>
+        <span class="more-meta"> 3520 words </span>
+        <span class="more-meta"> 8 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#optional">Optional</a></li>
+<li><a href="#preconditions">Preconditions</a></li>
+<li><a href="#ordering">Ordering</a></li>
+<li><a href="#objects">Objects</a></li>
+<li><a href="#range">Range</a></li>
+<li><a href="#throwable">Throwable</a></li>
+<li><a href="#collections">Collections</a>
+<ul>
+<li><a href="#multiset">Multiset</a></li>
+<li><a href="#multimap">Multimap</a></li>
+<li><a href="#bimap">Bimap</a></li>
+</ul></li>
+<li><a href="#loadingcache">LoadingCache</a></li>
+<li><a href="#string">String</a>
+<ul>
+<li><a href="#joiner">Joiner</a></li>
+<li><a href="#splitter">Splitter</a></li>
+<li><a href="#charmatcher">CharMatcher</a></li>
+<li><a href="#caseformat">CaseFormat</a></li>
+</ul></li>
+<li><a href="#primitive">Primitive</a></li>
+<li><a href="#math">Math</a></li>
+<li><a href="#iterators">Iterators</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<p><a href="https://www.tutorialspoint.com/guava/guava_optional_class.htm">https://www.tutorialspoint.com/guava/guava_optional_class.htm</a></p>
+
+<h2 id="optional">Optional</h2>
+
+<pre><code class="language-java">import com.google.common.base.Optional;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester guavaTester = new GuavaTester();
+
+      Integer value1 =  null;
+      Integer value2 =  new Integer(10);
+      
+      //Optional.fromNullable - allows passed parameter to be null.
+      Optional&lt;Integer&gt; a = Optional.fromNullable(value1);
+      
+      //Optional.of - throws NullPointerException if passed parameter is null
+      Optional&lt;Integer&gt; b = Optional.of(value2);		
+
+      System.out.println(guavaTester.sum(a,b));
+   }
+
+   public Integer sum(Optional&lt;Integer&gt; a, Optional&lt;Integer&gt; b) {
+      //Optional.isPresent - checks the value is present or not
+      System.out.println(&quot;First parameter is present: &quot; + a.isPresent());
+
+      System.out.println(&quot;Second parameter is present: &quot; + b.isPresent());
+
+      //Optional.or - returns the value if present otherwise returns
+      //the default value passed.
+      Integer value1 = a.or(new Integer(0));	
+
+      //Optional.get - gets the value, value should be present
+      Integer value2 = b.get();
+
+      return value1 + value2;
+   }	
+}
+</code></pre>
+
+<p>Optional 主要方法为 fromNullable 、of 、isPresent 、or 、 get
+结果：</p>
+
+<pre><code>First parameter is present: false
+Second parameter is present: true
+10
+</code></pre>
+
+<h2 id="preconditions">Preconditions</h2>
+
+<p>Preconditions 用来检查参数</p>
+
+<pre><code class="language-java">import com.google.common.base.Preconditions;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      GuavaTester guavaTester = new GuavaTester();
+
+      try {
+         System.out.println(guavaTester.sqrt(-3.0));
+      } catch(IllegalArgumentException e) {
+         System.out.println(e.getMessage());
+      }
+
+      try {
+         System.out.println(guavaTester.sum(null,3));
+      } catch(NullPointerException e) {
+         System.out.println(e.getMessage());
+      }
+
+      try {
+         System.out.println(guavaTester.getValue(6));
+      } catch(IndexOutOfBoundsException e) {
+         System.out.println(e.getMessage());
+      }
+   }
+
+   public double sqrt(double input) throws IllegalArgumentException {
+      Preconditions.checkArgument(input &gt; 0.0,
+         &quot;Illegal Argument passed: Negative value %s.&quot;, input);
+      return Math.sqrt(input);
+   }
+
+   public int sum(Integer a, Integer b) {
+      a = Preconditions.checkNotNull(a, &quot;Illegal Argument passed: First parameter is Null.&quot;);
+      b = Preconditions.checkNotNull(b, &quot;Illegal Argument passed: Second parameter is Null.&quot;);
+
+      return a+b;
+   }
+
+   public int getValue(int input) {
+      int[] data = {1,2,3,4,5};
+      Preconditions.checkElementIndex(input,data.length, &quot;Illegal Argument passed: Invalid index.&quot;);
+      return 0;
+   }
+}
+</code></pre>
+
+<p>可以看出主要方法： checkArgument 、 checkNotNull 、checkElementIndex</p>
+
+<p>返回结果：</p>
+
+<pre><code class="language-java">Illegal Argument passed: Negative value -3.0.
+Illegal Argument passed: First parameter is Null.
+Illegal Argument passed: Invalid index. (6) must be less than size (5)
+</code></pre>
+
+<h2 id="ordering">Ordering</h2>
+
+<p>enriched comparator</p>
+
+<pre><code class="language-java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import com.google.common.collect.Ordering;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      List&lt;Integer&gt; numbers = new ArrayList&lt;Integer&gt;();
+      
+      numbers.add(new Integer(5));
+      numbers.add(new Integer(2));
+      numbers.add(new Integer(15));
+      numbers.add(new Integer(51));
+      numbers.add(new Integer(53));
+      numbers.add(new Integer(35));
+      numbers.add(new Integer(45));
+      numbers.add(new Integer(32));
+      numbers.add(new Integer(43));
+      numbers.add(new Integer(16));
+
+      Ordering ordering = Ordering.natural();
+      System.out.println(&quot;Input List: &quot;);
+      System.out.println(numbers);		
+         
+      Collections.sort(numbers,ordering );
+      System.out.println(&quot;Sorted List: &quot;);
+      System.out.println(numbers);
+         
+      System.out.println(&quot;======================&quot;);
+      System.out.println(&quot;List is sorted: &quot; + ordering.isOrdered(numbers));
+      System.out.println(&quot;Minimum: &quot; + ordering.min(numbers));
+      System.out.println(&quot;Maximum: &quot; + ordering.max(numbers));
+         
+      Collections.sort(numbers,ordering.reverse());
+      System.out.println(&quot;Reverse: &quot; + numbers);
+
+      numbers.add(null);
+      System.out.println(&quot;Null added to Sorted List: &quot;);
+      System.out.println(numbers);		
+
+      Collections.sort(numbers,ordering.nullsFirst());
+      System.out.println(&quot;Null first Sorted List: &quot;);
+      System.out.println(numbers);
+      System.out.println(&quot;======================&quot;);
+
+      List&lt;String&gt; names = new ArrayList&lt;String&gt;();
+      
+      names.add(&quot;Ram&quot;);
+      names.add(&quot;Shyam&quot;);
+      names.add(&quot;Mohan&quot;);
+      names.add(&quot;Sohan&quot;);
+      names.add(&quot;Ramesh&quot;);
+      names.add(&quot;Suresh&quot;);
+      names.add(&quot;Naresh&quot;);
+      names.add(&quot;Mahesh&quot;);
+      names.add(null);
+      names.add(&quot;Vikas&quot;);
+      names.add(&quot;Deepak&quot;);
+
+      System.out.println(&quot;Another List: &quot;);
+      System.out.println(names);
+
+      Collections.sort(names,ordering.nullsFirst().reverse());
+      System.out.println(&quot;Null first then reverse sorted list: &quot;);
+      System.out.println(names);
+   }
+}
+</code></pre>
+
+<p>可以看出主要方法：natural、Collections.sort(numbers,ordering ) 、min、max、reverse、nullsFirst</p>
+
+<p>结果：</p>
+
+<pre><code class="language-java">Input List: 
+[5, 2, 15, 51, 53, 35, 45, 32, 43, 16]
+Sorted List: 
+[2, 5, 15, 16, 32, 35, 43, 45, 51, 53]
+======================
+List is sorted: true
+Minimum: 2
+Maximum: 53
+Reverse: [53, 51, 45, 43, 35, 32, 16, 15, 5, 2]
+Null added to Sorted List: 
+[53, 51, 45, 43, 35, 32, 16, 15, 5, 2, null]
+Null first Sorted List: 
+[null, 2, 5, 15, 16, 32, 35, 43, 45, 51, 53]
+======================
+Another List: 
+[Ram, Shyam, Mohan, Sohan, Ramesh, Suresh, Naresh, Mahesh, null, Vikas, Deepak]
+Null first then reverse sorted list: 
+[Vikas, Suresh, Sohan, Shyam, Ramesh, Ram, Naresh, Mohan, Mahesh, Deepak, null]
+</code></pre>
+
+<h2 id="objects">Objects</h2>
+
+<p>Objects class provides helper functions applicable to all objects such as equals, hashCode, etc.</p>
+
+<pre><code class="language-java">import com.google.common.base.Objects;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      Student s1 = new Student(&quot;Mahesh&quot;, &quot;Parashar&quot;, 1, &quot;VI&quot;);	
+      Student s2 = new Student(&quot;Suresh&quot;, null, 3, null);	
+	  
+      System.out.println(s1.equals(s2));
+      System.out.println(s1.hashCode());	
+      System.out.println(
+         Objects.toStringHelper(s1)
+         .add(&quot;Name&quot;,s1.getFirstName()+&quot; &quot; + s1.getLastName())
+         .add(&quot;Class&quot;, s1.getClassName())
+         .add(&quot;Roll No&quot;, s1.getRollNo())
+         .toString());
+   }
+}
+
+class Student {
+   private String firstName;
+   private String lastName;
+   private int rollNo;
+   private String className;
+
+   public Student(String firstName, String lastName, int rollNo, String className) {
+      this.firstName = firstName;
+      this.lastName = lastName;
+      this.rollNo = rollNo;
+      this.className = className;		
+   }
+
+   @Override
+   public boolean equals(Object object) {
+      if(!(object instanceof Student) || object == null) {
+         return false;
+      }
+      Student student = (Student)object;
+      // no need to handle null here		
+      // Objects.equal(&quot;test&quot;, &quot;test&quot;) == true
+      // Objects.equal(&quot;test&quot;, null) == false
+      // Objects.equal(null, &quot;test&quot;) == false
+      // Objects.equal(null, null) == true		
+      return Objects.equal(firstName, student.firstName)  // first name can be null
+         &amp;&amp; Objects.equal(lastName, student.lastName)     // last name can be null
+         &amp;&amp; Objects.equal(rollNo, student.rollNo)	
+         &amp;&amp; Objects.equal(className, student.className);  // class name can be null
+   }
+
+   @Override
+   public int hashCode() {
+      //no need to compute hashCode by self
+      return Objects.hashCode(className,rollNo);
+   }
+}
+</code></pre>
+
+<p>可以看出主要方法： hashCode、equal、toStringHelper 等</p>
+
+<p>结果</p>
+
+<pre><code class="language-false">85871
+Student{Name=Mahesh Parashar, Class=VI, Roll No=1}
+</code></pre>
+
+<h2 id="range">Range</h2>
+
+<p>类似 scala</p>
+
+<pre><code class="language-java">import com.google.common.collect.ContiguousSet;
+import com.google.common.collect.DiscreteDomain;
+import com.google.common.collect.Range;
+import com.google.common.primitives.Ints;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testRange();
+   }
+
+   private void testRange() {
+
+      //create a range [a,b] = { x | a &lt;= x &lt;= b}
+      Range&lt;Integer&gt; range1 = Range.closed(0, 9);	
+      System.out.print(&quot;[0,9] : &quot;);
+      printRange(range1);		
+      
+      System.out.println(&quot;5 is present: &quot; + range1.contains(5));
+      System.out.println(&quot;(1,2,3) is present: &quot; + range1.containsAll(Ints.asList(1, 2, 3)));
+      System.out.println(&quot;Lower Bound: &quot; + range1.lowerEndpoint());
+      System.out.println(&quot;Upper Bound: &quot; + range1.upperEndpoint());
+
+      //create a range (a,b) = { x | a &lt; x &lt; b}
+      Range&lt;Integer&gt; range2 = Range.open(0, 9);
+      System.out.print(&quot;(0,9) : &quot;);
+      printRange(range2);
+
+      //create a range (a,b] = { x | a &lt; x &lt;= b}
+      Range&lt;Integer&gt; range3 = Range.openClosed(0, 9);
+      System.out.print(&quot;(0,9] : &quot;);
+      printRange(range3);
+
+      //create a range [a,b) = { x | a &lt;= x &lt; b}
+      Range&lt;Integer&gt; range4 = Range.closedOpen(0, 9);
+      System.out.print(&quot;[0,9) : &quot;);
+      printRange(range4);
+
+      //create an open ended range (9, infinity
+      Range&lt;Integer&gt; range5 = Range.greaterThan(9);
+      System.out.println(&quot;(9,infinity) : &quot;);
+      System.out.println(&quot;Lower Bound: &quot; + range5.lowerEndpoint());
+      System.out.println(&quot;Upper Bound present: &quot; + range5.hasUpperBound());
+
+      Range&lt;Integer&gt; range6 = Range.closed(3, 5);	
+      printRange(range6);
+
+      //check a subrange [3,5] in [0,9]
+      System.out.println(&quot;[0,9] encloses [3,5]:&quot; + range1.encloses(range6));
+
+      Range&lt;Integer&gt; range7 = Range.closed(9, 20);	
+      printRange(range7);
+      
+      //check ranges to be connected		
+      System.out.println(&quot;[0,9] is connected [9,20]:&quot; + range1.isConnected(range7));
+      Range&lt;Integer&gt; range8 = Range.closed(5, 15);	
+
+      //intersection
+      printRange(range1.intersection(range8));
+
+      //span
+      printRange(range1.span(range8));
+   }
+
+   private void printRange(Range&lt;Integer&gt; range) {		
+   
+      System.out.print(&quot;[ &quot;);
+      
+      for(int grade : ContiguousSet.create(range, DiscreteDomain.integers())) {
+         System.out.print(grade +&quot; &quot;);
+      }
+      System.out.println(&quot;]&quot;);
+   }
+}
+</code></pre>
+
+<p>主要方法：contains 、containsAll、lowerEndpoint、upperEndpoint、open、closed、closedOpen、openClosed、greaterThan、hasUpperBound、encloses</p>
+
+<p>结果：</p>
+
+<pre><code>[0,9] : [ 0 1 2 3 4 5 6 7 8 9 ]
+5 is present: true
+(1,2,3) is present: true
+Lower Bound: 0
+Upper Bound: 9
+(0,9) : [ 1 2 3 4 5 6 7 8 ]
+(0,9] : [ 1 2 3 4 5 6 7 8 9 ]
+[0,9) : [ 0 1 2 3 4 5 6 7 8 ]
+(9,infinity) : 
+Lower Bound: 9
+Upper Bound present: false
+[ 3 4 5 ]
+[0,9] encloses [3,5]:true
+[ 9 10 11 12 13 14 15 16 17 18 19 20 ]
+[0,9] is connected [9,20]:true
+[ 5 6 7 8 9 ]
+[ 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ]
+</code></pre>
+
+<h2 id="throwable">Throwable</h2>
+
+<p>抛出异常：</p>
+
+<pre><code class="language-java">import java.io.IOException;
+
+import com.google.common.base.Objects;
+import com.google.common.base.Throwables;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      GuavaTester tester = new GuavaTester();
+
+      try {
+         tester.showcaseThrowables();
+         
+      } catch (InvalidInputException e) {
+         //get the root cause
+         System.out.println(Throwables.getRootCause(e));
+      
+      } catch (Exception e) {
+         //get the stack trace in string format
+         System.out.println(Throwables.getStackTraceAsString(e));
+      }
+
+      try {
+         tester.showcaseThrowables1();
+
+      } catch (Exception e) {
+         System.out.println(Throwables.getStackTraceAsString(e));
+      }
+   }
+
+   public void showcaseThrowables() throws InvalidInputException {
+      try {
+         sqrt(-3.0);
+      } catch (Throwable e) {
+         //check the type of exception and throw it
+         Throwables.propagateIfInstanceOf(e, InvalidInputException.class);
+         Throwables.propagate(e);
+      }
+   }
+
+   public void showcaseThrowables1() {
+      try {
+         int[] data = {1,2,3};
+         getValue(data, 4);
+      } catch (Throwable e) {
+         Throwables.propagateIfInstanceOf(e, IndexOutOfBoundsException.class);
+         Throwables.propagate(e);
+      }
+   }
+
+   public double sqrt(double input) throws InvalidInputException {
+      if(input &lt; 0) throw new InvalidInputException();
+      return Math.sqrt(input);
+   }
+
+   public double getValue(int[] list, int index) throws IndexOutOfBoundsException {
+      return list[index];
+   }
+
+   public void dummyIO() throws IOException {
+      throw new IOException();
+   }
+}
+
+class InvalidInputException extends Exception {
+}
+</code></pre>
+
+<p>主要方法：
+getStackTraceAsString、propagate、propagateIfInstanceOf、getRootCause
+结果：</p>
+
+<pre><code>InvalidInputException
+java.lang.ArrayIndexOutOfBoundsException: 4
+   at GuavaTester.getValue(GuavaTester.java:52)
+   at GuavaTester.showcaseThrowables1(GuavaTester.java:38)
+   at GuavaTester.main(GuavaTester.java:19)
+</code></pre>
+
+<h2 id="collections">Collections</h2>
+
+<h3 id="multiset">Multiset</h3>
+
+<p>可以有重复元素</p>
+
+<pre><code class="language-java">import java.util.Iterator;
+import java.util.Set;
+
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+   
+      //create a multiset collection
+      Multiset&lt;String&gt; multiset = HashMultiset.create();
+      
+      multiset.add(&quot;a&quot;);
+      multiset.add(&quot;b&quot;);
+      multiset.add(&quot;c&quot;);
+      multiset.add(&quot;d&quot;);
+      multiset.add(&quot;a&quot;);
+      multiset.add(&quot;b&quot;);
+      multiset.add(&quot;c&quot;);
+      multiset.add(&quot;b&quot;);
+      multiset.add(&quot;b&quot;);
+      multiset.add(&quot;b&quot;);
+      
+      //print the occurrence of an element
+      System.out.println(&quot;Occurrence of 'b' : &quot;+multiset.count(&quot;b&quot;));
+      
+      //print the total size of the multiset
+      System.out.println(&quot;Total Size : &quot;+multiset.size());
+      
+      //get the distinct elements of the multiset as set
+      Set&lt;String&gt; set = multiset.elementSet();
+
+      //display the elements of the set
+      System.out.println(&quot;Set [&quot;);
+      
+      for (String s : set) {
+         System.out.println(s);
+      }
+
+      System.out.println(&quot;]&quot;);
+      
+      //display all the elements of the multiset using iterator
+      Iterator&lt;String&gt; iterator  = multiset.iterator();
+      System.out.println(&quot;MultiSet [&quot;);
+
+      while(iterator.hasNext()) {
+         System.out.println(iterator.next());
+      }
+      
+      System.out.println(&quot;]&quot;);
+      
+      //display the distinct elements of the multiset with their occurrence count
+      System.out.println(&quot;MultiSet [&quot;);
+
+      for (Multiset.Entry&lt;String&gt; entry : multiset.entrySet()) {
+         System.out.println(&quot;Element: &quot; + entry.getElement() + &quot;, Occurrence(s): &quot; + entry.getCount());
+      }
+      System.out.println(&quot;]&quot;);
+
+      //remove extra occurrences
+      multiset.remove(&quot;b&quot;,2);
+      
+      //print the occurrence of an element
+      System.out.println(&quot;Occurence of 'b' : &quot; + multiset.count(&quot;b&quot;));
+   }
+}
+</code></pre>
+
+<p>主要方法：HashMultiset.create();、 add 、count、size、elementSet、iterator、entrySet</p>
+
+<h3 id="multimap">Multimap</h3>
+
+<p>和MultiSet类似，每个 key 可以隐射多个值</p>
+
+<pre><code class="language-java">import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      GuavaTester tester = new GuavaTester();
+      Multimap&lt;String,String&gt; multimap = tester.getMultimap();
+
+      List&lt;String&gt; lowerList = (List&lt;String&gt;)multimap.get(&quot;lower&quot;);
+      System.out.println(&quot;Initial lower case list&quot;);
+      System.out.println(lowerList.toString());
+
+      lowerList.add(&quot;f&quot;);
+      System.out.println(&quot;Modified lower case list&quot;);
+      System.out.println(lowerList.toString());
+
+      List&lt;String&gt; upperList = (List&lt;String&gt;)multimap.get(&quot;upper&quot;);
+      System.out.println(&quot;Initial upper case list&quot;);
+      System.out.println(upperList.toString());
+
+      upperList.remove(&quot;D&quot;);
+      System.out.println(&quot;Modified upper case list&quot;);
+      System.out.println(upperList.toString());
+
+      Map&lt;String, Collection&lt;String&gt;&gt; map = multimap.asMap();
+      System.out.println(&quot;Multimap as a map&quot;);
+
+      for (Map.Entry&lt;String,  Collection&lt;String&gt;&gt; entry : map.entrySet()) {
+         String key = entry.getKey();
+         Collection&lt;String&gt; value =  multimap.get(&quot;lower&quot;);
+         System.out.println(key + &quot;:&quot; + value);
+      }
+
+      System.out.println(&quot;Keys of Multimap&quot;);
+      Set&lt;String&gt; keys =  multimap.keySet();
+
+      for(String key:keys) {
+         System.out.println(key);
+      }
+
+      System.out.println(&quot;Values of Multimap&quot;);
+      Collection&lt;String&gt; values = multimap.values();
+      System.out.println(values);
+   }
+
+   private Multimap&lt;String,String&gt; getMultimap() {
+
+      //Map&lt;String, List&lt;String&gt;&gt;
+      // lower -&gt; a, b, c, d, e
+      // upper -&gt; A, B, C, D
+
+      Multimap&lt;String,String&gt; multimap = ArrayListMultimap.create();
+
+      multimap.put(&quot;lower&quot;, &quot;a&quot;);
+      multimap.put(&quot;lower&quot;, &quot;b&quot;);
+      multimap.put(&quot;lower&quot;, &quot;c&quot;);
+      multimap.put(&quot;lower&quot;, &quot;d&quot;);
+      multimap.put(&quot;lower&quot;, &quot;e&quot;);
+
+      multimap.put(&quot;upper&quot;, &quot;A&quot;);
+      multimap.put(&quot;upper&quot;, &quot;B&quot;);
+      multimap.put(&quot;upper&quot;, &quot;C&quot;);
+      multimap.put(&quot;upper&quot;, &quot;D&quot;);		
+
+      return multimap;
+   }
+}
+</code></pre>
+
+<p>结果：</p>
+
+<pre><code class="language-java">Initial lower case list
+[a, b, c, d, e]
+Modified lower case list
+[a, b, c, d, e, f]
+Initial upper case list
+[A, B, C, D]
+Modified upper case list
+[A, B, C]
+Multimap as a map
+upper:[a, b, c, d, e, f]
+lower:[a, b, c, d, e, f]
+Keys of Multimap
+upper
+lower
+Values of Multimap
+[a, b, c, d, e, f, A, B, C]
+</code></pre>
+
+<h3 id="bimap">Bimap</h3>
+
+<p>A BiMap is a special kind of map which maintains an inverse view of the map while ensuring that no duplicate values are present in the map and a value can be used safely to get the key back.</p>
+
+<p>biMap 内部将 key value进行反转，保存了一个 value-key的对，保证 Value不重复。</p>
+
+<pre><code class="language-java">import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      BiMap&lt;Integer, String&gt; empIDNameMap = HashBiMap.create();
+
+      empIDNameMap.put(new Integer(101), &quot;Mahesh&quot;);
+      empIDNameMap.put(new Integer(102), &quot;Sohan&quot;);
+      empIDNameMap.put(new Integer(103), &quot;Ramesh&quot;);
+
+      //Emp Id of Employee &quot;Mahesh&quot;
+      System.out.println(empIDNameMap.inverse().get(&quot;Mahesh&quot;));
+   }	
+}
+</code></pre>
+
+<p>结果：</p>
+
+<pre><code>101
+</code></pre>
+
+<p>It is similar to creating a map of maps.</p>
+
+<pre><code class="language-java">import java.util.Map;
+import java.util.Set;
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      //Table&lt;R,C,V&gt; == Map&lt;R,Map&lt;C,V&gt;&gt;
+      /*
+      *  Company: IBM, Microsoft, TCS
+      *  IBM 		-&gt; {101:Mahesh, 102:Ramesh, 103:Suresh}
+      *  Microsoft 	-&gt; {101:Sohan, 102:Mohan, 103:Rohan } 
+      *  TCS 		-&gt; {101:Ram, 102: Shyam, 103: Sunil } 
+      * 
+      * */
+      
+      //create a table
+      Table&lt;String, String, String&gt; employeeTable = HashBasedTable.create();
+
+      //initialize the table with employee details
+      employeeTable.put(&quot;IBM&quot;, &quot;101&quot;,&quot;Mahesh&quot;);
+      employeeTable.put(&quot;IBM&quot;, &quot;102&quot;,&quot;Ramesh&quot;);
+      employeeTable.put(&quot;IBM&quot;, &quot;103&quot;,&quot;Suresh&quot;);
+
+      employeeTable.put(&quot;Microsoft&quot;, &quot;111&quot;,&quot;Sohan&quot;);
+      employeeTable.put(&quot;Microsoft&quot;, &quot;112&quot;,&quot;Mohan&quot;);
+      employeeTable.put(&quot;Microsoft&quot;, &quot;113&quot;,&quot;Rohan&quot;);
+
+      employeeTable.put(&quot;TCS&quot;, &quot;121&quot;,&quot;Ram&quot;);
+      employeeTable.put(&quot;TCS&quot;, &quot;122&quot;,&quot;Shyam&quot;);
+      employeeTable.put(&quot;TCS&quot;, &quot;123&quot;,&quot;Sunil&quot;);
+
+      //get Map corresponding to IBM
+      Map&lt;String,String&gt; ibmEmployees =  employeeTable.row(&quot;IBM&quot;);
+
+      System.out.println(&quot;List of IBM Employees&quot;);
+      
+      for(Map.Entry&lt;String, String&gt; entry : ibmEmployees.entrySet()) {
+         System.out.println(&quot;Emp Id: &quot; + entry.getKey() + &quot;, Name: &quot; + entry.getValue());
+      }
+
+      //get all the unique keys of the table
+      Set&lt;String&gt; employers = employeeTable.rowKeySet();
+      System.out.print(&quot;Employers: &quot;);
+      
+      for(String employer: employers) {
+         System.out.print(employer + &quot; &quot;);
+      }
+      
+      System.out.println();
+
+      //get a Map corresponding to 102
+      Map&lt;String,String&gt; EmployerMap =  employeeTable.column(&quot;102&quot;);
+      
+      for(Map.Entry&lt;String, String&gt; entry : EmployerMap.entrySet()) {
+         System.out.println(&quot;Employer: &quot; + entry.getKey() + &quot;, Name: &quot; + entry.getValue());
+      }		
+   }	
+}
+</code></pre>
+
+<h2 id="loadingcache">LoadingCache</h2>
+
+<pre><code class="language-java">import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.MoreObjects;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+   
+      //create a cache for employees based on their employee id
+      LoadingCache&lt;String, Employee&gt; employeeCache = 
+         CacheBuilder.newBuilder()
+         .maximumSize(100)                             // maximum 100 records can be cached
+         .expireAfterAccess(30, TimeUnit.MINUTES)      // cache will expire after 30 minutes of access
+         .build(new CacheLoader&lt;String, Employee&gt;() {  // build the cacheloader
+            
+            @Override
+            public Employee load(String empId) throws Exception {
+               //make the expensive call
+               return getFromDatabase(empId);
+            } 
+         });
+
+      try {			
+         //on first invocation, cache will be populated with corresponding
+         //employee record
+         System.out.println(&quot;Invocation #1&quot;);
+         System.out.println(employeeCache.get(&quot;100&quot;));
+         System.out.println(employeeCache.get(&quot;103&quot;));
+         System.out.println(employeeCache.get(&quot;110&quot;));
+         
+         //second invocation, data will be returned from cache
+         System.out.println(&quot;Invocation #2&quot;);
+         System.out.println(employeeCache.get(&quot;100&quot;));
+         System.out.println(employeeCache.get(&quot;103&quot;));
+         System.out.println(employeeCache.get(&quot;110&quot;));
+
+      } catch (ExecutionException e) {
+         e.printStackTrace();
+      }
+   }
+
+   private static Employee getFromDatabase(String empId) {
+   
+      Employee e1 = new Employee(&quot;Mahesh&quot;, &quot;Finance&quot;, &quot;100&quot;);
+      Employee e2 = new Employee(&quot;Rohan&quot;, &quot;IT&quot;, &quot;103&quot;);
+      Employee e3 = new Employee(&quot;Sohan&quot;, &quot;Admin&quot;, &quot;110&quot;);
+
+      Map&lt;String, Employee&gt; database = new HashMap&lt;String, Employee&gt;();
+      
+      database.put(&quot;100&quot;, e1);
+      database.put(&quot;103&quot;, e2);
+      database.put(&quot;110&quot;, e3);
+      
+      System.out.println(&quot;Database hit for&quot; + empId);
+      
+      return database.get(empId);		
+   }
+}
+
+class Employee {
+   String name;
+   String dept;
+   String emplD;
+
+   public Employee(String name, String dept, String empID) {
+      this.name = name;
+      this.dept = dept;
+      this.emplD = empID;
+   }
+   
+   public String getName() {
+      return name;
+   }
+   
+   public void setName(String name) {
+      this.name = name;
+   }
+   
+   public String getDept() {
+      return dept;
+   }
+   
+   public void setDept(String dept) {
+      this.dept = dept;
+   }
+   
+   public String getEmplD() {
+      return emplD;
+   }
+   
+   public void setEmplD(String emplD) {
+      this.emplD = emplD;
+   }
+
+   @Override
+   public String toString() {
+      return MoreObjects.toStringHelper(Employee.class)
+      .add(&quot;Name&quot;, name)
+      .add(&quot;Department&quot;, dept)
+      .add(&quot;Emp Id&quot;, emplD).toString();
+   }	
+}
+</code></pre>
+
+<p>结果</p>
+
+<pre><code class="language-java">Invocation #1
+Database hit for100
+Employee{Name=Mahesh, Department=Finance, Emp Id=100}
+Database hit for103
+Employee{Name=Rohan, Department=IT, Emp Id=103}
+Database hit for110
+Employee{Name=Sohan, Department=Admin, Emp Id=110}
+Invocation #2
+Employee{Name=Mahesh, Department=Finance, Emp Id=100}
+Employee{Name=Rohan, Department=IT, Emp Id=103}
+Employee{Name=Sohan, Department=Admin, Emp Id=110}
+</code></pre>
+
+<p>可以看出 第一次 invocation 去查数据，第二次直接读的缓存。</p>
+
+<h2 id="string">String</h2>
+
+<h3 id="joiner">Joiner</h3>
+
+<pre><code class="language-java">import java.util.Arrays;
+import com.google.common.base.Joiner;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testJoiner();	
+   }
+
+   private void testJoiner() {
+      System.out.println(Joiner.on(&quot;,&quot;)
+         .skipNulls()
+         .join(Arrays.asList(1,2,3,4,5,null,6)));
+   }
+}
+</code></pre>
+
+<p>结果：<code>1,2,3,4,5,6</code></p>
+
+<h3 id="splitter">Splitter</h3>
+
+<pre><code class="language-java">import com.google.common.base.Splitter;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testSplitter();
+   }
+
+   private void testSplitter() {
+      System.out.println(Splitter.on(',')
+         .trimResults()
+         .omitEmptyStrings()
+         .split(&quot;the ,quick, ,brown, fox, jumps, over, the, lazy, little dog.&quot;));
+   }
+}
+</code></pre>
+
+<p>结果：[the, quick, brown, fox, jumps, over, the, lazy, little dog.]</p>
+
+<h3 id="charmatcher">CharMatcher</h3>
+
+<pre><code class="language-java">import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testCharMatcher();
+   }
+
+   private void testCharMatcher() {
+      System.out.println(CharMatcher.DIGIT.retainFrom(&quot;mahesh123&quot;));    // only the digits
+      System.out.println(CharMatcher.WHITESPACE.trimAndCollapseFrom(&quot;     Mahesh     Parashar &quot;, ' '));
+
+      // trim whitespace at ends, and replace/collapse whitespace into single spaces
+      System.out.println(CharMatcher.JAVA_DIGIT.replaceFrom(&quot;mahesh123&quot;, &quot;*&quot;));  // star out all digits
+      System.out.println(CharMatcher.JAVA_DIGIT.or(CharMatcher.JAVA_LOWER_CASE).retainFrom(&quot;mahesh123&quot;));
+
+      // eliminate all characters that aren't digits or lowercase
+   }
+}
+</code></pre>
+
+<p>结果：</p>
+
+<pre><code>123
+Mahesh Parashar
+mahesh***
+mahesh123
+</code></pre>
+
+<h3 id="caseformat">CaseFormat</h3>
+
+<pre><code class="language-java">import com.google.common.base.CaseFormat;
+
+public class GuavaTester {
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testCaseFormat();
+   }
+
+   private void testCaseFormat() {
+      String data = &quot;test_data&quot;;
+      System.out.println(CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, &quot;test-data&quot;));
+      System.out.println(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, &quot;test_data&quot;));
+      System.out.println(CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, &quot;test_data&quot;));
+   }
+}
+</code></pre>
+
+<p>结果：</p>
+
+<pre><code class="language-java">testData
+testData
+TestData
+</code></pre>
+
+<h2 id="primitive">Primitive</h2>
+
+<p>原始类型，例如：ints</p>
+
+<pre><code class="language-java">import java.util.List;
+
+import com.google.common.primitives.Ints;
+
+public class GuavaTester {
+
+   public static void main(String args[]) {
+      GuavaTester tester = new GuavaTester();
+      tester.testInts();
+   }
+
+   private void testInts() {
+      int[] intArray = {1,2,3,4,5,6,7,8,9};
+
+      //convert array of primitives to array of objects
+      List&lt;Integer&gt; objectArray = Ints.asList(intArray);
+      System.out.println(objectArray.toString());
+
+      //convert array of objects to array of primitives
+      intArray = Ints.toArray(objectArray);
+      System.out.print(&quot;[ &quot;);
+      
+      for(int i = 0; i&lt; intArray.length ; i++) {
+         System.out.print(intArray[i] + &quot; &quot;);
+      }
+      
+      System.out.println(&quot;]&quot;);
+      
+      //check if element is present in the list of primitives or not
+      System.out.println(&quot;5 is in list? &quot; + Ints.contains(intArray, 5));
+
+      //Returns the minimum		
+      System.out.println(&quot;Min: &quot; + Ints.min(intArray));
+
+      //Returns the maximum		
+      System.out.println(&quot;Max: &quot; + Ints.max(intArray));
+
+      //get the byte array from an integer
+      byte[] byteArray = Ints.toByteArray(20000);
+      
+      for(int i = 0; i&lt; byteArray.length ; i++) {
+         System.out.print(byteArray[i] + &quot; &quot;);
+      }
+   }
+}
+</code></pre>
+
+<p>结果：</p>
+
+<pre><code class="language-java">[1, 2, 3, 4, 5, 6, 7, 8, 9]
+[ 1 2 3 4 5 6 7 8 9 ]
+5 is in list? true
+Min: 1
+Max: 9
+0 0 78 32
+</code></pre>
+
+<h2 id="math">Math</h2>
+
+<p>数学计算库</p>
+
+<h2 id="iterators">Iterators</h2>
+
+<p>使用迭代器简化操作</p>
+
+<pre><code class="language-java"> List&lt;String&gt; list = Lists.newArrayList(&quot;Apple&quot;,&quot;Pear&quot;,&quot;Peach&quot;,&quot;Banana&quot;);
+
+Predicate&lt;String&gt; condition = new Predicate&lt;String&gt;() {
+    @Override
+    public boolean apply(String input) {
+        return ((String)input).startsWith(&quot;P&quot;);
+    }
+};
+boolean allIsStartsWithP = Iterators.all(list.iterator(), condition);
+System.out.println(&quot;all result == &quot; + allIsStartsWithP);
+</code></pre>
+
+<p>all方法的第一个参数是Iterator，第二个参数是Predicate<String>的实现，这个方法的意义是不需要我们自己去写while循环了，他的内部实现中帮我们做了循环，把循环体中的条件判断抽象出来了。</p>
+
+<p>Iterators类中有partition(Iterator iterator, int size)和 paddedPartition(Iterator iterator, int size)两个函数，
+它们都是将iterator中的元素以数量为size分成Iterators.size(iterator) / size + (Iterators.size(iterator) % size == 0 ? 0 : 1)组，
+唯一的区别是partition当最后一组数量不是size个时，不会补充；而paddedPartition当最后一组数量不是size个时，会填充null，使得最后一组元素数量也为size个。如下:</p>
+
+<pre><code class="language-java">Iterable&lt;String&gt; wyp = Splitter.on(&quot;,&quot;).split(&quot;w,y,p,h,a&quot;);
+Iterator&lt;String&gt; iterator = wyp.iterator();
+UnmodifiableIterator&lt;List&lt;String&gt;&gt; listUnmodifiableIterator = Iterators.partition(iterator, 3);
+while (listUnmodifiableIterator.hasNext()){
+     System.out.println(listUnmodifiableIterator.next());
+}
+</code></pre>
+
+<p>结果：</p>
+
+<pre><code>[w, y, p]
+[h, a]
+</code></pre>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/guava/">guava</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/java/javanio/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">JavaNIO</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-%E8%B0%83%E7%94%A8%E6%A0%88/">
+            <span class="next-text nav-default">janusgraph源码分析3-调用栈</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'guava学习',
+    link: decodeURI(location.href),
+    desc: 'https:\/\/www.tutorialspoint.com\/guava\/guava_optional_class.htm Optional import com.google.common.base.Optional; public class GuavaTester { public static void main(String args[]) { GuavaTester guavaTester = new GuavaTester(); Integer value1 = null; Integer value2 = new Integer(10); \/\/Optional.fromNullable - allows passed parameter to be null. Optional\x26lt;Integer\x26gt; a = Optional.fromNullable(value1); \/\/Optional.of - throws NullPointerException if passed parameter is null Optional\x26lt;Integer\x26gt; b = Optional.of(value2); System.out.println(guavaTester.sum(a,b)); } public Integer sum(Optional\x26lt;Integer\x26gt; a, Optional\x26lt;Integer\x26gt; b) { \/\/Optional.isPresent - checks the value is present or',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

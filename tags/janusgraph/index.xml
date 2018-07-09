@@ -6,10 +6,21 @@
     <description>Recent content in Janusgraph on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 03 May 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 03 Jul 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/janusgraph/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>janusgraph主要类分析</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%905-%E4%B8%BB%E8%A6%81%E7%B1%BB/</link>
+      <pubDate>Tue, 03 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%905-%E4%B8%BB%E8%A6%81%E7%B1%BB/</guid>
+      
+        <description></description>
+      
+    </item>
     
     <item>
       <title>JanusGraph官网文档</title>
@@ -23,6 +34,54 @@
 &lt;h1 id=&#34;一-janusgraph-basics&#34;&gt;一、JanusGraph Basics&lt;/h1&gt;
 
 &lt;h2 id=&#34;1-config&#34;&gt;1.config&lt;/h2&gt;
+
+&lt;h2 id=&#34;chapter-3-getting-started&#34;&gt;Chapter 3. Getting Started&lt;/h2&gt;
+
+&lt;p&gt;janus 使用 gremin 的基本语法，详情考：&lt;a href=&#34;http://tinkerpop.apache.org/docs/current/reference/&#34;&gt;http://tinkerpop.apache.org/docs/current/reference/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;基本操作：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; graph = JanusGraphFactory.open(&#39;conf/janusgraph-cassandra-es.properties&#39;)
+==&amp;gt;standardjanusgraph[cassandrathrift:[127.0.0.1]]
+gremlin&amp;gt; GraphOfTheGodsFactory.load(graph)
+==&amp;gt;null
+gremlin&amp;gt; g = graph.traversal()
+==&amp;gt;graphtraversalsource[standardjanusgraph[cassandrathrift:[127.0.0.1]], standard]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里我们首先通过工厂模式 JanusGraphFactory 的 open 方法 打开一个库，然后调用 load 方法，给这个库插入数据和索引，调用 traversal 方法得到一个遍历对象 g，后续操作都基于这个 g。&lt;/p&gt;
+
+&lt;p&gt;这里的配置文件可以修改，如果你不适用 es 作为 索引存储，这样就使用 GraphOfTheGodsFactory.loadWithoutMixedIndex() ，背后就不需要使用索引。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-3-global-graph-indices&#34;&gt;3.3. Global Graph Indices&lt;/h3&gt;
+
+&lt;p&gt;图查询需要有一个点作为入口，然后就是通过相应的接口进行查询：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; saturn = g.V().has(&#39;name&#39;, &#39;saturn&#39;).next()
+==&amp;gt;v[256]
+gremlin&amp;gt; g.V(saturn).valueMap()
+==&amp;gt;[name:[saturn], age:[10000]]
+gremlin&amp;gt; g.V(saturn).in(&#39;father&#39;).in(&#39;father&#39;).values(&#39;name&#39;)
+==&amp;gt;hercules
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里先用 has 方法，得到 name 为 saturn 的一个点 ，然后得到这个点的所有属性，通过入边找到他的 孙子。稍微复杂的查询：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;gremlin&amp;gt; g.E().has(&#39;place&#39;, geoWithin(Geoshape.circle(37.97, 23.72, 50)))
+==&amp;gt;e[a9x-co8-9hx-39s][16424-battled-&amp;gt;4240]
+==&amp;gt;e[9vp-co8-9hx-9ns][16424-battled-&amp;gt;12520]
+gremlin&amp;gt; g.E().has(&#39;place&#39;, geoWithin(Geoshape.circle(37.97, 23.72, 50))).as(&#39;source&#39;).inV().as(&#39;god2&#39;).select(&#39;source&#39;).outV().as(&#39;god1&#39;).select(&#39;god1&#39;, &#39;god2&#39;).by(&#39;name&#39;)
+==&amp;gt;[god1:hercules, god2:hydra]
+==&amp;gt;[god1:hercules, god2:nemean]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里先得到 place 位置在某个圆内的边，然后 通过 as 进行临时命令，然后得到在这个边对应的 in 和 out 的顶点。&lt;/p&gt;
+
+&lt;p&gt;Graph indices （图索引）是 janus 索引的一种，另一种索引是 vertex-centric indices ，它用来在 janus 内部加速遍历，&lt;/p&gt;
+
+&lt;h4 id=&#34;3-3-1-graph-traversal-examples&#34;&gt;3.3.1. Graph Traversal Examples&lt;/h4&gt;
+
+&lt;p&gt;可以查看 &lt;a href=&#34;http://tinkerpop.apache.org/docs/current/reference/&#34;&gt;http://tinkerpop.apache.org/docs/current/reference/&lt;/a&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;chapter-5-schema-and-data-modeling&#34;&gt;Chapter 5. Schema and Data Modeling&lt;/h2&gt;
 
@@ -204,9 +263,10 @@ Graph indexes make these global retrieval operations efficient on large graphs.&
 
 &lt;h4 id=&#34;9-1-1-composite-index&#34;&gt;9.1.1. Composite Index&lt;/h4&gt;
 
-&lt;p&gt;Mixed indexes - 支持更多谓词查询&lt;/p&gt;
+&lt;h3 id=&#34;9-1-2-mixed-indexes-支持更多谓词查询&#34;&gt;9.1.2. Mixed indexes - 支持更多谓词查询&lt;/h3&gt;
 
-&lt;p&gt;composite indexes -等值查询&lt;/p&gt;
+&lt;p&gt;Mixed indexes - 支持更多谓词查询
+composite indexes -等值查询&lt;/p&gt;
 
 &lt;p&gt;代码： &lt;code&gt;mgmt.buildIndex(&#39;nameAndAge&#39;, Vertex.class).addKey(name).addKey(age).buildMixedIndex(&amp;quot;search&amp;quot;)&lt;/code&gt;
 这里的名字 search 必须在配置中添加： index.search.backend&lt;/p&gt;
@@ -218,7 +278,26 @@ g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;))
 g.V().has(&#39;age&#39;, lt(50))
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;p&gt;Graph indexes built against newly defined property keys, i.e. property keys that are defined in the same management transaction as the index, are immediately available. Graph indexes built against property keys that are already in use require the execution of a reindex procedure to ensure that the index contains all previously added elements. Until the reindex procedure has completed, the index will not be available. It is encouraged to define graph indexes in the same transaction as the initial schema.&lt;/p&gt;
+
+&lt;p&gt;新定义的 properties 对应的 Graph indexes 可以马上使用，例如和 index 在一个事务中定义的 property key，马上就能使用。
+对于已经在使用的 property key，需要 reindex 操作完成才能使用，所以尽量在一个事务中完成操作。&lt;/p&gt;
+
+&lt;h4 id=&#34;9-1-3-ordering&#34;&gt;9.1.3. Ordering&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;g.V().has(&#39;name&#39;, textContains(&#39;hercules&#39;)).order().by(&#39;age&#39;, decr).limit(10)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Composite Index 不支持 order，调用 order 会很耗性能。
+Mixed indexes 天生支持 order&lt;/p&gt;
+
+&lt;h4 id=&#34;9-1-4-label-constraint&#34;&gt;9.1.4. Label Constraint&lt;/h4&gt;
+
+&lt;p&gt;可能只想在人的 name 上面建索引，其他的顶点并没有 name 属性，这时候最好的办法就是 indexOnly
+&lt;code&gt;mgmt.buildIndex(&#39;byNameAndLabel&#39;, Vertex.class).addKey(name).indexOnly(god).buildCompositeIndex()&lt;/code&gt;&lt;/p&gt;
+
 &lt;h3 id=&#34;9-2-vertex-centric-indexes&#34;&gt;9.2. Vertex-centric Indexes&lt;/h3&gt;
+
+&lt;p&gt;一个顶点的入边可能有很多，遍历这些边很耗时，通过  Vertex-centric Indexes 可以得到哪些需要被选择的。&lt;/p&gt;
 
 &lt;p&gt;查找和 hercules battled 时间为 10-20 的人。&lt;/p&gt;
 
@@ -251,9 +330,30 @@ g.V(h).local(outE(&#39;battled&#39;).has(&#39;rating&#39;, 5.0).order().by(&#39;
 
 &lt;h2 id=&#34;chapter-10-transactions&#34;&gt;Chapter 10. Transactions&lt;/h2&gt;
 
+&lt;p&gt;所有的操作都是在一个 transaction 里面的， graph.tx().createThreadedTx() 创建 ThreadLocal 的 transatlantion 。但并不是 ACID ，因为底层的不支持，手动模拟 ACID 也很负责。&lt;/p&gt;
+
 &lt;h3 id=&#34;10-1-transaction-handling&#34;&gt;10.1. Transaction Handling&lt;/h3&gt;
 
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;graph = JanusGraphFactory.open(&amp;quot;berkeleyje:/tmp/janusgraph&amp;quot;)
+juno = graph.addVertex() //Automatically opens a new transaction
+juno.property(&amp;quot;name&amp;quot;, &amp;quot;juno&amp;quot;)
+graph.tx().commit() //Commits transaction
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的第二段代码自动打开了一个 transaction 。&lt;/p&gt;
+
 &lt;h3 id=&#34;10-2-transactional-scope&#34;&gt;10.2. Transactional Scope&lt;/h3&gt;
+
+&lt;p&gt;图中的每个元素，例如边、顶点都是有 scope 的，按照 TinkerPop 的 transaction 约定，事务在第一条语句执行的时候自动创建，commit 或者 rollback 的时候会被关闭，
+一旦关闭了，在事务中创建的元素都不能用了。但是，JanusGraph will automatically transition vertices and types into the new transactional scope:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;graph = JanusGraphFactory.open(&amp;quot;berkeleyje:/tmp/janusgraph&amp;quot;)
+juno = graph.addVertex() //Automatically opens a new transaction
+graph.tx().commit() //Ends transaction
+juno.property(&amp;quot;name&amp;quot;, &amp;quot;juno&amp;quot;) //Vertex is automatically transitioned
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;但是边就不能这样&lt;/p&gt;
 
 &lt;h3 id=&#34;10-3-transaction-failures&#34;&gt;10.3. Transaction Failures&lt;/h3&gt;
 
@@ -311,7 +411,7 @@ g.V(h).local(outE(&#39;battled&#39;).has(&#39;rating&#39;, 5.0).order().by(&#39;
         <description>
 
 &lt;p&gt;#
-研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了
 &lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;一-下载编译&#34;&gt;一、下载编译&lt;/h2&gt;
@@ -463,7 +563,7 @@ janus的做法是在core中使用反射，所以编译通过了，打包到了�
     </item>
     
     <item>
-      <title>janusgraph源码分析1-下载编译启动</title>
+      <title>janusgraph源码分析2-实例debug</title>
       <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/</link>
       <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
       
@@ -562,7 +662,7 @@ Opens a {@link JanusGraph} database configured according to the provided configu
 &lt;p&gt;前面的部分先跳过，然后进入：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;1. return new StandardJanusGraph(new GraphDatabaseConfiguration(configuration));
-    // 构造方法，分为精通代码和构造方法
+    // 构造方法，分为静态代码和构造方法，这部分目前是跳过，但是后续是重点和核心。
     1. 父类：JanusGraphBlueprintsGraph
         static {
         TraversalStrategies graphStrategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class).clone()
@@ -651,6 +751,2043 @@ JanusGraphManagement.IndexBuilder nameIndexBuilder = management.buildIndex(&amp;
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;调用：JanusGraphManagement management = graph.openManagement();然后：management.makeEdgeLabel(&amp;ldquo;father&amp;rdquo;).multiplicity(Multiplicity.MANY2ONE).make();&lt;/p&gt;
+
+&lt;p&gt;然后就是查询数据库：&lt;code&gt;Vertex saturn = g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).next();&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;二-第2遍调试&#34;&gt;二、第2遍调试&lt;/h2&gt;
+
+&lt;p&gt;这次我们多关注一点细节实现，包括几个部分：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Backend backend = new Backend(configuration);
+backend.~~~
+
+this.idAssigner = config.getIDAssigner(backend);
+this.idManager = idAssigner.getIDManager();
+
+JanusGraphManagement management = graph.openManagement();
+management.makePropertyKey(&amp;quot;name&amp;quot;).dataType(String.class).make();
+management.buildIndex(&amp;quot;name&amp;quot;, Vertex.class).addKey(name);
+
+Vertex tartarus = tx.addVertex(T.label, &amp;quot;location&amp;quot;, &amp;quot;name&amp;quot;, &amp;quot;tartarus&amp;quot;);
+jupiter.addEdge(&amp;quot;father&amp;quot;, saturn);
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;backend&#34;&gt;Backend&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public StandardJanusGraph(GraphDatabaseConfiguration configuration) 
+{
+    this.backend = configuration.getBackend();
+    {
+        Backend backend = new Backend(configuration);
+        {
+            this.configuration = configuration;
+            KeyColumnValueStoreManager manager = getStorageManager(configuration);
+            {
+                反射生成一个 KeyColumnValueStoreManager 实现类
+            }
+            indexes = getIndexes(configuration);
+            {
+                IndexProvider provider = getImplementationClass(config.restrictTo(index), config.get(INDEX_BACKEND,index),
+                    StandardIndexProvider.getAllProviderClasses());
+                -- org.janusgraph.diskstorage.es.ElasticSearchIndex
+                builder.put(index, provider);
+                builder.build();
+            }
+            storeFeatures = storeManager.getFeatures();
+            {
+                ...
+            }
+            ...
+        }
+        
+        backend.initialize(configuration);
+        {
+            KeyColumnValueStore idStore = storeManager.openDatabase(config.get(IDS_STORE_NAME));
+            {
+                openDatabase(&amp;quot;janusgraph_ids&amp;quot;, EMPTY)
+                {
+                    if (!stores.containsKey(name) || stores.get(name).isClosed()) {
+                         OrderedKeyValueStoreAdapter store = wrapKeyValueStore(manager.openDatabase(name), keyLengths);
+                         {
+                             public BerkeleyJEKeyValueStore openDatabase(String name) throws BackendException 
+                             {
+                                 Database db = environment.openDatabase(null, name, dbConfig);
+                                 BerkeleyJEKeyValueStore store = new BerkeleyJEKeyValueStore(name, db, this);
+                                 stores.put(name, store);
+                             }
+                         }
+                         stores.put(name, store);
+                     }
+                     return stores.get(name);
+                }
+            }
+            
+            KeyColumnValueStore edgeStoreRaw = storeManagerLocking.openDatabase(EDGESTORE_NAME);
+            {
+                同上：  
+                openDatabase(&amp;quot;edgestore&amp;quot;, EMPTY)
+            }
+            KeyColumnValueStore indexStoreRaw = storeManagerLocking.openDatabase(INDEXSTORE_NAME);
+            {
+                同上：  
+                openDatabase(&amp;quot;graphindex&amp;quot;, EMPTY)
+            }
+            
+            txLogManager.openLog(SYSTEM_TX_LOG_NAME);
+            managementLogManager.openLog(SYSTEM_MGMT_LOG_NAME);
+            txLogStore = new NoKCVSCache(storeManager.openDatabase(SYSTEM_TX_LOG_NAME));
+            
+            KeyColumnValueStore systemConfigStore = storeManagerLocking.openDatabase(SYSTEM_PROPERTIES_STORE_NAME);
+            {
+                同上：  
+                openDatabase(&amp;quot;system_properties&amp;quot;, EMPTY)
+            }
+            
+        }
+        storeFeatures = backend.getStoreFeatures();
+    }
+    
+    this.idAssigner = config.getIDAssigner(backend);
+    this.idManager = idAssigner.getIDManager();
+    
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;management&#34;&gt;management&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraphManagement management = graph.openManagement();
+{
+   new ManagementSystem(this,backend.getGlobalSystemConfig(),backend.getSystemMgmtLog(), managementLogger, schemaCache);
+   //参数分别是 graph config Log managementLogger schemaCache
+   {
+       this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();
+       {
+           graph.buildTransaction()
+           {
+               new StandardTransactionBuilder(getConfiguration(), this);
+               {
+                   
+               }
+           }
+           disableBatchLoading()
+           {
+               
+           }
+           start()
+           {
+               new ImmutableTxCfg
+               graph.newTransaction(immutable);
+               {
+                    StandardJanusGraphTx tx = new StandardJanusGraphTx(this, configuration);
+                    {
+                        父类： JanusGraphBlueprintsTransaction
+                        太过复杂，跳过
+                    }
+                    tx.setBackendTransaction(openBackendTransaction(tx));
+                    {
+                        openBackendTransaction(tx)
+                        {
+                            IndexSerializer.IndexInfoRetriever retriever = indexSerializer.getIndexInfoRetriever(tx);
+                            return backend.beginTransaction(tx.getConfiguration(), retriever);
+                            {
+                                StoreTransaction tx = storeManagerLocking.beginTransaction(configuration);
+                                CacheTransaction cacheTx = new CacheTransaction(tx, storeManagerLocking, bufferSize, maxWriteTime, configuration.hasEnabledBatchLoading());
+                                final Map&amp;lt;String, IndexTransaction&amp;gt; indexTx = new HashMap&amp;lt;&amp;gt;(indexes.size());
+        						for (Map.Entry&amp;lt;String, IndexProvider&amp;gt; entry : indexes.entrySet()) {
+        						    indexTx.put(entry.getKey(), new IndexTransaction(entry.getValue(), indexKeyRetriever.get(entry.getKey()), configuration, maxWriteTime));
+        						}
+        						return new BackendTransaction(cacheTx, configuration, storeFeatures,
+                					edgeStore, indexStore, txLogStore,
+                					maxReadTime, indexTx, threadPool);
+                            }
+                        }
+                    }
+                    openTransactions.add(tx);
+                    return tx;
+               }
+           }
+           
+       }
+   }
+}
+
+final PropertyKey name = management.makePropertyKey(&amp;quot;name&amp;quot;).dataType(String.class).make();
+{
+    management.makePropertyKey(&amp;quot;name&amp;quot;)
+    {
+        transaction.makePropertyKey(name);
+        {
+            new StandardPropertyKeyMaker(this, name, indexSerializer, attributeHandler);
+            {
+                super
+                {
+                    StandardRelationTypeMaker
+                }
+            }
+        }
+    }
+    dataType(String.class)
+    {
+        dataType = clazz;
+    }
+    make();
+    {
+        new TypeDefinitionMap();
+        tx.makePropertyKey(getName(), definition);
+        {
+            (PropertyKey) makeSchemaVertex(JanusGraphSchemaCategory.PROPERTYKEY, name, definition);
+            {
+                schemaVertex = new PropertyKeyVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.UserPropertyKey, temporaryIds.nextID()), ElementLifeCycle.New);
+                {
+                    //一层层嵌套
+                    
+                }
+            }
+        }
+    }
+}
+
+management.buildIndex(&amp;quot;name&amp;quot;, Vertex.class).addKey(name).unique().buildCompositeIndex();
+{
+    new IndexBuilder(indexName, ElementCategory.getByClazz(elementType));
+    {
+        
+    }
+    addKey(name)
+    {
+        keys.put(key, null);
+    }
+    unique()
+    {
+        unique = true;
+    }
+    buildCompositeIndex()
+    {
+        createCompositeIndex(indexName, elementCategory, unique, constraint, keyArr);
+        {
+            JanusGraphSchemaVertex indexVertex = transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def);
+            {
+                schemaVertex = new JanusGraphSchemaVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.GenericSchemaType,temporaryIds.nextID()), ElementLifeCycle.New);
+                {
+                    //一层层嵌套
+                    
+                }
+            }
+            addSchemaEdge(indexVertex, keys[i], TypeDefinitionCategory.INDEX_FIELD, paras);
+            
+            updateSchemaVertex(indexVertex);
+            JanusGraphIndexWrapper index = new JanusGraphIndexWrapper(indexVertex.asIndexType());
+            updateIndex(index, SchemaAction.REGISTER_INDEX);
+            return index;
+        }
+    }
+    
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;containsvertexlabel&#34;&gt;containsVertexLabel&lt;/h3&gt;
+
+&lt;p&gt;mgmt.getVertexLabels().iterator()
+mgmt.containsVertexLabel(label)
+这两个方法都可以得到 VertexLABEL&lt;/p&gt;
+
+&lt;p&gt;首先看 mgmt.getVertexLabels().iterator(), 这里面首先通过了 guava 的 abstractIterator 转到一个 ResultSetIterator&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public ResultSetIterator(Iterator&amp;lt;R&amp;gt; inner, int limit) {
+    this.iter = inner;
+    this.limit = limit;
+    count = 0;
+    this.current = null;
+    this.next = nextInternal();
+    {
+        QueryProcessor$LimitAdajustingIterator.hasNext()
+        {
+            ....省去一步调用
+            executor.execute(query, backendQuery, executionInfo, profiler);
+            {
+                iter = new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(), getConversionFunction(query.getResultType()),
+                        retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));
+                {
+                    stream = indexSerializer.query(subQuery, tx).map(r -&amp;gt; {
+                        currentIds.add(r);
+                        return r;
+                    });
+                    {
+                        final List&amp;lt;EntryList&amp;gt; rs = sq.execute(tx);
+                        {
+                            EntryList next =tx.indexQuery(ksq.updateLimit(getLimit()-total));
+                            {
+                                return exe.call();
+                                {
+                                    return cacheEnabled?indexStore.getSlice(query, storeTx):
+                                        indexStore.getSliceNoCache(query, storeTx);
+                                    {
+                                        CassandraThriftKeyColumnValueStore.getNamesSlice(ImmutableList.of(key),query,txh);
+                                    }
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        }
+        
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这上面已经是省略很多步骤的调用栈。。。&lt;/p&gt;
+
+&lt;p&gt;mgmt.containsVertexLabel(label) 调用栈稍微少了一点：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraphSchemaVertex getSchemaVertex(String schemaName)
+{
+    id = retriever.retrieveSchemaByName(schemaName);
+    {
+        JanusGraphVertex v = Iterables.getOnlyElement(QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName), null);
+        {
+            new ResultSetIterator()
+            {
+                ....
+                runWithMetrics
+                iter = new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(), getConversionFunction(query.getResultType()),
+                        retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));
+                {
+                    类似上面
+                }
+            }
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;makevertexlabel&#34;&gt;makeVertexLabel&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt.makeVertexLabel(vType.toString()).make();
+{
+    StandardVertexLabelMaker.make
+    return (VertexLabelVertex)tx.makeSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL,name,def);
+    {
+        
+        public final JanusGraphSchemaVertex makeSchemaVertex(JanusGraphSchemaCategory schemaCategory, String name, TypeDefinitionMap definition) 
+        {
+            1. new VertexLabelVertex
+            schemaVertex = new VertexLabelVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.GenericSchemaType,temporaryIds.nextID()), ElementLifeCycle.New);
+            2. graph.assignID(schemaVertex, BaseVertexLabel.DEFAULT_VERTEXLABEL);
+            
+            3. addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));
+            
+            4. updateSchemaVertex(schemaVertex);
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;assignID应该是 生产者消费者模式。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;IDBlock idBlock = idAuthority.getIDBlock(partition, idNamespace, renewTimeout);
+{
+    long nextStart = getCurrentID(partitionKey);
+    {
+        ......
+        return idStore.getSlice(new KeySliceQuery(partitionKey, LOWER_SLICE, UPPER_SLICE).setLimit(5), txh);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;containspropertykey&#34;&gt;containsPropertyKey&lt;/h3&gt;
+
+&lt;h3 id=&#34;makepropertykey&#34;&gt;makePropertyKey&lt;/h3&gt;
+
+&lt;h3 id=&#34;containsedgelabel&#34;&gt;containsEdgeLabel&lt;/h3&gt;
+
+&lt;h3 id=&#34;makeedgelabel&#34;&gt;makeEdgeLabel&lt;/h3&gt;
+
+&lt;p&gt;基本上和上面类似，接下来深入分析一下这些调用栈涉及到的类。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析3-调用栈</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-%E8%B0%83%E7%94%A8%E6%A0%88/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-%E8%B0%83%E7%94%A8%E6%A0%88/</guid>
+      
+        <description>
+
+&lt;p&gt;我们可以在比较关键的地方大断点，然后分析整个调用栈，进行进一步分析。哪里是关键点是需要一定经验判断的。&lt;/p&gt;
+
+&lt;p&gt;例如我们基于 hadoop spark 等框架的时候，我们写的代码就是关键的，打断点可以看到合适调用，怎么被调用。
+我们关心怎么写数据，可以在和底层数据交互的地方打断点。总之我们关心谁就在哪里打断点。&lt;/p&gt;
+
+&lt;p&gt;记住：打断点的地方基本上是最终的调用点。&lt;/p&gt;
+
+&lt;h2 id=&#34;整体调试找关键&#34;&gt;整体调试找关键&lt;/h2&gt;
+
+&lt;p&gt;首先是存储类，我们使用本地文件存储，存储使用类是：&lt;code&gt;com.sleepycat.je.Database&lt;/code&gt; 这个类具体功能是啥可以具体研究。我们发现它有 get delete put 等方法，我们可以打上断点。然后查看调用栈。&lt;/p&gt;
+
+&lt;p&gt;得到 普通 的调用信息：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;main@1&amp;quot; prio=5 tid=0x1 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at com.sleepycat.je.Database.put(Database.java:1574)
+	  at com.sleepycat.je.Database.put(Database.java:1627)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:195)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:184)
+	  at org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreAdapter.mutate(OrderedKeyValueStoreAdapter.java:99)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration$2.call(KCVSConfiguration.java:154)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration$2.call(KCVSConfiguration.java:149)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:147)
+	  at org.janusgraph.diskstorage.util.BackendOperation$1.call(BackendOperation.java:161)
+	  at org.janusgraph.diskstorage.util.BackendOperation.executeDirect(BackendOperation.java:68)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:54)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:158)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration.set(KCVSConfiguration.java:149)
+	  at org.janusgraph.diskstorage.configuration.backend.KCVSConfiguration.set(KCVSConfiguration.java:126)
+	  at org.janusgraph.diskstorage.configuration.ModifiableConfiguration.set(ModifiableConfiguration.java:40)
+	  at org.janusgraph.diskstorage.configuration.ModifiableConfiguration.setAll(ModifiableConfiguration.java:47)
+	  at org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration.&amp;lt;init&amp;gt;(GraphDatabaseConfiguration.java:1266)
+	  at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:160)
+	  at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:131)
+	  at org.janusgraph.core.JanusGraphFactory.open(JanusGraphFactory.java:78)
+	  at org.janusgraph.test.dengziming.FirstTest.main(FirstTest.java:37)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;从下往上可以看出，顺序：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;new GraphDatabaseConfiguration
+ModifiableConfiguration.setAll(getGlobalSubset(localBasicConfiguration.getAll())); 
+KCVSConfiguration.set(key,value,null,false);
+BackendOperation.execute(new BackendOperation.Transactional&amp;lt;Boolean&amp;gt;() {@Override public Boolean call}
+然后调用 上面new 的 BackendOperation.Transactional 的 call 方法
+然后是 store.mutate
+status = db.put(tx, key.as(ENTRY_FACTORY), value.as(ENTRY_FACTORY));
+put(txn, key, data, Put.OVERWRITE, null);
+result = cursor.putInternal(key, data, putType, options);
+最终调用的是 cursor.putNotify 插入数据。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 put 会多次调用，config 会设置 &amp;ldquo;startup-time&amp;rdquo; 等属性，都是通过这个put方法实现。&lt;/p&gt;
+
+&lt;p&gt;第二次用到这个方法是 创建 VertexLabel 的时候会分配 id， 这时候我们可以看一下更详细的调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;JanusGraphID(0)(4)[0]@5358&amp;quot; prio=5 tid=0x24 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at com.sleepycat.je.dbi.CursorImpl.insertRecordInternal(CursorImpl.java:1364)
+	  at com.sleepycat.je.dbi.CursorImpl.insertOrUpdateRecord(CursorImpl.java:1221)
+	  at com.sleepycat.je.Cursor.putNoNotify(Cursor.java:2962)
+	  at com.sleepycat.je.Cursor.putNotify(Cursor.java:2800)
+	  at com.sleepycat.je.Cursor.putNoDups(Cursor.java:2647)
+	  at com.sleepycat.je.Cursor.putInternal(Cursor.java:2478)
+	  - locked &amp;lt;0x1536&amp;gt; (a com.sleepycat.je.Transaction)
+	  at com.sleepycat.je.Cursor.putInternal(Cursor.java:830)
+	  at com.sleepycat.je.Database.put(Database.java:1574)
+	  at com.sleepycat.je.Database.put(Database.java:1627)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:195)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:184)
+	  at org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreAdapter.mutate(OrderedKeyValueStoreAdapter.java:99)
+	  at org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority.lambda$getIDBlock$1(ConsistentKeyIDAuthority.java:261)
+	  at org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority$$Lambda$71.1795053717.call(Unknown Source:-1)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:147)
+	  at org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority.getIDBlock(ConsistentKeyIDAuthority.java:260)
+	  - locked &amp;lt;0x14f8&amp;gt; (a org.janusgraph.diskstorage.idmanagement.ConsistentKeyIDAuthority)
+	  at org.janusgraph.graphdb.database.idassigner.StandardIDPool$IDBlockGetter.call(StandardIDPool.java:288)
+	  at org.janusgraph.graphdb.database.idassigner.StandardIDPool$IDBlockGetter.call(StandardIDPool.java:255)
+	  ...
+	  at java.lang.Thread.run(Thread.java:745)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;上面的调用栈没有显示这么多，实际上我们也没必要关心 &lt;code&gt;com.sleepycat.je.Database.put(Database.java:1627)&lt;/code&gt; 之后的东西，
+因为这些东西都是 数据库的写 API，而生产环境我们会使用 hbase和cassandra ，所以每次只要 debug 到 KeyColumnValueStore 的 相应方法即可，再 debug 就是数据库的方法。&lt;/p&gt;
+
+&lt;p&gt;到这里我们明白，增删改查都是 通过 KeyColumnValueStore 类完成。接下来我们直接在 BerkeleyJEKeyValueStore 的 增删改查方法 打断点就行。&lt;/p&gt;
+
+&lt;h3 id=&#34;management-commit&#34;&gt;management.commit();&lt;/h3&gt;
+
+&lt;p&gt;management 是用来操作 schema 的类，我们可以猜测 schema 也是以系统属性的方式存在数据库中。通过打断点发现，前面的操作都没有触发 BerkeleyJEKeyValueStore 的insert ，直到 commit，
+先取出调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;main@1&amp;quot; prio=5 tid=0x1 nid=NA runnable
+  java.lang.Thread.State: RUNNABLE
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:195)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEKeyValueStore.insert(BerkeleyJEKeyValueStore.java:184)
+	  at org.janusgraph.diskstorage.berkeleyje.BerkeleyJEStoreManager.mutateMany(BerkeleyJEStoreManager.java:208)
+	  at org.janusgraph.diskstorage.keycolumnvalue.keyvalue.OrderedKeyValueStoreManagerAdapter.mutateMany(OrderedKeyValueStoreManagerAdapter.java:125)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction$1.call(CacheTransaction.java:94)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction$1.call(CacheTransaction.java:91)
+	  at org.janusgraph.diskstorage.util.BackendOperation.executeDirect(BackendOperation.java:68)
+	  at org.janusgraph.diskstorage.util.BackendOperation.execute(BackendOperation.java:54)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction.persist(CacheTransaction.java:91)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction.flushInternal(CacheTransaction.java:139)
+	  at org.janusgraph.diskstorage.keycolumnvalue.cache.CacheTransaction.commit(CacheTransaction.java:196)
+	  at org.janusgraph.diskstorage.BackendTransaction.commitStorage(BackendTransaction.java:134)
+	  at org.janusgraph.graphdb.database.StandardJanusGraph.commit(StandardJanusGraph.java:733)
+	  at org.janusgraph.graphdb.transaction.StandardJanusGraphTx.commit(StandardJanusGraphTx.java:1372)
+	  - locked &amp;lt;0x113a&amp;gt; (a org.janusgraph.graphdb.transaction.StandardJanusGraphTx)
+	  at org.janusgraph.graphdb.database.management.ManagementSystem.commit(ManagementSystem.java:239)
+	  - locked &amp;lt;0x102b&amp;gt; (a org.janusgraph.graphdb.database.management.ManagementSystem)
+	  at org.janusgraph.example.GraphOfTheGodsFactory.load(GraphOfTheGodsFactory.java:111)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里面好像还有锁，这个先不讨论。&lt;/p&gt;
+
+&lt;p&gt;主要的几个调用：&lt;/p&gt;
+
+&lt;p&gt;StandardJanusGraphTx.commit()&lt;/p&gt;
+
+&lt;p&gt;StandardJanusGraph.commit(addedRelations.getAll(), deletedRelations.values(), this); &amp;ndash; 这个 commit 的逻辑挺复杂，需要仔细查看。&lt;/p&gt;
+
+&lt;p&gt;BackendTransaction.commitStorage();&lt;/p&gt;
+
+&lt;p&gt;CacheTransaction.commit()&lt;/p&gt;
+
+&lt;p&gt;OrderedKeyValueStoreManagerAdapter.mutateMany&lt;/p&gt;
+
+&lt;p&gt;BerkeleyJEStoreManager.mutateMany(subMutations, tx);&lt;/p&gt;
+
+&lt;p&gt;BerkeleyJEKeyValueStore.insert();&lt;/p&gt;
+
+&lt;p&gt;然后接下来就是一个个分析这几个类每一个的属性和方法。&lt;/p&gt;
+
+&lt;p&gt;首先看一下类的继承结构&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;SchemaInspector	
+	StandardJanusGraphTx (org.janusgraph.graphdb.transaction)
+	SchemaManager (org.janusgraph.core.schema)
+	    Transaction (org.janusgraph.core)
+	        JanusGraphTransaction (org.janusgraph.core)
+	            JanusGraphBlueprintsTransaction (org.janusgraph.graphdb.tinkerpop)
+	                StandardJanusGraphTx (org.janusgraph.graphdb.transaction)
+	        JanusGraph (org.janusgraph.core)
+	            JanusGraphBlueprintsGraph (org.janusgraph.graphdb.tinkerpop)
+	                StandardJanusGraph (org.janusgraph.graphdb.database)
+	    JanusGraphManagement (org.janusgraph.core.schema)
+	        ManagementSystem (org.janusgraph.graphdb.database.management)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;SchemaInspector 接口定义了检查 schema 的一些方法，
+例如：containsRelationType getRelationType containsPropertyKey getOrCreatePropertyKey getEdgeLabel getOrCreateVertexLabel
+这些方法有四类，分别是是 RelationType 相关的，PropertyKey 相关，EdgeLabel 相关，VertexLabel 相关。这四个代表啥大家应该都清楚了。&lt;/p&gt;
+
+&lt;p&gt;SchemaManager 接口 在 SchemaInspector 的基础上添加了 6 个方法 ：makePropertyKey makeEdgeLabel makeVertexLabel addProperties addProperties addConnection 。
+其实前三个返回的是 Maker，后面三个返回的就是 Label。这六个方法左右主要是给 schema 添加更多信息，例如添加 properties。&lt;/p&gt;
+
+&lt;p&gt;Transaction 继承自 SchemaManager 和 Graph ，定义了 addVertex 和 query 等操作。很奇怪为什么只有 addVertex 没有 addEdge 和 addProperty 的操作。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphManagement 继承自 SchemaManager 和 JanusGraphConfiguration ，定义了 buildEdgeIndex buildPropertyIndex commit 等操作
+大部分都和 index 相关，例如构建查询更新。还有 getRelationTypes getVertexLabels 两个方法。&lt;/p&gt;
+
+&lt;p&gt;ManagementSystem 继承自 JanusGraphManagement ，通过代理 StandardJanusGraphTx ，实现了 getGraphIndex commit 等操作。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphTransaction 继承自 Transaction ，定义了 addVertex getVertex commit rollback 等，和 Transaction 不同的是他的这些方法操作的都是 id，而后者操作的是 用户传入的 String&lt;/p&gt;
+
+&lt;p&gt;JanusGraphBlueprintsTransaction 继承自 JanusGraphTransaction ，目前看到的就是简单封装一下抽象方法，同时实现了 addVertex 方法。&lt;/p&gt;
+
+&lt;p&gt;StandardJanusGraphTx 继承自 JanusGraphBlueprintsTransaction ，实现了抽象的方法。&lt;/p&gt;
+
+&lt;p&gt;JanusGraph 继承自 Transaction， 定义了 buildTransaction openManagement close 等方法。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphBlueprintsGraph 继承自 JanusGraph ，通过 ThreadLocal 实现线程隔离。
+StandardJanusGraph 继承自 JanusGraphBlueprintsGraph 就是我们使用的 Graph 。&lt;/p&gt;
+
+&lt;p&gt;所以了解janus比较重要的是 StandardJanusGraphTx ，了解多线程的 JanusGraphBlueprintsGraph。&lt;/p&gt;
+
+&lt;p&gt;从继承结构大概可以看出所有的操作分为数据操作和 schema 操作，而分别由 JanusGraph 和 JanusGraphManagement 完成，实际上都是代理或者适配装饰了 StandardJanusGraphTx。StandardJanusGraphTx 内容很多。&lt;/p&gt;
+
+&lt;h3 id=&#34;standardjanusgraph&#34;&gt;StandardJanusGraph&lt;/h3&gt;
+
+&lt;p&gt;上面我们已经看出了实际上最重要的就是  StandardJanusGraphTx 的实现逻辑，我们就以他为入口，而不是 main 方法。它的构造方法里面需要用到 StandardJanusGraph ，我们先大概了解一下 。&lt;/p&gt;
+
+&lt;h4 id=&#34;我们先看一下它的属性&#34;&gt;我们先看一下它的属性：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;log
+config
+backend
+idManager
+idAssigner
+times
+indexSerializer
+edgeSerializer
+serializer
+vertexExistenceQuery
+queryCache
+schemaCache
+managementLogger
+shutdownHook
+isOpen
+txCounter
+openTransactions
+name
+typeCacheRetrieval
+SCHEMA_FILTER
+NO_SCHEMA_FILTER
+NO_FILTER
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;GraphDatabaseConfiguration config 是图的配置，由于配置也是保存在数据库，所以也是需要访问数据库的。&lt;/p&gt;
+
+&lt;p&gt;Backend backend 是在 config.getBackend 中初始化的，Backend 的构造方法很复杂，主要创建出了 StoreManager indexes txLogManager 等管理存储很重要的属性。&lt;/p&gt;
+
+&lt;p&gt;idManager 和 idAssigner 都是和 id 相关的。 所属类为 IDManager ，VertexIDAssigner，有比较复杂的id分配算法。&lt;/p&gt;
+
+&lt;p&gt;IndexSerializer 和 EdgeSerializer 、Serializer 用于序列化，Serializer 在 config 中初始化，其他两个都是基于 Serializer 的封装。&lt;/p&gt;
+
+&lt;p&gt;vertexExistenceQuery:SliceQuery queryCache:RelationQueryCache schemaCache:SchemaCache 都是 cache 相关。&lt;/p&gt;
+
+&lt;p&gt;managementLogger 是 用来记录操作日志的。&lt;/p&gt;
+
+&lt;p&gt;typeCacheRetrieval ，看到 Retrieval 就知道是获取某些属性用的，他通过 &lt;code&gt;QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName)&lt;/code&gt; 获得 JanusGraphVertex。&lt;/p&gt;
+
+&lt;h4 id=&#34;然后再看方法&#34;&gt;然后再看方法&lt;/h4&gt;
+
+&lt;p&gt;除了 getset 以外，主要是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;isOpen
+isClosed
+close
+closeInternal
+prepareCommit
+commit
+openManagement
+newTransaction
+buildTransaction
+newThreadBoundTransaction
+newTransaction
+openBackendTransaction
+closeTransaction
+getVertexIDs
+edgeQuery
+edgeMultiQuery
+assignID
+assignID
+acquireLock
+acquireLock
+getTTL
+getTTL
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;和 transaction 有关的打开关闭提交等，查询边和顶点，分配id，获得锁。这里的 edgeQuery 并不是查询边，而是查询 edgestore 这个表格，这个表格存放了所有的数据。
+细心分析发现，这些方法主要都是进行查询操作，得到查询结果 List&lt;EntryList&gt;，并没有进行数据增删改查的操作 API。&lt;/p&gt;
+
+&lt;h3 id=&#34;managementsystem&#34;&gt;ManagementSystem&lt;/h3&gt;
+
+&lt;p&gt;StandardJanusGraph 用来操作数据，而 ManagementSystem 主要是管理 schema。&lt;/p&gt;
+
+&lt;h4 id=&#34;属性&#34;&gt;属性：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;LOGGER
+CURRENT_INSTANCE_SUFFIX
+graph
+sysLog
+managementLogger
+transactionalConfig
+modifyConfig
+userConfig
+schemaCache
+transaction
+updatedTypes
+evictGraphFromCache
+updatedTypeTriggers
+txStartTime
+graphShutdownRequired
+isOpen
+configVerifier
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;graph 和 managementLogger 就是上面的 StandardJanusGraph 和 managementLogger。sysLog 也是和日志有关。&lt;/p&gt;
+
+&lt;p&gt;TransactionalConfiguration 是事务的配置，实际上他应该是记录了变化，能够判断是否有改变，从而进行 commit 和 rollback&lt;/p&gt;
+
+&lt;p&gt;SchemaCache 就是 StandardJanusGraph 的 SchemaCache。&lt;/p&gt;
+
+&lt;p&gt;transaction 是 StandardJanusGraphTx。&lt;/p&gt;
+
+&lt;p&gt;updatedTypes 应该也是记录更新&lt;/p&gt;
+
+&lt;p&gt;其他的暂时还不太懂。&lt;/p&gt;
+
+&lt;h4 id=&#34;方法&#34;&gt;方法：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;IndexBuilder
+GraphCacheEvictionCompleteTrigger
+EmptyIndexJobFuture
+UpdateStatusTrigger
+IndexJobStatus
+IndexIdentifier
+ManagementSystem
+
+getOpenInstancesInternal
+getOpenInstances
+forceCloseInstance
+ensureOpen
+commit
+rollback
+isOpen
+close
+getWrappedTx
+addSchemaEdge
+getSchemaElement
+buildEdgeIndex
+buildEdgeIndex
+buildPropertyIndex
+buildPropertyIndex
+buildRelationTypeIndex
+composeRelationTypeIndexName
+containsRelationIndex
+getRelationIndex
+getRelationIndexes
+getGraphIndexDirect
+containsGraphIndex
+getGraphIndex
+getGraphIndexes
+awaitGraphIndexStatus
+awaitRelationIndexStatus
+checkIndexName
+createMixedIndex
+addIndexKey
+createCompositeIndex
+buildIndex
+updateIndex
+evictGraphFromCache
+setUpdateTrigger
+setStatus
+setStatusVertex
+setStatusEdges
+getIndexJobStatus
+changeName
+updateConnectionEdgeConstraints
+getSchemaVertex
+updateSchemaVertex
+getConsistency
+setConsistency
+getTTL
+setTTL
+setTypeModifier
+containsRelationType
+getRelationType
+containsPropertyKey
+getPropertyKey
+containsEdgeLabel
+getOrCreateEdgeLabel
+getOrCreatePropertyKey
+getEdgeLabel
+makePropertyKey
+makeEdgeLabel
+getRelationTypes
+containsVertexLabel
+getVertexLabel
+getOrCreateVertexLabel
+makeVertexLabel
+addProperties
+addProperties
+addConnection
+getVertexLabels
+get
+set
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;强制关闭、操作事务、添加顶点边Label属性索引。&lt;/p&gt;
+
+&lt;p&gt;索引都是  buildRelationTypeIndex 方法，说明 RelationType(PropertyKey 和 EdgeLabel)才有索引，分别是 graphIndex 和 vertexIncdicentIndex ，VertexLabel 没有索引。
+而 getVertexLabels 等带s的方法 是 调用 QueryUtil.getVertices ，说明得到所有的需要查询数据库。&lt;/p&gt;
+
+&lt;p&gt;很多方法都是直接调用 StandardJanusGraphTx 的 对应方法。但是 build Index 并没有使用到 StandardJanusGraphTx。说明 index 并不是马上就插入数据库？或者因为 Index 建完以后还要等待？？&lt;/p&gt;
+
+&lt;h3 id=&#34;standardjanusgraphtx&#34;&gt;StandardJanusGraphTx&lt;/h3&gt;
+
+&lt;p&gt;上面大致了解了  StandardJanusGraph 和 ManagementSystem ，StandardJanusGraphTx 内部才是最重要的，&lt;/p&gt;
+
+&lt;h4 id=&#34;属性-1&#34;&gt;属性：&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;log
+EMPTY_DELETED_RELATIONS
+UNINITIALIZED_LOCKS
+LOCK_TIMEOUT
+MIN_VERTEX_CACHE_SIZE
+graph
+config
+idManager
+idInspector
+attributeHandler
+txHandle
+edgeSerializer
+indexSerializer
+vertexCache
+addedRelations
+deletedRelations
+indexCache
+newVertexIndexEntries
+uniqueLocks
+newTypeCache
+temporaryIds
+times
+isOpen
+existingVertexRetriever
+externalVertexRetriever
+internalVertexRetriever
+edgeProcessor
+edgeProcessorImpl
+elementProcessor
+elementProcessorImpl
+vertexIDConversionFct
+edgeIDConversionFct
+propertyIDConversionFct
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;前面的属性都是在 graph 获得的&lt;/p&gt;
+
+&lt;p&gt;vertexCache = new GuavaVertexCache(effectiveVertexCacheSize,concurrencyLevel,config.getDirtyVertexSize()); 是缓存 vertex 的。&lt;/p&gt;
+
+&lt;p&gt;addedRelations = new ConcurrentBufferAddedRelations(); 是缓存 Relation 的。&lt;/p&gt;
+
+&lt;p&gt;deletedRelations 同上&lt;/p&gt;
+
+&lt;p&gt;indexCache 缓存 index ， 类似 vertexCache ，需要传入一个  retrival&lt;/p&gt;
+
+&lt;p&gt;existingVertexRetriever externalVertexRetriever internalVertexRetriever 都是给 vertexCache 用来查 vertex 的。&lt;/p&gt;
+
+&lt;p&gt;edgeProcessor 是一个 QueryExecutor。用来查询的。&lt;/p&gt;
+
+&lt;p&gt;elementProcessor 一样是用来查询的。&lt;/p&gt;
+
+&lt;h4 id=&#34;方法-1&#34;&gt;方法&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;StandardJanusGraphTx
+setBackendTransaction
+verifyWriteAccess
+verifyAccess
+verifyOpen
+getNextTx
+getConfiguration
+getGraph
+getTxHandle
+getEdgeSerializer
+getIdInspector
+isPartitionedVertex
+getCanonicalVertex
+getOtherPartitionVertex
+getAllRepresentatives
+containsVertex
+isValidVertexId
+getVertex
+getVertices
+getExistingVertex
+getInternalVertex
+addVertex
+addVertex
+addVertex
+getInternalVertices
+validDataType
+verifyAttribute
+removeRelation
+isRemovedRelation
+getLock
+getLock
+getUniquenessLock
+checkPropertyConstraintForVertexOrCreatePropertyConstraint
+checkPropertyConstraintForEdgeOrCreatePropertyConstraint
+checkConnectionConstraintOrCreateConnectionConstraint
+addEdge
+connectRelation
+addProperty
+addProperty
+getEdges
+makeSchemaVertex
+updateSchemaVertex
+makePropertyKey
+makeEdgeLabel
+addSchemaEdge
+addProperties
+addProperties
+addConnection
+getSchemaVertex
+containsRelationType
+getRelationType
+containsPropertyKey
+containsEdgeLabel
+getExistingRelationType
+getPropertyKey
+getOrCreatePropertyKey
+getOrCreatePropertyKey
+getEdgeLabel
+getOrCreateEdgeLabel
+makePropertyKey
+makeEdgeLabel
+getExistingVertexLabel
+containsVertexLabel
+getVertexLabel
+getOrCreateVertexLabel
+makeVertexLabel
+query
+multiQuery
+multiQuery
+executeMultiQuery
+getConversionFunction
+query
+indexQuery
+commit
+rollback
+releaseTransaction
+isOpen
+isClosed
+hasModifications
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;schema 操作的 makeEdgeLabel makePropertyKey 等，数据操作的 getVertex addEdge 等，事务操作的 rollback 等。
+好像没有 index ？因为 index 属于 schema， 相关的方法都是在 management 中完成的。
+实际上，StandardJanusGraphTx 有 addEdge addProperties addVertex 等操作数据的方法，同时还有 makePropertyKey，EdgeLabel 等操作 schema 的方法。
+原因是 makePropertyKey 等 schema 实际上也是以顶点的形式保存在 janus 中，所以 schema 操作本质还是数据操作，只不过这部分数据都会被读入内存。
+所以 schema 操作都会触发 makeSchemaVertex 的方法，makeSchemaVertex 就是添加一个顶点，只不过是 schema 的订单。&lt;/p&gt;
+
+&lt;h3 id=&#34;backendtransaction&#34;&gt;BackendTransaction&lt;/h3&gt;
+
+&lt;p&gt;我们在看 StandardJanusGraphTx 代码的时候 ，发现 BackendTransaction 也很重要，看看他的继承体系&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;BaseTransaction
+	LoggableTransaction (org.janusgraph.diskstorage)
+	    CacheTransaction (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	    IndexTransaction (org.janusgraph.diskstorage.indexing)
+	    BackendTransaction (org.janusgraph.diskstorage)
+	BaseTransactionConfigurable (org.janusgraph.diskstorage)
+	    Transaction in LuceneIndex (org.janusgraph.diskstorage.lucene)
+	    DefaultTransaction (org.janusgraph.diskstorage.util)
+	    StoreTransaction (org.janusgraph.diskstorage.keycolumnvalue)
+	        AbstractStoreTransaction (org.janusgraph.diskstorage.common)
+	            CQLTransaction (org.janusgraph.diskstorage.cql)
+	            BerkeleyJETx (org.janusgraph.diskstorage.berkeleyje)
+	            CassandraTransaction (org.janusgraph.diskstorage.cassandra)
+	            HBaseTransaction (org.janusgraph.diskstorage.hbase)
+	            NoOpStoreTransaction (org.janusgraph.diskstorage.common)
+	            InMemoryTransaction in InMemoryStoreManager (org.janusgraph.diskstorage.keycolumnvalue.inmemory)
+	        CacheTransaction (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	        ExpectedValueCheckingTransaction (org.janusgraph.diskstorage.locking.consistentkey)
+	IndexTransaction (org.janusgraph.diskstorage.indexing)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;BaseTransaction 只有 comimit 和 roolback 两个方法。LoggableTransaction 只有 LoggableTransaction ，BaseTransactionConfigurable 多了一个 getConfiguration 。&lt;/p&gt;
+
+&lt;p&gt;IndexTransaction BackendTransaction CacheTransaction 继承自 LoggableTransaction ， 前者是处理索引，后者可以处理其他的读写事务，最后的是内存中的事务处理。&lt;/p&gt;
+
+&lt;p&gt;IndexTransaction 中有一个 BaseTransaction 属性，用来实现真正的事务读写，实现一般是 IndexProvider 生成，主要是 ES、LUCENE、Solr 三种实现。
+CacheTransaction 中有 StoreTransaction 属性，用来实现持久化。
+BackendTransaction 中则有 CacheTransaction edgeStore indexStore txLogStore Map&lt;String, IndexTransaction&gt; indexTx; 等属性，显然这才是最重要的实现事务管控的类。&lt;/p&gt;
+
+&lt;p&gt;我们通过代码分析可以看出 BackendTransaction 的创建是在 StandardJanusGraph 完成，而使用主要是 StandardJanusGraphTx 。
+StandardJanusGraph 的 newTransaction 创建 BackendTransaction 和 StandardJanusGraphTx ，并进行赋值。
+StandardJanusGraph 什么时候会调用 newTransaction ？一个在 typeCacheRetrieval 中，另一个就是我们代码创建新的 transaction，还有一个是 在没有 transactional isolation 的存储系统上面， commit 的时候需要操作 schema&lt;/p&gt;
+
+&lt;h2 id=&#34;关键类分析&#34;&gt;关键类分析&lt;/h2&gt;
+
+&lt;p&gt;上面整体的调试已经找到了比较关键的大类，以及事务相关的类的关系，我们可以反过来再看一遍调用栈，就更清晰了。现在反过来从细节开始研究具体的类的功能。&lt;/p&gt;
+
+&lt;h3 id=&#34;storemanager&#34;&gt;StoreManager&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;StoreManager
+	KeyValueStoreManager (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    OrderedKeyValueStoreManager (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	        BerkeleyJEStoreManager (org.janusgraph.diskstorage.berkeleyje)
+	AbstractStoreManager (org.janusgraph.diskstorage.common)
+	    DistributedStoreManager (org.janusgraph.diskstorage.common)
+	        CQLStoreManager (org.janusgraph.diskstorage.cql)
+	            CachingCQLStoreManager (org.janusgraph.diskstorage.cql)
+	        AbstractCassandraStoreManager (org.janusgraph.diskstorage.cassandra)
+	            CassandraThriftStoreManager (org.janusgraph.diskstorage.cassandra.thrift)
+	            CassandraEmbeddedStoreManager (org.janusgraph.diskstorage.cassandra.embedded)
+	            AstyanaxStoreManager (org.janusgraph.diskstorage.cassandra.astyanax)
+	        HBaseStoreManager (org.janusgraph.diskstorage.hbase)
+	    LocalStoreManager (org.janusgraph.diskstorage.common)
+	        BerkeleyJEStoreManager (org.janusgraph.diskstorage.berkeleyje)
+	                    LocalStoreManagerSampleImplementation in LocalStoreManagerTest (org.janusgraph.diskstorage.common)
+	            KeyColumnValueStoreManager (org.janusgraph.diskstorage.keycolumnvalue)
+	    CQLStoreManager (org.janusgraph.diskstorage.cql)
+	        CachingCQLStoreManager (org.janusgraph.diskstorage.cql)
+	    OrderedKeyValueStoreManagerAdapter (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    InMemoryStoreManager (org.janusgraph.diskstorage.keycolumnvalue.inmemory)
+	    KCVSManagerProxy (org.janusgraph.diskstorage.keycolumnvalue)
+	        ExpectedValueCheckingStoreManager (org.janusgraph.diskstorage.locking.consistentkey)
+	        TTLKCVSManager (org.janusgraph.diskstorage.keycolumnvalue.ttl)
+	    MetricInstrumentedStoreManager (org.janusgraph.diskstorage.util)
+	    AbstractCassandraStoreManager (org.janusgraph.diskstorage.cassandra)
+	        CassandraThriftStoreManager (org.janusgraph.diskstorage.cassandra.thrift)
+	        CassandraEmbeddedStoreManager (org.janusgraph.diskstorage.cassandra.embedded)
+	        AstyanaxStoreManager (org.janusgraph.diskstorage.cassandra.astyanax)
+	    HBaseStoreManager (org.janusgraph.diskstorage.hbase)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;StoreManager 接口主要功能 beginTransaction 得到一个 StoreTransaction 和 close ，clean 等，还有得到 store 相关的信息。看着上面好像很多继承类，实际上是因为有重复继承导致的。&lt;/p&gt;
+
+&lt;p&gt;KeyValueStoreManager 是测试的。DistributedStoreManager 和 KeyColumnValueStoreManager 是两个抽象，我们使用的 cassandra 和 hbase 的 storeManager 都继承自这两个。
+这几个 storeManager 就有我们需要的操作数据的方法。&lt;/p&gt;
+
+&lt;h3 id=&#34;keycolumnvaluestore-keyvaluestore&#34;&gt;KeyColumnValueStore &amp;amp; KeyValueStore&lt;/h3&gt;
+
+&lt;p&gt;KeyValueStore 是测试的，KeyColumnValueStore 是真正的。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;KeyColumnValueStore
+	KCVSProxy (org.janusgraph.diskstorage.keycolumnvalue)
+	    TTLKCVS (org.janusgraph.diskstorage.keycolumnvalue.ttl)
+	    ExpectedValueCheckingStore (org.janusgraph.diskstorage.locking.consistentkey)
+	    KCVSCache (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	        ExpirationKCVSCache (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	        NoKCVSCache (org.janusgraph.diskstorage.keycolumnvalue.cache)
+	    ReadOnlyKeyColumnValueStore (org.janusgraph.diskstorage.keycolumnvalue)
+	BaseKeyColumnValueAdapter (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    OrderedKeyValueStoreAdapter (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	CQLKeyColumnValueStore (org.janusgraph.diskstorage.cql)
+	HBaseKeyColumnValueStore (org.janusgraph.diskstorage.hbase)
+	CassandraEmbeddedKeyColumnValueStore (org.janusgraph.diskstorage.cassandra.embedded)
+	CassandraThriftKeyColumnValueStore (org.janusgraph.diskstorage.cassandra.thrift)
+	AstyanaxKeyColumnValueStore (org.janusgraph.diskstorage.cassandra.astyanax)
+	MetricInstrumentedStore (org.janusgraph.diskstorage.util)
+	CounterKCVS in KCVSCacheTest (org.janusgraph.diskstorage.cache)
+	InMemoryKeyColumnValueStore (org.janusgraph.diskstorage.keycolumnvalue.inmemory)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;KeyColumnValueStore 的作用我暂时不是很清楚，从继承类的构造方法看，需要传入一个 StoreManager connection table columnFamily store 。大概能猜出一个 Store 代表一个表格，或者代表一个列族，应该是代表某种数据，例如索引，日志等。&lt;/p&gt;
+
+&lt;p&gt;从他的方法可以看出主要是查询库， 如 getKeySlice mutate mutateMany 。&lt;/p&gt;
+
+&lt;p&gt;KCVSCache 也继承自 KeyColumnValueStore，名字可以看出是放在内存的 store ，自然也有 getSlice 等方法，我们可以看他的实现类 ExpirationKCVSCache。
+这个类里面有一个 Cache&lt;KeySliceQuery,EntryList&gt; cache 的对象，用来缓存查询结果。而 KCVSCache 继承自 KCVSProxy ，这个类则代理 KeyColumnValueStore 对象。其实还有一个 TTLKCVS ，应该是带过期时间的 store&lt;/p&gt;
+
+&lt;h3 id=&#34;logmanager&#34;&gt;LogManager&lt;/h3&gt;
+
+&lt;p&gt;LogManager 的注释：Manager interface for opening {@link Log}s against a particular Log implementation.&lt;/p&gt;
+
+&lt;p&gt;KCVSLogManager 实现类的注释：
+Implementation of {@link LogManager} against an arbitrary {@link KeyColumnValueStoreManager}.
+Issues {@link Log} instances which wrap around a {@link KeyColumnValueStore}.&lt;/p&gt;
+
+&lt;p&gt;可以看出 LogManager 主要是将 通过 KeyColumnValueStoreManager 实现 Log，而 log 则是 围绕 KeyColumnValueStore 。&lt;/p&gt;
+
+&lt;p&gt;而我们的log包括三部分： managementLogManager txLogManager userLogManager&lt;/p&gt;
+
+&lt;h3 id=&#34;log&#34;&gt;Log&lt;/h3&gt;
+
+&lt;p&gt;Log 的注释：
+Represents a log that allows content to be added to it in the form of messages and
+to read messages and their content from the log via registered {@link MessageReader}s.&lt;/p&gt;
+
+&lt;p&gt;KCVSLog 的注释很长。可以看出主要通过 KeyColumnValueStore 实现。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/**
+ * Implementation of {@link Log} wrapped around a {@link KeyColumnValueStore}. Each message is written as a column-value pair ({@link Entry})
+ * into a timeslice slot. A timeslice slot is uniquely identified by:
+ * &amp;lt;ul&amp;gt;
+ *     &amp;lt;li&amp;gt;The partition id: On storage backends that are key-ordered, a partition bit width can be configured which configures the number of
+ *     first bits that comprise the partition id. On unordered storage backends, this is always 0&amp;lt;/li&amp;gt;
+ *     &amp;lt;li&amp;gt;A bucket id: The number of parallel buckets that should be maintained is configured by
+ *     {@link org.janusgraph.graphdb.configuration.GraphDatabaseConfiguration#LOG_NUM_BUCKETS}. Messages are written to the buckets
+ *     in round-robin fashion and each bucket is identified by a bucket id.
+ *     Having multiple buckets per timeslice allows for load balancing across multiple keys in the storage backend.&amp;lt;/li&amp;gt;
+ *     &amp;lt;li&amp;gt;The start time of the timeslice: Each time slice is {@link #TIMESLICE_INTERVAL} microseconds long. And all messages that are added between
+ *     start-time and start-time+{@link #TIMESLICE_INTERVAL} end up in the same timeslice. For high throughput logs that might be more messages
+ *     than the underlying storage backend can handle per key. In that case, ensure that (2^(partition-bit-width) x (num-buckets) is large enough
+ *     to distribute the load.&amp;lt;/li&amp;gt;
+ * &amp;lt;/ul&amp;gt;
+ *
+ * Each message is uniquely identified by its timestamp, sender id (which uniquely identifies a particular instance of {@link KCVSLogManager}), and the
+ * message id (which is auto-incrementing). These three data points comprise the column of a log message. The actual content of the message
+ * is written into the value.
+ * &amp;lt;/p&amp;gt;
+ * When {@link MessageReader} are registered, one reader thread per partition id and bucket is created which periodically (as configured) checks for
+ * new messages in the storage backend and invokes the reader. &amp;lt;/br&amp;gt;
+ * Read-markers are maintained (for each partition-id &amp;amp; bucket id combination) under a dedicated key in the same {@link KeyColumnValueStoreManager} as the
+ * log messages. The read markers are updated to the current position before each new iteration of reading messages from the log. If the system fails
+ * while reading a batch of messages, a subsequently restarted log reader may therefore read messages twice. Hence, {@link MessageReader} implementations
+ * should exhibit correct behavior for the (rare) circumstance that messages are read twice.
+ *
+ * Note: All time values in this class are in microseconds. Hence, there are many cases where milliseconds are converted to microseconds.
+ *
+ * @author Matthias Broecheler (me@matthiasb.com)
+ */
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;英语不好就为难了。
+每个消息都由它的时间戳、发件人ID，以及消息ID（它是自动递增的）唯一标识。这三个数据组成包括日志消息的列名。消息的实际内容被写入值中。&lt;/p&gt;
+
+&lt;h3 id=&#34;indexprovider&#34;&gt;IndexProvider&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;IndexProvider (org.janusgraph.diskstorage.indexing)
+    LuceneIndex (org.janusgraph.diskstorage.lucene)
+    TestMockIndexProvider (org.janusgraph.graphdb)
+    SolrIndex (org.janusgraph.diskstorage.solr)
+    ElasticSearchIndex (org.janusgraph.diskstorage.es)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;上面的 IndexTransaction 包含了 对 IndexProvider的操作。&lt;/p&gt;
+
+&lt;h3 id=&#34;vertexidassigner-standardidpool-idblock&#34;&gt;VertexIDAssigner StandardIDPool IDBlock&lt;/h3&gt;
+
+&lt;p&gt;负责分配 id ，分配原则我们通过运行 VertexIDAssignerTest 查看。&lt;/p&gt;
+
+&lt;h3 id=&#34;element&#34;&gt;Element&lt;/h3&gt;
+
+&lt;p&gt;我们在操作的过程中有很多的 Vertex Property Edge 等，实际上都继承自一个 Element，继承体系确实有点吓人，这里就不展示了，几个 schema 都这么多东西，我们先分类。&lt;/p&gt;
+
+&lt;p&gt;首先我们思考一下，为什么会有这么多。其实 gremin 语法本身定义了一堆schema ，而 janus 也有自己的schema ，两个要进行适配器模式，所以还有一组适配器的schema。所以会比较多？&lt;/p&gt;
+
+&lt;p&gt;我们先看一下 gremin 的接口 ,主要有三个，&lt;code&gt;org.apache.tinkerpop.gremlin.structure&lt;/code&gt;下面：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;VertexProperty
+Vertex
+Edge
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;分别代表了属性，顶点，边，然后 gremin 本身对他们进行了一些实现。然后死 janusgraph 的 &lt;code&gt;org.janusgraph.core&lt;/code&gt; 包下面，有很多一些接口：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraphElement
+    JanusGraphVertex
+        InternalVertex (org.janusgraph.graphdb.internal)
+        RelationType (org.janusgraph.core)
+        VertexLabel (org.janusgraph.core)
+	JanusGraphRelation
+		JanusGraphEdge (org.janusgraph.core)
+		    AbstractEdge (org.janusgraph.graphdb.relations)
+		        CacheEdge (org.janusgraph.graphdb.relations)
+		        StandardEdge (org.janusgraph.graphdb.relations)
+		JanusGraphVertexProperty (org.janusgraph.core)
+		    FulgoraVertexProperty (org.janusgraph.graphdb.olap.computer)
+		    AbstractVertexProperty (org.janusgraph.graphdb.relations)
+		        StandardVertexProperty (org.janusgraph.graphdb.relations)
+		        CacheVertexProperty (org.janusgraph.graphdb.relations)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里展示的并不完整。整个 janus 的schema很复杂。只是大概从注释看出，
+在 core 包中，JanusGraphVertex 是顶点，JanusGraphRelation 代表顶点关系，分为属性和边两种 ：JanusGraphVertexProperty 和 JanusGraphEdge。
+在 internal 包中，对 core 包的类添加些 janus 特有的方法。&lt;/p&gt;
+
+&lt;p&gt;另外在 schema 包中还有 RelationType 和 VertexLabel ，两个都是继承自 JanusGraphVertex ，意思是说 VertexLabel VertexProperty EdgeLabel 都是顶点？？？。
+这样就好像明白一点，janus 中的 PropertyKey VertexLabel EdgeLabel 都是以顶点的形式保存起来的。&lt;/p&gt;
+
+&lt;p&gt;所以我们看 Edge 类型继承体系比较简单，就是 CacheEdge (org.janusgraph.graphdb.relations) StandardEdge (org.janusgraph.graphdb.relations) 继承自
+AbstractEdge ，然后继承 JanusGraphEdge，Edge。
+而 Vertex 继承体系很复杂，除了类似 Edge 的继承体系以外，CacheVertex 还多了 JanusGraphSchemaVertex 这个子类，这个子类还有 RelationTypeVertex 和 VertexLabelVertex 两个子类，
+实际上很明显，CacheVertex 的子类 JanusGraphSchemaVertex 代表的就是 graph 的 schema ，也是作为 Vertex 保存的。&lt;/p&gt;
+
+&lt;p&gt;这个给别人讲一句话就懂了，但是自己分析可能要好几个小时才能明白。这也是学习和自己研究的不同。&lt;/p&gt;
+
+&lt;h3 id=&#34;index&#34;&gt;Index&lt;/h3&gt;
+
+&lt;p&gt;索引肯定是数据库的重点，我们到目前没有分析过和所以有关的内容。IndexTransaction 是我们遇到的可能和索引相关的内容了，就从 他开始。
+IndexTransaction 中有个 BaseTransaction 的对象用来实现事务，通过 IndexProvider 来产生。我们以 ElasticSearchIndex 为例，可以看看他的方法。&lt;/p&gt;
+
+&lt;p&gt;例如 register 方法会创建索引，还有 restore 等操作事务的方法。在 ManagementSystem 的 updateIndex 方法中，定义了各种操作 index 的方法。&lt;/p&gt;
+
+&lt;p&gt;Index 类继承了 JanusGraphSchemaElement，主要有两类实现类 JanusGraphIndex 和 RelationTypeIndex 。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphIndex 的实现类是 JanusGraphIndexWrapper 。可以通过 JanusGraphManagement#buildIndex(String, Class) 新建 。&lt;/p&gt;
+
+&lt;p&gt;RelationTypeIndex 的实现类是 RelationTypeIndexWrapper，可以通过
+JanusGraphManagement#buildEdgeIndex(org.janusgraph.core.EdgeLabel, String, org.apache.tinkerpop.gremlin.structure.Direction, org.apache.tinkerpop.gremlin.process.traversal.Order, org.janusgraph.core.PropertyKey&amp;hellip;)
+和 JanusGraphManagement#buildPropertyIndex(org.janusgraph.core.PropertyKey, String, org.apache.tinkerpop.gremlin.process.traversal.Order, org.janusgraph.core.PropertyKey&amp;hellip;)
+两个方法建 RelationTypeIndex。&lt;/p&gt;
+
+&lt;p&gt;IndexType 定义所有的 JanusGraphIndex，实现包括 CompositeIndexType 和 MixedIndexType。&lt;/p&gt;
+
+&lt;p&gt;IndexType IndexProvider 和 Index 的不同在于，Index 和他的实现类 JanusGraphIndex RelationTypeIndexWrapper 都是继承自 JanusGraphSchemaElement ，和 Vertex 一样，代表的是 janus 中的一个顶点。
+IndexType 代表了所以类型 ，IndexProvider 则代表的是和索引相关的操作方法 例如 ElasticSearchIndex SolrIndex LuceneIndex。&lt;/p&gt;
+
+&lt;h3 id=&#34;standardscanner&#34;&gt;StandardScanner&lt;/h3&gt;
+
+&lt;p&gt;在 Backend 构造方法最后有一句 new StandardScanner。我们看看这个是干啥用的，主要调用地方是  buildStoreIndexScanJob 这个方法，我们发现这个新建了一个 Job。
+buildEdgeScanJob 主要就是在 ManagementSystem 的 updateIndex 方法使用，根据方法名可以看出，这是在遍历数据库的job。&lt;/p&gt;
+
+&lt;p&gt;StandardScanner 的重点很明显就是它的内部类 Builder。Builder 内部有一个 ScanJob 的变量，实际上 Builder 就是有个 execute 方法，能够执行 ScanJob ，例如 IndexUpdateJob 和 IndexRepairJob。&lt;/p&gt;
+
+&lt;p&gt;这个越看越复杂，还是后续分析吧。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph线上schema过程Debug</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-schema/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-schema/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;初步调试&#34;&gt;初步调试&lt;/h1&gt;
+
+&lt;h2 id=&#34;回顾&#34;&gt;回顾&lt;/h2&gt;
+
+&lt;p&gt;首先我们通过 debug 官方的 GraphOfGod 大概进行一个简单的调试，然后我们仔细查看 janusgraph 调用栈，分析了关键类。
+这次我们主要看看schema 的建立过程，我们上次分析已经知道，其实 schema也是以Vertex的方式存储在内存和数据库中的。
+通过 CacheVertex 的子类 JanusGraphSchemaVertex 实现。JanusGraphSchemaVertex 有两个个子类，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+AbstractElement (org.janusgraph.graphdb.internal)
+	AbstractVertex (org.janusgraph.graphdb.vertices)
+		StandardVertex (org.janusgraph.graphdb.vertices)
+			CacheVertex (org.janusgraph.graphdb.vertices)
+				JanusGraphSchemaVertex (org.janusgraph.graphdb.types.vertices)
+					RelationTypeVertex (org.janusgraph.graphdb.types.vertices)
+					    PropertyKeyVertex (org.janusgraph.graphdb.types.vertices)
+					    EdgeLabelVertex (org.janusgraph.graphdb.types.vertices)
+					VertexLabelVertex (org.janusgraph.graphdb.types)
+````
+
+中间省略了一些接口。
+
+所以每次 new 一个 EdgeLabelVertex、VertexLabelVertex、PropertyKeyVertex 的时候，调用栈会非常深。
+
+我们大概查看一下这些类的功能。
+
+### AbstractElement
+
+只有一个属性：private long id; 这个id是唯一的。小于0 的是临时id，事务提交时候会分配大于0的id，等于0的是虚拟的并不存在的，大雨0的是物理persist的。
+
+### InternalVertex
+
+图上没有展示 InternalVertex ，这是一个接口，继承自 JanusGraphVertex 和 InternalElement。凡是带 Internal 的都是比原来的多一个 janus 专属方法的类。
+所以 InternalVertex 也是比 JanusGraphVertex 多一些 janus 专属的方法 例如： removeRelation addRelation tx()。
+JanusGraphVertex 中则是 janus 和 gremin 都会有的方法 ， 例如 addEdge property label。
+InternalVertex 有 query() 等方法，
+
+### AbstractVertex
+
+AbstractVertex 继承自 AbstractElement 和 InternalVertex，
+AbstractVertex 比 AbstractElement 的 id 基础上多了一个 StandardJanusGraphTx tx 的属性。也就是多了一个事务空值对象。
+
+### StandardVertex
+
+StandardVertex 继承自 AbstractVertex，多了一个 lifecycle 属性和 volatile AddedRelationsContainer addedRelations 属性。应该是通过缓存空值。
+
+### CacheVertex
+CacheVertex 继承自 StandardVertex 。多了一个 queryCache 属性。
+
+### JanusGraphSchemaVertex 
+
+JanusGraphSchemaVertex 就是保存 Schema 的 Vertex ，分为两类 RelationTypeVertex 和 VertexLabelVertex。其中 RelationTypeVertex 分为 PropertyKeyVertex 和 EdgeLabelVertex。
+
+## 预览
+
+schema 操作是通过 ManagementSystem &amp;lt;: JanusGraphManagement 完成的。ManagementSystem 内容很复杂，上次已经大概看了他的方法和属性，这次我们着重看一下方法的实现，首先还是再次浏览一下方法。
+
+### 属性
+
+```java
+private static final String CURRENT_INSTANCE_SUFFIX = &amp;quot;(current)&amp;quot;;
+
+private final StandardJanusGraph graph;
+private final Log sysLog;
+private final ManagementLogger mgmtLogger;
+
+private final KCVSConfiguration baseConfig;
+private final TransactionalConfiguration transactionalConfig;
+private final ModifiableConfiguration modifyConfig;
+private final UserModifiableConfiguration userConfig;
+private final SchemaCache schemaCache;
+
+private final StandardJanusGraphTx transaction;
+
+private final Set&amp;lt;JanusGraphSchemaVertex&amp;gt; updatedTypes;
+private final List&amp;lt;Callable&amp;lt;Boolean&amp;gt;&amp;gt; updatedTypeTriggers;
+
+private final Instant txStartTime;
+private boolean graphShutdownRequired;
+private boolean isOpen;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;构造方法&#34;&gt;构造方法&lt;/h3&gt;
+
+&lt;p&gt;基本都是直接赋值。StandardJanusGraph 的 openManagement 方法返回一个 ManagementSystem 。&lt;/p&gt;
+
+&lt;h3 id=&#34;instances-操作&#34;&gt;Instances 操作&lt;/h3&gt;
+
+&lt;p&gt;getOpenInstancesInternal
+getOpenInstances
+forceCloseInstance&lt;/p&gt;
+
+&lt;p&gt;判断正在运行的 instance 。&lt;/p&gt;
+
+&lt;h3 id=&#34;commit-和-rollback&#34;&gt;commit 和 rollback&lt;/h3&gt;
+
+&lt;p&gt;commit 方法有四步。
+1. 判断 transactionalConfig 是否变化，如果变化，将变化写出。
+2. transactionalConfig.commit();
+3. transaction.commit();
+4. 判断 updatedTypes 是否有更新，进行 expire 操作。&lt;/p&gt;
+
+&lt;p&gt;rollback 方法，则很简单。直接调用两个 transaction 的 callback ，然后 close。&lt;/p&gt;
+
+&lt;h3 id=&#34;getschemaelement&#34;&gt;getSchemaElement&lt;/h3&gt;
+
+&lt;p&gt;这个方法返回一个 JanusGraphSchemaElement ，但是实际上返回的是 RelationTypeIndexWrapper 或者 JanusGraphIndexWrapper ，原因未知，这两个类上一节介绍过，。&lt;/p&gt;
+
+&lt;h3 id=&#34;buildrelationtypeindex&#34;&gt;buildRelationTypeIndex&lt;/h3&gt;
+
+&lt;p&gt;包括 buildPropertyIndex 和 buildEdgeIndex。
+步骤都是先 生成对应的 RelationTypeMaker，然后 make，然后调用 addSchemaEdge， 最后调用 updateIndex&lt;/p&gt;
+
+&lt;h3 id=&#34;getrelationindex&#34;&gt;getRelationIndex&lt;/h3&gt;
+
+&lt;p&gt;得到 RelationType 的 Index。
+调用 QueryUtil.getVertices(transaction, BaseKey.SchemaName, JanusGraphSchemaCategory.getRelationTypeName(composedName))
+然后 return new RelationTypeIndexWrapper((InternalRelationType) v);&lt;/p&gt;
+
+&lt;h3 id=&#34;getrelationindexes&#34;&gt;getRelationIndexes&lt;/h3&gt;
+
+&lt;p&gt;得到所有的  Indexs。&lt;/p&gt;
+
+&lt;h3 id=&#34;getgraphindexdirect&#34;&gt;getGraphIndexDirect&lt;/h3&gt;
+
+&lt;p&gt;直接调用 transaction.getSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX.getSchemaName(name));
+得到 GraphIndex ，GraphIndex 和 RelationTypeIndex 不一样，一个是基于关系的，前者是基于属性的。&lt;/p&gt;
+
+&lt;h3 id=&#34;getgraphindexes&#34;&gt;getGraphIndexes&lt;/h3&gt;
+
+&lt;p&gt;返回所有的 GraphIndex&lt;/p&gt;
+
+&lt;h3 id=&#34;createmixedindex&#34;&gt;createMixedIndex&lt;/h3&gt;
+
+&lt;p&gt;调用 JanusGraphSchemaVertex indexVertex = transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def); 得到 vertex
+调用 addSchemaEdge(indexVertex, (JanusGraphSchemaVertex) constraint, TypeDefinitionCategory.INDEX_SCHEMA_CONSTRAINT, null); 添加关系
+然后调用 updateSchemaVertex(indexVertex);
+最终 new JanusGraphIndexWrapper(indexVertex.asIndexType());&lt;/p&gt;
+
+&lt;p&gt;可以看出，这个方法其实只是添加了一个顶点，然后和另一个 constraint 顶点简历了一条关系。&lt;/p&gt;
+
+&lt;h3 id=&#34;addindexkey&#34;&gt;addIndexKey&lt;/h3&gt;
+
+&lt;p&gt;给已有的 index 添加一个key，这个应该很复杂，我们先跳过。&lt;/p&gt;
+
+&lt;h3 id=&#34;createcompositeindex&#34;&gt;createCompositeIndex&lt;/h3&gt;
+
+&lt;p&gt;创建 CompositeIndex ，GrpahIndex 分为 CompositeIndex 和 mixedIndex&lt;/p&gt;
+
+&lt;p&gt;创建过程也是 addSchemaEdge ， updateSchemaVertex，updateIndex&lt;/p&gt;
+
+&lt;h3 id=&#34;innerclass&#34;&gt;InnerClass&lt;/h3&gt;
+
+&lt;p&gt;很多内部类：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;IndexBuilder   -- 构建 Index
+EmptyIndexJobFuture -- 提交的job
+UpdateStatusTrigger -- 更新status的触发器
+IndexJobStatus -- job 的 status
+IndexIdentifier  --标识
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;addschemaedge&#34;&gt;addSchemaEdge&lt;/h3&gt;
+
+&lt;p&gt;上面好几个方法都会调用 addSchemaEdge updateSchemaVertex updateIndex ，我们看看这三个方法。&lt;/p&gt;
+
+&lt;p&gt;addSchemaEdge 是私有方法，应该是在内部会调用的。根据名字可以得出这个方法是添加边，而且添加的是 schema 的边，
+我们之前已经知道实际上 schema 都是保存为 vertex，而现在就是给这些 Vertex 添加 Edge，这个边的 EdgeLabel 是 BaseLabel.SchemaDefinitionEdge。
+例如 某个 PropertyKey 添加一个 Index ，实际上会有两个 SchemaVertex，然后给他们建立一个关系。
+我们可以通过查看方法调用时机，基本上是修改 index 或者 schemaVertex ，一般与 updateSchemaVertex 或者 updateIndex 配合执行。&lt;/p&gt;
+
+&lt;p&gt;方法大概步骤就是调用 transaction.addEdge(out, in, BaseLabel.SchemaDefinitionEdge) 得到 Edge，
+然后调用 edge.property(BaseKey.SchemaDefinitionDesc.name(), desc);最后返回 edge。&lt;/p&gt;
+
+&lt;h3 id=&#34;updateschemavertex&#34;&gt;updateSchemaVertex&lt;/h3&gt;
+
+&lt;p&gt;就一句话 transaction.updateSchemaVertex(schemaVertex);&lt;/p&gt;
+
+&lt;h3 id=&#34;updateindex&#34;&gt;updateIndex&lt;/h3&gt;
+
+&lt;p&gt;IndexJobFuture updateIndex(Index index, SchemaAction updateAction)&lt;/p&gt;
+
+&lt;p&gt;SchemaAction 是一个枚举，包括 REGISTER_INDEX REINDEX ENABLE_INDEX DISABLE_INDEX REMOVE_INDEX 。
+IndexJobFuture 代表的是提交了的 job，等待返回结果。&lt;/p&gt;
+
+&lt;p&gt;方法步骤：&lt;/p&gt;
+
+&lt;p&gt;JanusGraphSchemaVertex schemaVertex = getSchemaVertex(index);&lt;/p&gt;
+
+&lt;p&gt;更新 dependentTypes ，实际上就是为了更新 updatedTypes。&lt;/p&gt;
+
+&lt;p&gt;根据不同的请求，调用 setStatus setUpdateTrigger setJob 。这个过程很复杂，后面再讲解。&lt;/p&gt;
+
+&lt;h2 id=&#34;编码调试&#34;&gt;编码调试&lt;/h2&gt;
+
+&lt;h3 id=&#34;managementsystem-构造方法&#34;&gt;ManagementSystem 构造方法&lt;/h3&gt;
+
+&lt;p&gt;调试整个过程总是很麻烦的，我们只能专注某些部分，首先我们主要看一下 ManagementSystem 的构造过程，和使用细节。&lt;/p&gt;
+
+&lt;p&gt;打断点进入构造方法,看这一句代码：&lt;code&gt;this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();&lt;/code&gt; 一步一步进入调用栈&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this.transaction = (StandardJanusGraphTx) graph.buildTransaction().disableBatchLoading().start();
+    return graph.newTransaction(immutable);
+        tx.setBackendTransaction(openBackendTransaction(tx));
+            return backend.beginTransaction(tx.getConfiguration(), retriever);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;在 Backend 的 beginTransaction 方法停下来，首先看看 &lt;code&gt;StoreTransaction tx = storeManagerLocking.beginTransaction(configuration)&lt;/code&gt; 的调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;// 这个 ExpectedValueCheckingStoreManager 继承自 KCVSManagerProxy ，它内部有个 KeyColumnValueStoreManager manager 。显然是代理模式，当然也可以认为是装饰模式。
+StoreTransaction tx = storeManagerLocking.beginTransaction(configuration);
+    StoreTransaction inconsistentTx = manager.beginTransaction(configuration);
+        return new CassandraTransaction(config);
+    StoreTransaction strongConsistentTx = manager.beginTransaction(consistentTxCfg);
+        return new CassandraTransaction(config);
+    ExpectedValueCheckingTransaction wrappedTx = new ExpectedValueCheckingTransaction(inconsistentTx, strongConsistentTx, maxReadTime);
+    return wrappedTx;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出 tx 的大概构造，里面有两个 CassandraTransaction 一个是强一致的，一个是非强一致的。&lt;/p&gt;
+
+&lt;p&gt;然后是 &lt;code&gt;CacheTransaction cacheTx = new CacheTransaction(tx, storeManagerLocking, bufferSize, maxWriteTime, configuration.hasEnabledBatchLoading());&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// CacheTransaction 继承自 StoreTransaction 和 LoggableTransaction ，内部有一个 StoreTransaction 对象，显然也是代理模式或者装饰模式。
+CacheTransaction cacheTx = new CacheTransaction(tx, storeManagerLocking, bufferSize, maxWriteTime, configuration.hasEnabledBatchLoading());
+    就是一堆赋值。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;CacheTransaction 内部有一个 StoreTransaction 也就是 上面的 tx， 然后还有一个 StoreManager storeManagerLocking。&lt;/p&gt;
+
+&lt;p&gt;然后是 &lt;code&gt;indexTx.put(entry.getKey(), new IndexTransaction(entry.getValue() indexKeyRetriever.get(entry.getKey()), configuration, maxWriteTime));&lt;/code&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;indexTx.put(entry.getKey(), new IndexTransaction(entry.getValue(), indexKeyRetriever.get(entry.getKey()), configuration, maxWriteTime));
+    new KeyInformation.IndexRetriever() {...省略代码}
+    new IndexTransaction()
+        index.beginTransaction(config);
+            return new DefaultTransaction(config);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;backend.beginTransaction(tx.getConfiguration(), retriever); 方法中 有很多 Transaction 对象，包括了 cacheTx indexTx 等。BackendTransaction 的构造方法则比较简单，就是直接赋值。&lt;/p&gt;
+
+&lt;p&gt;构造方法讨论到这里，我们可以猜测，ManagementSystem 无论是进行简单 schema 增删改查还是操作索引，
+背后都是通过这个 BackendTransaction 完成，而 BackendTransaction 内部又有 cacheTx 和 indexTx 等对象完成。
+当然还有一个 transactionalConfig 也有一些任务。&lt;/p&gt;
+
+&lt;h3 id=&#34;managementsystem-getvertexlabels&#34;&gt;ManagementSystem getVertexLabels&lt;/h3&gt;
+
+&lt;p&gt;getVertexLabels 方法返回 Iterable&lt;VertexLabel&gt; ，这里可能是通过 guava 进行封装，所以可能调用栈比较深。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;getVertexLabels
+    QueryUtil.getVertices(transaction, BaseKey.SchemaCategory, JanusGraphSchemaCategory.VERTEXLABEL)
+        tx.query().has(key,Cmp.EQUAL,equalityCondition).vertices();
+            1. 
+            return new GraphCentricQueryBuilder(this, graph.getIndexSerializer());
+            3. 
+            return has(key.name(),predicate,condition);
+                // 这一步实际上就加了一个 条件，就是 `~T$SchemaCategory = VERTEXLABEL`
+                constraints.add(new PredicateCondition&amp;lt;String, JanusGraphElement&amp;gt;(key, predicate, condition));
+            3. 
+            GraphCentricQuery query = constructQuery(ElementCategory.VERTEX);
+                 GraphCentricQuery query = constructQueryWithoutProfile(resultType);
+                     省略一大堆复杂代码。
+                     return new GraphCentricQuery(resultType, conditions, orders, query, limit);
+            // 这里是基于guava实现的懒加载模式的 filter
+            Iterables.filter(new QueryProcessor&amp;lt;GraphCentricQuery, JanusGraphElement, JointIndexQuery&amp;gt;(query, tx.elementProcessor), JanusGraphVertex.class);
+
+iterator
+    return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
+        1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
+            Iterator&amp;lt;R&amp;gt; subiter = new LimitAdjustingIterator(subq);
+        2. this.next = nextInternal();
+            hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                    execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
+                        new SubqueryIterator
+                            indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
+                        
+                    
+                  
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里我们就已经知道了，其实这里是构造了一个 GraphCentricQuery 封装所有的查询条件逻辑，然后通过 QueryProcessor 进行处理这个 query，调用 next 的时候会进行查询。&lt;/p&gt;
+
+&lt;p&gt;上面我们已经得到了 ResultSetIterator ，接下来我们需要遍历这个 iterator。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;iterator.hasNext
+    1. next = current
+    2. tryToComputeNext()
+    ...
+        1. hasNext:49, ResultSetIterator (org.janusgraph.graphdb.query)
+            return next != null;
+            
+        2. ResultSetIterator (org.janusgraph.graphdb.query).next:65, 
+            1. LimitAdjustingIterator (org.janusgraph.graphdb.query).hasNext:68, 
+                SubqueryIterator (org.janusgraph.graphdb.util).hasNext:79, 
+            2. LimitAdjustingIterator (org.janusgraph.graphdb.query).next:94, 
+                SubqueryIterator (org.janusgraph.graphdb.util).next:90, 
+
+iterator.next()  
+   return result.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的代码比较杂乱，首先是 AbstractIterator 和 Iterators 类，然后是 ResultSetIterator LimitAdjustingIterator SubqueryIterator ，然后还有一个 Stream 类。&lt;/p&gt;
+
+&lt;p&gt;AbstractIterator 和 Iterators  是 guava 提供的工具类，AbstractIterator 通过封装一个 Iterator，达到缓存和懒加载的效果。
+例如 JDBC 的 ResultSet 如果做成一个 Iterator ，每次调用 next 的时候都会移动一次游标，这样就不能多次判断 hasNext。所以可以用 guava 进行封装。&lt;/p&gt;
+
+&lt;p&gt;ResultSetIterator 和 guava 达到的效果类似，通过内部装饰一个 ResultSetIterator 。&lt;/p&gt;
+
+&lt;p&gt;LimitAdjustingIterator 通过一个 getNewIterator 得到一个 懒加载 Iterator，其实也是和 guava 类似，只不过你可以认为它只能查看 limit 个元素，当遍历完这 limit 个元素，会重新从 0 开始 next limit次，然后再开始。
+说的简单一点，如果一个数组有一千个元素，你的迭代器 limit 是 500，那么你只能得到 500 个元素，想要得到500 - 1000 的元素，要重新查询。类似 mysql 的分页&lt;/p&gt;
+
+&lt;p&gt;SubqueryIterator 是代表依次查询的结果。先从 indexCache 查，没有就调用查询，查询结果是一个 List ，得到对应的 iterator 后放在 elementIterator 中。&lt;/p&gt;
+
+&lt;p&gt;到这里我们就大概明白了整个查询过程，&lt;/p&gt;
+
+&lt;h3 id=&#34;containsvertexlabel&#34;&gt;containsVertexLabel&lt;/h3&gt;
+
+&lt;p&gt;containsVertexLabel 方法判断是否存在，直观的方法是直接调用上面的 getVertexLabels 然后判断一下，但是实际上不是这样。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mgmt.containsVertexLabel(vType.toString())
+    transaction.containsVertexLabel(name);
+        return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null;
+        1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt
+        2. JanusGraphSchemaVertex getSchemaVertex(String schemaName)
+            graph.getSchemaCache().getSchemaId(schemaName)
+            1. getSchemaCache 
+            2. StandardSchemaCache.getSchemaId
+                id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，
+                    typeCacheRetrieval.retrieveSchemaByName
+                        StandardJanusGraph.this.newTransaction
+                            QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName)
+                            return v!=null?v.longId():null;
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;containsVertexLabel 会启动一个 transation 通过 name 查询这个 schema 的 typeName 对应的 vertexId。和 getVertexLabels 不太一样。&lt;/p&gt;
+
+&lt;h3 id=&#34;makevertexlabel&#34;&gt;makeVertexLabel&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt.makeVertexLabel(vType.toString()).make();
+    1. makeVertexLabel
+        transaction.makeVertexLabel(name);
+            StandardVertexLabelMaker maker = new StandardVertexLabelMaker(this);
+            maker.name(name);
+    2. make
+        TypeDefinitionMap def = new TypeDefinitionMap();
+        tx.makeSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL,name,def);
+            1. schemaVertex = new VertexLabelVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.GenericSchemaType,temporaryIds.nextID()), ElementLifeCycle.New);
+            2. graph.assignID(schemaVertex, BaseVertexLabel.DEFAULT_VERTEXLABEL);
+                ....
+                element.setId(elementId);
+            3. addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));
+                1. StandardVertexProperty prop = new StandardVertexProperty(IDManager.getTemporaryRelationID(temporaryIds.nextID()), key, (InternalVertex) vertex, normalizedValue, ElementLifeCycle.New);
+                2. connectRelation(prop);
+                    addedRelations.add(r); 
+            4. vertexCache.add(schemaVertex, schemaVertex.longId());
+            
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;makeVertexLabel 最关键的一步就是 addedRelations.add&amp;reg;, 添加关系，这样就能在 commit 的时候写到数据库了。&lt;/p&gt;
+
+&lt;h3 id=&#34;commit&#34;&gt;commit()&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;commit
+    transactionalConfig.commit();
+    transaction.commit();
+         1. graph.commit(addedRelations.getAll(), deletedRelations.values(), this); // 这里的两个集合分别是改变的 schema 
+             
+             
+             1. final BackendTransaction schemaMutator = openBackendTransaction(tx); // 打开一个 transaction
+             2. commitSummary = prepareCommit(addedRelations,deletedRelations, SCHEMA_FILTER, schemaMutator, tx, acquireLocks);
+             3. schemaMutator.commit();
+             
+             4. commitSummary = prepareCommit(addedRelations,deletedRelations, hasTxIsolation? NO_FILTER : NO_SCHEMA_FILTER, mutator, tx, acquireLocks);
+             5. mutator.commit();
+                 1. storeTx.commit();
+                     1. flushInternal();
+                     2. tx.commit();
+                 2. itx.commit();
+                     1. flushInternal();
+                     2. indexTx.commit();
+          2. releaseTransaction();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;其实我这里的注释和官方的不太一样，官方将 graph.commit 分为三部分：&lt;/p&gt;
+
+&lt;p&gt;//1. Finalize transaction
+//2. Assign JanusGraphVertex IDs
+//3. Commit
+//3.1 Log transaction (write-ahead log) if enabled
+//3.2 Commit schema elements and their associated relations in a separate transaction if backend does not support transactional isolation
+//[FAILURE] Exceptions during preparation here cause the entire transaction to fail on transactional systems
+//or just the non-system part on others. Nothing has been persisted unless batch-loading&lt;/p&gt;
+
+&lt;p&gt;经过我的分析，其实这里分两次 prepareCommit + commit ,是根据底层是否支持事务隔离，如果不支持，先 commit 和 schema 相关的变化，否则 schema 和 data 两边一起提交。&lt;/p&gt;
+
+&lt;p&gt;当然这个 wal-log 和 prepareCommit 就大有文章。后续在分析。&lt;/p&gt;
+
+&lt;h3 id=&#34;createcompositeindex-1&#34;&gt;createCompositeIndex&lt;/h3&gt;
+
+&lt;p&gt;建索引，索引类型是 createCompositeIndex&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;buildCompositeIndex:650, ManagementSystem$IndexBuilder (org.janusgraph.graphdb.database.management)
+    1.checkIndexName:489, ManagementSystem (org.janusgraph.graphdb.database.management)
+        getGraphIndex:424, ManagementSystem (org.janusgraph.graphdb.database.management)
+            getSchemaVertex:878, StandardJanusGraphTx (org.janusgraph.graphdb.transaction) 
+                 // 这里 getSchemaVertex 的内容之前已经讨论过。
+    updatedTypes.add((PropertyKeyVertex) key);
+    2. transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def);
+        // 这个之前已经说过，我们在简单过一遍
+        1. graph.assignID(schemaVertex, BaseVertexLabel.DEFAULT_VERTEXLABEL);
+        2. addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));
+    3. addSchemaEdge(indexVertex, keys[i], TypeDefinitionCategory.INDEX_FIELD, paras);
+    4. updateIndex(index, SchemaAction.REGISTER_INDEX);
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;updatedTypes.add((PropertyKeyVertex) key);
+schema 分析主要就是这些，我们还有一些地方没细看，接下来我们把几个复杂的过程分析一下。主要包括查询数据库和 update 索引&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janus源码分析5-复杂操作分析</title>
+      <link>https://dengziming.github.io/post/titan/janus%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janus%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;源码分析&#34;&gt;源码分析&lt;/h1&gt;
+
+&lt;h2 id=&#34;查询操作&#34;&gt;查询操作&lt;/h2&gt;
+
+&lt;p&gt;之前已经遇到过很多查询操作&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt.containsVertexLabel(vType.toString())
+    transaction.containsVertexLabel(name);
+        return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null;
+        1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt
+        2. JanusGraphSchemaVertex getSchemaVertex(String schemaName)
+            graph.getSchemaCache().getSchemaId(schemaName)
+            1. getSchemaCache 
+            2. StandardSchemaCache.getSchemaId
+                id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，
+                    typeCacheRetrieval.retrieveSchemaByName
+                        StandardJanusGraph.this.newTransaction
+                            QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName)
+                            return v!=null?v.longId():null;
+        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;iterator
+    return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
+        1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
+            Iterator&amp;lt;R&amp;gt; subiter = new LimitAdjustingIterator(subq);
+        2. this.next = nextInternal();
+            hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                    execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
+                        new SubqueryIterator
+                            indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;其实查询操作并不复杂，这是有很多层的嵌套，导致我们看起来很麻烦而已，前面我们已经大概介绍了： 首先是 AbstractIterator 和 Iterators 类，然后是 ResultSetIterator LimitAdjustingIterator SubqueryIterator ，然后还有一个 Stream 类。&lt;/p&gt;
+
+&lt;p&gt;我们一层一层进行查看：&lt;/p&gt;
+
+&lt;h3 id=&#34;query&#34;&gt;Query&lt;/h3&gt;
+
+&lt;p&gt;继承体系：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Query (org.janusgraph.graphdb.query)
+	ElementQuery (org.janusgraph.graphdb.query)
+	    GraphCentricQuery (org.janusgraph.graphdb.query.graph)
+	    VertexCentricQuery (org.janusgraph.graphdb.query.vertex)
+	BaseQuery (org.janusgraph.graphdb.query)
+	    MultiKeySliceQuery (org.janusgraph.graphdb.query.graph)
+	    JointIndexQuery (org.janusgraph.graphdb.query.graph)
+	    RawQuery (org.janusgraph.diskstorage.indexing)
+	    BaseVertexCentricQuery (org.janusgraph.graphdb.query.vertex)
+	        VertexCentricQuery (org.janusgraph.graphdb.query.vertex)
+	    SliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeyRangeQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeySliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	    KVQuery (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    IndexQuery (org.janusgraph.diskstorage.indexing)
+	    IndexQueryBuilder (org.janusgraph.graphdb.query.graph)
+	    GraphCentricQuery (org.janusgraph.graphdb.query.graph)
+	BackendQuery (org.janusgraph.graphdb.query)
+	    MultiKeySliceQuery (org.janusgraph.graphdb.query.graph)
+	    JointIndexQuery (org.janusgraph.graphdb.query.graph)
+	    SliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeyRangeQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeySliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	    IndexQuery (org.janusgraph.diskstorage.indexing)
+	    Subquery in JointIndexQuery (org.janusgraph.graphdb.query.graph)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们主要能发现 BaseQuery 和 BackendQuery 两大子类，&lt;/p&gt;
+
+&lt;p&gt;BaseQuery 比较简单，里面就一个 limit 属性，应该是指返回的条数。而 BackendQuery 接口更简单，只有一个方法 updateLimit(int newLimit)，返回一个新的 BackendQuery。至于有什么用后续才能知道。&lt;/p&gt;
+
+&lt;p&gt;基于 BaseQuery 和 BackendQuery ，有很多子类。&lt;/p&gt;
+
+&lt;p&gt;SliceQuery 有两个 StaticBuffer 类型的属性： sliceStart 和 sliceEnd 。这应该是 bigtable 模型的 nosql 都会提供的一种功能，给一个 slice 进行查询。&lt;/p&gt;
+
+&lt;p&gt;KeySliceQuery 继承自 SliceQuery ，扩展 SliceQuery ，增加了 StaticBuffer 类型的 key，能够查询某个 key 的 slice。&lt;/p&gt;
+
+&lt;p&gt;KeyRangeQuery 继承自 SliceQuery ，扩展 SliceQuery ，增加了两个 StaticBuffer 类型的 keyStart keyEnd 。为何这样就要查询 bigtable 相关资料了。&lt;/p&gt;
+
+&lt;p&gt;MultiKeySliceQuery 继承自 BaseQuery 和 BackendQuery ，内部有一个 List&lt;KeySliceQuery&gt; queries。很明显这是多个 key 一起查。&lt;/p&gt;
+
+&lt;p&gt;IndexQuery 官方注释 在 IndexProvider 中执行的外部 query，query 由两部分组成：一个是查询应该执行的 store 的标识符，另一个是查询的条件。
+IndexProvider 的代码我们介绍过，是指外部索引，例如 ElasticSearchIndex ，主要有 register mutate restore query 等方法，很明显是提供一些查询。&lt;/p&gt;
+
+&lt;p&gt;JointIndexQuery 的静态内部类 Subquery 继承自 BackendQuery ，内部有两个主要属性：  IndexType index; BackendQuery query;
+Index 可以是 MixedIndexType 或者 CompositeIndexType，对应的 query 分别是 IndexQuery 和 MultiKeySliceQuery
+JointIndexQuery 则有 List&lt;Subquery&gt; queries 属性代表很多个 Subquery。
+我们可以看出其实 Subquery 代表的是可以在一种索引平台上执行的查询。而 JointIndexQuery 则是很多个这样的查询，可以在各自的平台上进行查询。&lt;/p&gt;
+
+&lt;p&gt;GraphCentricQuery 包含了一个 Condition&lt;JanusGraphElement&gt; condition 作为条件，一个 BackendQueryHolder&lt;JointIndexQuery&gt; indexQuery 保存 Query 信息。
+BaseVertexCentricQuery 包含了 Condition&lt;JanusGraphRelation&gt; condition 作为添加 ，List&lt;BackendQueryHolder&lt;SliceQuery&gt;&amp;gt; queries 保存 Query 信息
+VertexCentricQuery 继承自 BaseVertexCentricQuery ，添加一个 InternalVertex vertex ，至于干啥的还不知道。
+他们都是 ElementQuery。&lt;/p&gt;
+
+&lt;p&gt;看到这里我们大概能看出 ：
+GraphCentricQuery 是基于 JanusGraphElement 的，查询需要 JointIndexQuery ，
+JointIndexQuery 内部则是 Subquery，Subquery 主要分为 MixedQuery 和 CompositeQuery，对应的查询分别为 IndexQuery 和 MultiKeySliceQuery，对应的索引分别为 MixedIndexType 和 CompositeIndexType
+VertexCentricQuery 是基于 JanusGraphRelation 的，查询需要 SliceQuery ，SliceQuery 就是查询 key + cf 对应的所有的 keyvalue 。&lt;/p&gt;
+
+&lt;p&gt;RawQuery 继承自 BaseQuery ，没什么特殊参数，我想应该是值一些粗糙的直接查询。
+剩下的 IndexQueryBuilder 和 KVQuery 先不说了。&lt;/p&gt;
+
+&lt;p&gt;我们可以看出这些 Query 只是一些描述性的东西，并没有任何执行调用的方法。通过类的关系我们也大概能总结一下：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;一切都是为了查出 janus 中的元素，所以 是围绕 ElementQuery 展开，ElementQuery 有两个子类，GraphCentricQuery 和 VertexCentricQuery。
+GraphCentricQuery 代表以 graph 为中心的查询，例如查询 name=aaa 的所有顶点，VertexCentricQuery 代表以 vertex-centric 的查询，例如查和某个人关系为同事的所有人。
+为了完成 GraphCentricQuery 包括两类：IndexQuery 和 MultiKeySliceQuery ，IndexQuery 代表使用外部索引的查询，MultiKeySliceQuery 代表使用 bigtable 自带索引的查询。
+这两种合在一起就是 Subquery ，而 JointIndexQuery 内部有多个 Subquery，GraphCentricQuery 中有一个 JointIndexQuery 对象。
+为了完成 VertexCentricQuery，也就是加快基于 PropertyKey 和 EdgeLabel 的查询，需要使用 SliceQuery 进行配合。SliceQuery 有很多实现，除了本身还有 KeySliceQuery 和 KeyRangeQuery。&lt;/li&gt;
+&lt;li&gt;而 RawQuery 看名字猜测是直接查询。&lt;/li&gt;
+&lt;li&gt;IndexQueryBuilder 就是一个 Builder，内部有一个 IndexSerializer ，它的 execute 方法，实际上就是调用 IndexSerializer 的 executeQuery。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;indexserializer&#34;&gt;IndexSerializer&lt;/h3&gt;
+
+&lt;p&gt;从 JointIndexQuery 我们能看出，SubQuery 是在 IndexSerializer 中执行的，我们大概了解一下 IndexSerializer。&lt;/p&gt;
+
+&lt;p&gt;内部有一个 Map&lt;String, ? extends IndexInformation&gt; mixedIndexes，IndexInformation 有很多子类，例如 ElasticSearchIndex，
+还有很多内部类 IndexInfoRetriever IndexRecords IndexUpdate RecordEntry。这应该是一直设计模式吧。
+而它的 executeQuery 方法，最终会调用 backendTx.rawQuery(index.getBackingIndexName(), rawQuery) 方法。这里有点奇怪的是为什么只有 MixedIndexType&lt;/p&gt;
+
+&lt;p&gt;另外 query 方法 有两种情况，如果是 isCompositeIndex ，会得到 MultiKeySliceQuery 并调用 sq.execute(tx)，如果是 MixedQuery ，调用 tx.indexQuery。
+然后都是调用 BackendTransaction 的 indexQuery，CompositeIndex 对应的是 indexQuery(final KeySliceQuery query)，MixedIndex 是 indexQuery(final String index, final IndexQuery query)。
+这两个方法将会分别跳转到 KeyColumnValueStore.getSlice(KeySliceQuery query, StoreTransaction txh) 和 IndexProvider.query(IndexQuery query, KeyInformation.IndexRetriever information, BaseTransaction tx)&lt;/p&gt;
+
+&lt;h3 id=&#34;stream&#34;&gt;Stream&lt;/h3&gt;
+
+&lt;p&gt;Stream 是 java 自带的类，目的是实现 lambda 编程，如 map filter reduce 等。java.util.list 调用 stream() 方法就返回一个 Stream 对象。Stream 的部分方法：
+peek(Consumer) 方法主要用来调试。类似 map ，但是它返回原对象。例如：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Stream.of(&amp;quot;one&amp;quot;, &amp;quot;two&amp;quot;, &amp;quot;three&amp;quot;, &amp;quot;four&amp;quot;)
+    .filter(e -&amp;gt; e.length() &amp;gt; 3)
+    .peek(e -&amp;gt; System.out.println(&amp;quot;Filtered value: &amp;quot; + e)) // 打印
+    .map(String::toUpperCase)
+    .peek(e -&amp;gt; System.out.println(&amp;quot;Mapped value: &amp;quot; + e))
+    .collect(Collectors.toList());
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;limit(long ) 类似 sql 的 limit。
+iterator() 返回一个迭代器。&lt;/p&gt;
+
+&lt;h3 id=&#34;subqueryiterator&#34;&gt;SubqueryIterator&lt;/h3&gt;
+
+&lt;p&gt;根据名字大概可以判断 SubqueryIterator 是一个查询结果迭代器，这里的 Subquery 就是上面我们介绍的，它的成员变量：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private final JointIndexQuery.Subquery subQuery;
+private final Cache&amp;lt;JointIndexQuery.Subquery, List&amp;lt;Object&amp;gt;&amp;gt; indexCache;
+private Iterator&amp;lt;? extends JanusGraphElement&amp;gt; elementIterator;
+private List&amp;lt;Object&amp;gt; currentIds;
+private QueryProfiler profiler;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;SubqueryIterator 的构造方法如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// 传入了 subQuery 和 indexSerializer
+public SubqueryIterator(JointIndexQuery.Subquery subQuery, IndexSerializer indexSerializer, BackendTransaction tx,
+        Cache&amp;lt;JointIndexQuery.Subquery, List&amp;lt;Object&amp;gt;&amp;gt; indexCache, int limit,
+        Function&amp;lt;Object, ? extends JanusGraphElement&amp;gt; function, List&amp;lt;Object&amp;gt; otherResults) {
+    this.subQuery = subQuery;
+    this.indexCache = indexCache;
+    // 先从缓存里面取
+    final List&amp;lt;Object&amp;gt; cacheResponse = indexCache.getIfPresent(subQuery);
+    final Stream&amp;lt;?&amp;gt; stream;
+    if (cacheResponse != null) {
+        stream = cacheResponse.stream();
+    } else {
+        try {
+            currentIds = new ArrayList&amp;lt;&amp;gt;();
+            profiler = QueryProfiler.startProfile(subQuery.getProfiler(), subQuery);
+            isTimerRunning = true;
+            // 缓存没有就查
+            stream = indexSerializer.query(subQuery, tx).peek(r -&amp;gt; currentIds.add(r));
+        } catch (final Exception e) {
+            throw new JanusGraphException(&amp;quot;Could not call index&amp;quot;, e.getCause());
+        }
+    }
+    // 生成 elementIterator
+    elementIterator = stream.limit(limit).filter(e -&amp;gt; otherResults == null || otherResults.contains(e)).map(function).map(r -&amp;gt; (JanusGraphElement) r).iterator();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;standardjanusgraphtx&#34;&gt;StandardJanusGraphTx&lt;/h3&gt;
+
+&lt;p&gt;之前我们已经见到介绍过 StandardJanusGraphTx ，实际上这个代表的就是一个事务，内部有很多操作图的方法，我们这次主要是看看他的 elementProcessorImpl 和 edgeProcessorImpl。
+他的定义：QueryExecutor&lt;GraphCentricQuery, JanusGraphElement, JointIndexQuery&gt; elementProcessorImpl ，
+QueryExecutor&lt;VertexCentricQuery, JanusGraphRelation, SliceQuery&gt; edgeProcessorImpl
+听名字就知道大概是执行查询的？这是一个匿名内部类，继承自 QueryExecutor，主要方法是 execute。&lt;/p&gt;
+
+&lt;h4 id=&#34;elementprocessorimpl&#34;&gt;elementProcessorImpl&lt;/h4&gt;
+
+&lt;p&gt;我们只看 execute 方法，如果 indexQuery.isEmpty() 会告诉你 &amp;ldquo;Query requires iterating over all vertices [{}]. For better performance, use indexes&amp;rdquo;。说明我们上面说 RawQuery 是直接查询不利用索引是错误判断。
+最后返回了一个
+new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(),
+getConversionFunction(query.getResultType()),retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));&lt;/p&gt;
+
+&lt;p&gt;这里 SubQueryIterator 就是上面讲的。&lt;/p&gt;
+
+&lt;h4 id=&#34;edgeprocessorimpl&#34;&gt;edgeProcessorImpl&lt;/h4&gt;
+
+&lt;p&gt;他的 execute 方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+final InternalVertex v = query.getVertex();
+final EntryList iterable = v.loadRelations(sq, query1 -&amp;gt; QueryProfiler.profile(profiler, query1, q -&amp;gt; graph.edgeQuery(v.longId(), q, txHandle)));
+return RelationConstructor.readRelation(v, iterable, StandardJanusGraphTx.this).iterator();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;最终会调用 BackendTransation 的  edgeStoreQuery(final KeySliceQuery query)。&lt;/p&gt;
+
+&lt;h3 id=&#34;limitadjustingiterator&#34;&gt;LimitAdjustingIterator&lt;/h3&gt;
+
+&lt;p&gt;QueryProcessor$LimitAdjustingIterator&lt;/p&gt;
+
+&lt;p&gt;QueryProcessor 主要有两个属性：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private final Q query;
+private final QueryExecutor&amp;lt;Q, R, B&amp;gt; executor;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的 query 就是上面讲的 query ，一般是 GraphCentricQuery 或者 VertexCentricQuery，executor 就是我们上面讲的 edgeProcessorImpl 和 elementProcessorImpl。
+它的 iterator 方法返回一个 ResultSetIterator。
+LimitAdjustingIterator 初始化的时候会调用 getNewIterator ，这时候执行 executor.execute(query, backendQuery, executionInfo, profiler)。&lt;/p&gt;
+
+&lt;p&gt;和它类似的还有 PreSortingIterator ，加了一个排序 。&lt;/p&gt;
+
+&lt;h3 id=&#34;resultsetiterator&#34;&gt;ResultSetIterator&lt;/h3&gt;
+
+&lt;p&gt;ResultSetIterator 只是类似 guava 的一个封装，通过 nextInternal 方法实现 iterator 提前加载。&lt;/p&gt;
+
+&lt;h3 id=&#34;vertexcentricquerybuilder-和-graphcentricquerybuilder&#34;&gt;VertexCentricQueryBuilder 和 GraphCentricQueryBuilder&lt;/h3&gt;
+
+&lt;p&gt;GraphCentricQueryBuilder 是用来构造一个 Query 的。它的很多方法都和 gremin 对接，最重要的方法还是 constructQuery ，用来构造上面我们讲解的 Query。&lt;/p&gt;
+
+&lt;p&gt;BasicVertexCentricQueryBuilder 是 VertexCentricQueryBuilder 的父类，StandardJanusGraphTx 的 query(JanusGraphVertex vertex) 会产生一个 VertexCentricQueryBuilder。&lt;/p&gt;
+
+&lt;h3 id=&#34;总结&#34;&gt;总结&lt;/h3&gt;
+
+&lt;p&gt;到这里我们基本搞清楚了整个查询过程。
+首先我们的代码的查询会生成 GraphCentricQueryBuilder 或者 BasicVertexCentricQueryBuilder，
+然后 我们调用 builder 的查询时会生成 GraphCentricQuery 或者 VertexCentricQuery，并 new QueryProcessor&amp;lt;&amp;gt;(query, tx.elementProcessor)。&lt;/p&gt;
+
+&lt;p&gt;QueryProcessor 的 iterator 方法生成一个 ResultSetIterator 封装的 LimitAdjustingIterator ，
+LimitAdjustingIterator 的 getNewIterator 会调用 QueryExecutor 的 execute 方法，生成 SubqueryIterator 或者 graph.edgeQuery(v.longId(), q, txHandle) 最终调用 edgeStore 的查询
+SubqueryIterator 构造方法会调用 indexSerializer.query(subQuery, tx)，最终调用 edgeStore 或者 IndexProvider 的查询。&lt;/p&gt;
+
+&lt;p&gt;以上使我们查看源代码的心得，要想深入了解还需要进一步 debug 代码。&lt;/p&gt;
+
+&lt;h2 id=&#34;更新索引&#34;&gt;更新索引&lt;/h2&gt;
+
+&lt;h3 id=&#34;index&#34;&gt;Index&lt;/h3&gt;
+
+&lt;p&gt;Index 类继承自  JanusGraphSchemaElement ，后者我们已经讲过代表 schema 的元素，它的子类如 PropertyKeyVertex 代表 schema 的一部分。
+Index 有两个子类 JanusGraphIndex 和 RelationTypeIndex ，分别代表 Graph index 和 基于 Relation 的 Index ，实现类分别是 ：JanusGraphIndexWrapper 和 RelationTypeIndexWrapper。&lt;/p&gt;
+
+&lt;p&gt;JanusGraphIndexWrapper 包括了 composite indexes 和 mixed indexes。可以通过 JanusGraphManagement#buildIndex(String, Class) 构造，
+通过 JanusGraphManagement#getGraphIndex(String) 或者 JanusGraphManagement#getGraphIndexes(Class) 获得。注意方法包括：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;getBackingIndex
+getFieldKeys
+getIndexedElement
+getIndexStatus
+getParametersFor
+isCompositeIndex
+isMixedIndex
+isUnique
+name
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;RelationTypeIndex 包括 EdgeIndex 和 PropertyKeyIndex ，通过 JanusGraphManagement#buildEdgeIndex(org.janusgraph.core.EdgeLabel &amp;hellip;)和 JanusGraphManagement#buildPropertyIndex(org.janusgraph.core.PropertyKey&amp;hellip;) 构造，
+通过JanusGraphManagement#getRelationIndex(org.janusgraph.core.RelationType, String) 获得。主要方法包括：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;getDirection
+getIndexStatus
+getSortKey
+getSortOrder
+getType
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;indextype-internalrelationtype&#34;&gt;IndexType InternalRelationType&lt;/h3&gt;
+
+&lt;p&gt;JanusGraphIndex 和 RelationTypeIndex 中分别有一个 IndexType 和 InternalRelationType 的属性。&lt;/p&gt;
+
+&lt;p&gt;IndexType 又有 CompositeIndexType 和 MixedIndexTypeWrapper 两大子类， CompositeIndexType 还有一个子类是 BaseKey 的索引， 也就是 schema 默认有的索引。&lt;/p&gt;
+
+&lt;p&gt;CompositeIndexTypeWrapper 和 MixedIndexTypeWrapper 的构造方法需要传入一个 SchemaSource 对象，也就是 JanusGraphSchemaVertex 的对象。&lt;/p&gt;
+
+&lt;h3 id=&#34;indexbuilder&#34;&gt;IndexBuilder&lt;/h3&gt;
+
+&lt;p&gt;IndexBuilder 是 JanusGraphManagement 内部接口，顾名思义是用来构建索引的，建造者模式。里面封装了索引的属性，例如： addKey indexOnly unique 等。&lt;/p&gt;
+
+&lt;p&gt;实现类在 ManagementSystem 中，实现类 主要属性：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;private final String indexName;
+private final ElementCategory elementCategory;
+private boolean unique = false;
+private JanusGraphSchemaType constraint = null;
+private final Map&amp;lt;PropertyKey, Parameter[]&amp;gt; keys = new HashMap&amp;lt;&amp;gt;();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;主要方法还是 createCompositeIndex 和 buildMixedIndex 。都会调用宿主类的方法。
+实际上创建索引过程就是创建一个 INDEX 类型的 SchemaVertex ，然后建立到 对应的 PropertyKey 的 Edge。&lt;/p&gt;
+
+&lt;h3 id=&#34;updatestatustrigger&#34;&gt;UpdateStatusTrigger&lt;/h3&gt;
+
+&lt;p&gt;根据名字判断是更新 status 的触发器。它的属性：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private final StandardJanusGraph graph;
+private final long schemaVertexId;
+private final SchemaStatus newStatus;
+private final Set&amp;lt;Long&amp;gt; propertyKeys;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;构造方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private UpdateStatusTrigger(StandardJanusGraph graph, JanusGraphSchemaVertex vertex, SchemaStatus newStatus, Iterable&amp;lt;PropertyKeyVertex&amp;gt; keys) {
+    this.graph = graph;
+    this.schemaVertexId = vertex.longId();
+    this.newStatus = newStatus;
+    this.propertyKeys = Sets.newHashSet(Iterables.transform(keys, new Function&amp;lt;PropertyKey, Long&amp;gt;() {
+        @Nullable
+        @Override
+        public Long apply(@Nullable PropertyKey propertyKey) {
+            return propertyKey.longId();
+        }
+    }));
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;call 方法主要就是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;management.setStatus(schemaVertex, newStatus, keys);
+management.updatedTypes.addAll(keys);
+management.updatedTypes.add(schemaVertex);
+management.commit();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;它被使用的地方是在 updateIndex 的时候，有一步： &lt;code&gt;setUpdateTrigger(new UpdateStatusTrigger(graph, schemaVertex, SchemaStatus.REGISTERED, keySubset))&lt;/code&gt;
+这里的 set 方法只是将它 add 到了一个 List 中，而在调用 commit 的时候，会有个判断，然后调用 &lt;code&gt;mgmtLogger.sendCacheEviction(updatedTypes, updatedTypeTriggers, getOpenInstancesInternal());&lt;/code&gt;
+这里 ManagementLogger 实际上又调用 &lt;code&gt;evictionTriggerMap.put(evictionId,new EvictionTrigger(evictionId,updatedTypeTriggers,openInstances))&lt;/code&gt; 将它封装为 EvictionTrigger 放进一个 map 中。&lt;/p&gt;
+
+&lt;p&gt;这要从新建 StandardJanusGraph 开始说起，在它的构造方法有一句：&lt;code&gt;mgmtLog.registerReader(ReadMarker.fromNow(), mgmtLogger);&lt;/code&gt;
+然后调用 KCVSLog 的 registerReader 方法，然后调用 msgPullers[pos]=new MessagePuller(partitionId,bucketId);
+新建 MessagePuller 后，调用 readExecutor.scheduleWithFixedDelay 放进线程池
+MessagePuller 的 run 方法会调用 prepareMessageProcessing ，然后调用 readExecutor.submit(new ProcessMessageJob(message,reader)) 放进线程池。
+ProcessMessageJob 的 run 方法调用 ManagementLogger 的 read 方法，
+然后会调用 EvictionTrigger evictTrigger = evictionTriggerMap.get(evictionId)，这里就取出了我们上面放进去的 evictTrigger，
+调用 receivedAcknowledgement 方法，会调用 trigger.call() 方法，然后会 setStatus。&lt;/p&gt;
+
+&lt;p&gt;我们稍微总结一下。 StandardJanusGraph 的构造方法实际上会 new 一个 KCVSLog managementLog 和一个 new ManagementLogger managementLogger，前者是日志，后者是 management 的日志。
+然后调用 managementLog.registerReader(ReadMarker.fromNow(), managementLogger)，这个 managementLogger 实现了 MessageReader 接口， 也就是将 managementLogger 注册到 KCVSLog 上。
+注册以后，会通过一个 ScheduledThreadPoolExecutor 定时调度，将 KCVSLog 按照分区分桶拆分成多个快，发送到 KCVSLog 的消息都会发送给 ManagementLogger。
+ManagementLogger 调用 read 方法，判断 MgmtLogType，根据不同的类型，做出不同的响应。当收到 CACHED_TYPE_EVICTION_ACK 类型的消息，将会得到 evictTrigger，并且调用 call 方法。&lt;/p&gt;
+
+&lt;h3 id=&#34;standardscanner&#34;&gt;StandardScanner&lt;/h3&gt;
+
+&lt;p&gt;看名字是一个扫描器。内部有 KeyColumnValueStoreManager manager 和  Set&lt;KeyColumnValueStore&gt; openStores ，应该是构造的时候传进来的，来自 graph。
+我们比较关心的是他的内部类： Builder ，内部有 ScanJob job，job 有 process 方法，而 Builder 则有 execute 方法，executor 会 new 一个 StandardScannerExecutor，
+StandardScannerExecutor executor = new StandardScannerExecutor(job, finishJob, kcvs, storeTx,manager.getFeatures(), numProcessingThreads, workBlockSize, jobConfiguration, graphConfiguration);
+executor 是继承自 Runnable 的，然后调用它的 start 方法启动这个线程。executor 的 run 方法就是关键，
+StandardScannerExecutor 的 run 方法会 new Processor(job.clone(),processorQueue)，Processor 也是 Runnable ，然后调用 start ，Processor 的 run 中调用了 job 的 process。&lt;/p&gt;
+
+&lt;p&gt;这个 job 的 process 方法就是重点。例如 SimpleScanJob 的 process 方法，就是扫描一遍数据库。&lt;/p&gt;
+
+&lt;p&gt;StandardScanner 的使用主要是在 updateIndex 的时候，有一步： &lt;code&gt;builder.setJob(VertexJobConverter.convert(graph, new IndexRepairJob(indexId.indexName, indexId.relationTypeName)));&lt;/code&gt;
+这里会设置 job，然后调用 builder.execute()，
+里面会 new StandardScannerExecutor，这是一个 Runnable，然后 start。
+它的 run 方法会 new Processor(job.clone(),processorQueue) ，这是一个 Runnable ，然后 start。
+然后调用  job.process(row.key,row.entries,metrics)。
+例如 IndexRepairJob 的 process 方法，会调用 BackendTransaction.mutateIndex 或者 restore 方法，和 IndexSerializer.reindexElement 方法，其实就是重新索引。&lt;/p&gt;
+
+&lt;p&gt;想要了解可以在 CassandraScanJobIT 中进行简单测试。&lt;/p&gt;
+
+&lt;p&gt;我们可以看出其实  StandardScanner 和 UpdateStatusTrigger 完成工作类似，都是通过线程调用线程，完成所以更新，只不过前者比较简单，后者操作复杂一点。&lt;/p&gt;
+
+&lt;h3 id=&#34;managementsystem&#34;&gt;ManagementSystem&lt;/h3&gt;
+
+&lt;p&gt;有关索引的操作也是在 ManagementSystem 中完成，最重要的就是 updateIndex 方法，&lt;/p&gt;
+
+&lt;h3 id=&#34;reindex&#34;&gt;reindex&lt;/h3&gt;
+
+&lt;p&gt;mgmt.updateIndex(mgmt.getGraphIndex(indexName), SchemaAction.REINDEX).get();&lt;/p&gt;
+
+&lt;p&gt;我们发现这个步骤特别久，就算没有数据也要很久，这不科学。而且打断点也进不去，我们只能直接拍快照，通过分析某个时刻的快照，分析有没有线程死锁的情况。&lt;/p&gt;
+
+&lt;p&gt;我们每次在程序运行的时候拍快照都会有两个线程：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;Thread-61@7893&amp;quot; prio=5 tid=0x51 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2078)
+	  at java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:467)
+	  at org.janusgraph.diskstorage.keycolumnvalue.scan.StandardScannerExecutor.run(StandardScannerExecutor.java:148)
+	  at java.lang.Thread.run(Thread.java:745)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;Thread-65@7897&amp;quot; prio=5 tid=0x55 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2078)
+	  at java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:467)
+	  at org.janusgraph.diskstorage.keycolumnvalue.scan.StandardScannerExecutor$Processor.run(StandardScannerExecutor.java:272)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;偶尔还能发现一个：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;&amp;quot;Thread-4@4217&amp;quot; daemon prio=5 tid=0x18 nid=NA sleeping
+  java.lang.Thread.State: TIMED_WAITING
+	  at java.lang.Thread.sleep(Thread.java:-1)
+	  at java.lang.Thread.sleep(Thread.java:340)
+	  at java.util.concurrent.TimeUnit.sleep(TimeUnit.java:386)
+	  at org.janusgraph.diskstorage.util.time.TimestampProviders.sleepPast(TimestampProviders.java:152)
+	  at org.janusgraph.graphdb.database.management.ManagementLogger$SendAckOnTxClose.run(ManagementLogger.java:208)
+	  at java.lang.Thread.run(Thread.java:745)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;前两个是常在的线程，在 index 的过程中几乎一致都在，后面那个是偶尔会有出现。&lt;/p&gt;
+
+&lt;p&gt;中间还报：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;2018-06-30 14:16:35.282 ERROR   --- [      Thread-66] o.j.g.d.management.ManagementLogger      : 
+Evicted [23@c0a8007113617-dengzimings-MacBook-Pro-local1] from cache but waiting too long for transactions to close. 
+Stale transaction alert on: [standardjanusgraphtx[0x0fd51357], standardjanusgraphtx[0x42d0f747], 
+standardjanusgraphtx[0x54168b3c], standardjanusgraphtx[0x27eff5b4], standardjanusgraphtx[0x20cfedd2], 
+standardjanusgraphtx[0x7bd7769a], standardjanusgraphtx[0x1095d23a]]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这三个可以给我们提供比较多的信息。前面两个可能是由于 poll 的参数等待时间是 100 ms 比较长，所以每次拍快照很大概率刚好在等待。&lt;/p&gt;
+
+&lt;h1 id=&#34;debug&#34;&gt;debug&lt;/h1&gt;
 </description>
       
     </item>
