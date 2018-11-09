@@ -1241,7 +1241,7 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;h2 id=&#34;一-复习&#34;&gt;一、复习&lt;/h2&gt;
 
-&lt;p&gt;上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法&lt;/p&gt;
+&lt;p&gt;上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 &lt;code&gt;GraphDatabaseFacadeFactory.initFacade&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
@@ -1271,7 +1271,8 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;h2 id=&#34;二-datasourcemanager-预览&#34;&gt;二、DataSourceManager 预览&lt;/h2&gt;
 
-&lt;p&gt;从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。&lt;/p&gt;
+&lt;p&gt;从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。
+在 PlatformModule 的构造方法新建了 dataSourceManager。并且在后面调用 start&lt;/p&gt;
 
 &lt;h3 id=&#34;1-准备工作&#34;&gt;1.准备工作&lt;/h3&gt;
 
@@ -1353,7 +1354,7 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
  12 = {LifeSupport$LifecycleInstance@5685} &amp;quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。&lt;/p&gt;
+&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己的内部类？我们后面再看吧。&lt;/p&gt;
 
 &lt;p&gt;我们先看和存储有关的 &lt;code&gt;3 = {LifeSupport$LifecycleInstance@5676} &amp;quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&amp;quot;&lt;/code&gt;&lt;/p&gt;
 
@@ -1426,7 +1427,9 @@ idController.start();
 
 &lt;p&gt;dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，&lt;/p&gt;
 
-&lt;p&gt;NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。&lt;/p&gt;
+&lt;p&gt;NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。
+它的构造方法中有一句：neoStores = factory.openAllNeoStores( true ); 实际上会创建各种store，
+相关的 store 和构造方法可以看：org.neo4j.kernel.impl.store.StoreType，以 NodeStore 为例，会先新建，然后 init。&lt;/p&gt;
 
 &lt;p&gt;RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。&lt;/p&gt;
 

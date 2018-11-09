@@ -125,6 +125,17 @@ inspect a maven model for resolution&lt;/li&gt;
 
 &lt;p&gt;这个问题好像没造成停止。&lt;/p&gt;
 
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;应用A直接应用B，应用B依赖二方包C1、C2、C3，应用A传递依赖C1、C2、C3。现应用B升级版本，应用更新B依赖包后发现可正常引入依赖B，但传递依赖的C1、C2、C3不能引入。
+　　
+&lt;a href=&#34;https://blog.csdn.net/xktxoo/article/details/78005817&#34;&gt;https://blog.csdn.net/xktxoo/article/details/78005817&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;打包不包含 scala 编译文件，pom 的 build 中缺少打包scala的插件。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;java 调用 scala 代码不报错，打包报错。
+参考 &lt;a href=&#34;http://xflin.blogspot.com/2013/08/mixed-scala-and-java-in-maven-project.html&#34;&gt;http://xflin.blogspot.com/2013/08/mixed-scala-and-java-in-maven-project.html&lt;/a&gt; ，混合编译&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
 &lt;h3 id=&#34;3-常用命令&#34;&gt;3.常用命令&lt;/h3&gt;
 
 &lt;p&gt;mvn -pl hadoop-yarn-project -am clean install -D maven.test.skip=true -P prod&lt;/p&gt;

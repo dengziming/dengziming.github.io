@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-04-26T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="1745">
+<meta itemprop="wordCount" content="1757">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 1745 words </span>
+        <span class="more-meta"> 1757 words </span>
         <span class="more-meta"> 4 min read </span>
       </div>
     </header>
@@ -214,9 +214,12 @@
 <p>我直接使用github desktop打开了 janusgraph 的源码，使用IDEA打开，然后编译：</p>
 
 <pre><code class="language-bash"># 编译完整的
-mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests clean install
 # 只编译core部分
 mvn -pl janusgraph-core -am clean install -Dlicense.skip=true -DskipTests -P prod
+
+-rf :janusgraph-test
+mvn -pl janusgraph-test -am clean install -Dlicense.skip=true -DskipTests -P prod
 </code></pre>
 
 <p>我们在 <code>janusgraph-test</code> 下面编写一个例子 <code>FirstTest</code>：</p>
@@ -406,14 +409,14 @@ janus的做法是在core中使用反射，所以编译通过了，打包到了�
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/%E7%90%86%E8%AE%BA/first/">
+          <a class="prev" href="/post/titan/janusgraph%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">分布式算法理论</span>
+            <span class="prev-text nav-default">janusgraph源码分析1-下载编译启动</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/">
-            <span class="next-text nav-default">janusgraph源码分析2-实例debug</span>
+          <a class="next" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%9010-gremin/">
+            <span class="next-text nav-default">janusgraph源码分析1-下载编译启动</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>
           </a>

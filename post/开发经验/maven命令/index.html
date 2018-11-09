@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="705">
+<meta itemprop="wordCount" content="849">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
             
           </div>
-        <span class="more-meta"> 705 words </span>
+        <span class="more-meta"> 849 words </span>
         <span class="more-meta"> 2 min read </span>
       </div>
     </header>
@@ -315,6 +315,17 @@ inspect a maven model for resolution</li>
 
 <p>这个问题好像没造成停止。</p>
 
+<ol>
+<li><p>应用A直接应用B，应用B依赖二方包C1、C2、C3，应用A传递依赖C1、C2、C3。现应用B升级版本，应用更新B依赖包后发现可正常引入依赖B，但传递依赖的C1、C2、C3不能引入。
+　　
+<a href="https://blog.csdn.net/xktxoo/article/details/78005817">https://blog.csdn.net/xktxoo/article/details/78005817</a></p></li>
+
+<li><p>打包不包含 scala 编译文件，pom 的 build 中缺少打包scala的插件。</p></li>
+
+<li><p>java 调用 scala 代码不报错，打包报错。
+参考 <a href="http://xflin.blogspot.com/2013/08/mixed-scala-and-java-in-maven-project.html">http://xflin.blogspot.com/2013/08/mixed-scala-and-java-in-maven-project.html</a> ，混合编译</p></li>
+</ol>
+
 <h3 id="3-常用命令">3.常用命令</h3>
 
 <p>mvn -pl hadoop-yarn-project -am clean install -D maven.test.skip=true -P prod</p>
@@ -375,7 +386,7 @@ inspect a maven model for resolution</li>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/">
+          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/janus/">
             <span class="next-text nav-default">常用sql写法</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>

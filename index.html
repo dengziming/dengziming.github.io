@@ -166,6 +166,202 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/tinkerpop/first/">tinkerpop源码解析2-简单例子debug</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-10-30 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81/"> 源码 </a>
+          
+        </div>
+      <span class="more-meta"> 436 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      tinkerpop 源码是JanusGraph 源码解析的第一步，我们需要大概有个了解。 demo 编写 我们可以直接复制来自 tinkerpop 官方的源码： public static void main(String[] args) { TinkerGraph graph = TinkerGraph.open(); GraphTraversalSource g = graph.traversal(); Vertex v
+    </div>
+    <div class="read-more">
+      <a href="/post/tinkerpop/first/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janus%E6%B5%8B%E8%AF%95%E8%B0%83%E8%AF%95/">janus官方实例调试解析</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-10-26 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph/"> janusgraph </a>
+          
+        </div>
+      <span class="more-meta"> 397 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      开始 打好断点。主要类： JanusGraphFactory.build() 建造者模式。 // new GraphDatabaseConfiguration // 创建两个 conf 对象 BasicConfiguration localBasicConfiguration = new BasicConfiguration(ROOT_NS,localConfig, BasicConfiguration.Restriction.NONE); ModifiableConfiguration overwrite = new ModifiableConfiguration(ROOT_NS,new CommonsConfiguration(), BasicConfiguration.Restriction.NONE); // get storeManager，根据配置反射生成。 final KeyColumnValueStoreManager storeManager =
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janus%E6%B5%8B%E8%AF%95%E8%B0%83%E8%AF%95/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/algorithm/first/">树</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-08-07 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"> 数据结构 </a>
+          
+        </div>
+      <span class="more-meta"> 70 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      平衡二叉树 平衡二叉树，就是左右最高差都不大于1的树。和二叉查找树不一样在于，在插入和删除的时候通过左旋和右旋的方式，使得树保持平衡。 实现可以
+    </div>
+    <div class="read-more">
+      <a href="/post/algorithm/first/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/tinkerpop/tinkerpop%E7%9A%84step/">tinkerpop查看</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-27 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 883 words </span>
+      <span class="more-meta"> 2 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+    </div>
+    <div class="read-more">
+      <a href="/post/tinkerpop/tinkerpop%E7%9A%84step/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%907-%E5%85%B3%E7%B3%BB%E5%AD%98%E5%82%A8/">janusgraph源码分析7-关系存储</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-09 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> janusgraph源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 5067 words </span>
+      <span class="more-meta"> 11 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      基础类 InternalRelation 和 InternalRelationType 有关类型体系很复杂，可以使用 IDEA 的显示继承体系功能，查看类图。类图比较大，不太好看。大概描述一下： 主要是 JanusGraphElement 作为顶级类，接下来还有一
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%907-%E5%85%B3%E7%B3%BB%E5%AD%98%E5%82%A8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%909-%E8%B4%A1%E7%8C%AE%E5%AF%BC%E6%95%B0%E6%8D%AE%E6%BA%90%E7%A0%81/">janusgraph源码分析8-底层交互</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-09 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> janusgraph源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 4200 words </span>
+      <span class="more-meta"> 9 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      反向分析 cassandra 写数据 API cassandra 的结构类似 bigtable ，数据实际上是多层嵌套的 map，第一个 key 是 rowkey，第二层key 是 columnFamily，第三层key
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%909-%E8%B4%A1%E7%8C%AE%E5%AF%BC%E6%95%B0%E6%8D%AE%E6%BA%90%E7%A0%81/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%908-%E7%B4%A2%E5%BC%95%E5%AD%98%E5%82%A8/">janusgraph源码分析8-索引存储</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-09 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> janusgraph源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 71 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 InternalRelation 和 InternalRelationType ## RelationCache StaticArrayEntry 类似 java.nio 的 ByteBuffer。 EdgeSerializer
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%908-%E7%B4%A2%E5%BC%95%E5%AD%98%E5%82%A8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%905-%E4%B8%BB%E8%A6%81%E7%B1%BB/">janusgraph主要类分析</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-07-03 </span>
@@ -388,202 +584,6 @@
 </article>
 
     
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/">JanusGraph官网文档</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-05-03 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E8%90%A5/"> 开发经营 </a>
-          
-        </div>
-      <span class="more-meta"> 1897 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      一、JanusGraph Basics 1.config Chapter 3. Getting Started janus 使用 gremin 的基本语法，详情考：http://tinkerpop.apache.org/docs/curre
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/janusgraph%E5%AE%98%E7%BD%91%E6%96%87%E6%A1%A3/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E7%90%86%E8%AE%BA/first/">分布式算法理论</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-05-01 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/"> 分布式理论 </a>
-          
-        </div>
-      <span class="more-meta"> 2048 words </span>
-      <span class="more-meta"> 5 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      一、算法 二、理论 1. Two-phase commit protocol 直接翻译维基百科的解释了： https://en.wikipedia.org/wiki/Two-phase_commit_protocol In transaction processing, databases, and computer networking, the two-phase commit protocol (2PC) is a type of atomic commitment protocol (ACP). 在处理事务、数据库和计算机网络，2PC是一种原子
-    </div>
-    <div class="read-more">
-      <a href="/post/%E7%90%86%E8%AE%BA/first/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/">janusgraph源码分析1-下载编译启动</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-26 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 1745 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了 https://github.com/JanusGr
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/">janusgraph源码分析2-实例debug</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-26 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 2043 words </span>
-      <span class="more-meta"> 5 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E5%BF%83%E5%BE%97/first/">学习心得</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-25 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%AD%A6%E4%B9%A0%E5%BF%83%E5%BE%97/"> 学习心得 </a>
-          
-        </div>
-      <span class="more-meta"> 25 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      结硬寨打呆战 独当一面 花时间钻研底层只是 元认知更重要
-    </div>
-    <div class="read-more">
-      <a href="/post/%E5%BF%83%E5%BE%97/first/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-1/">es架构-1</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/es/"> es </a>
-          
-        </div>
-      <span class="more-meta"> 2061 words </span>
-      <span class="more-meta"> 5 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster 很遗憾，Google的搜索技术不开源，es是搜索引擎的一个很好的替代品，本文主要
-    </div>
-    <div class="read-more">
-      <a href="/post/es/es%E6%9E%B6%E6%9E%84-1/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/es/es%E6%9E%B6%E6%9E%84-2/">es架构-2</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/es/"> es </a>
-          
-        </div>
-      <span class="more-meta"> 1938 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      es设计架构，良心参考资料： https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571 https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d 一、Anatomy of an Elasticsearch Cluster -2 上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这
-    </div>
-    <div class="read-more">
-      <a href="/post/es/es%E6%9E%B6%E6%9E%84-2/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
   </section>
 
   
@@ -618,6 +618,10 @@
     
     <li >
       <a href="/page/3/">3</a>
+    </li>
+    
+    <li >
+      <a href="/page/4/">4</a>
     </li>
     
   </nav>

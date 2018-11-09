@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，" />
+  <meta name="description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 GraphDatabaseFacadeFactory.initFacade PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -50,7 +50,7 @@
 
 
 <meta property="og:title" content="neo4j源码分析3-LifeCycle查看" />
-<meta property="og:description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，" />
+<meta property="og:description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 GraphDatabaseFacadeFactory.initFacade PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/" />
 
@@ -70,17 +70,17 @@
 
 
 <meta itemprop="name" content="neo4j源码分析3-LifeCycle查看">
-<meta itemprop="description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，">
+<meta itemprop="description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 GraphDatabaseFacadeFactory.initFacade PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="4492">
+<meta itemprop="wordCount" content="4626">
 
 
 
 <meta itemprop="keywords" content="neo4j,图数据库," />
 <meta name="twitter:card" content="summary"/><meta name="twitter:title" content="neo4j源码分析3-LifeCycle查看"/>
-<meta name="twitter:description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，"/>
+<meta name="twitter:description" content="一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 GraphDatabaseFacadeFactory.initFacade PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -179,8 +179,8 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 4492 words </span>
-        <span class="more-meta"> 9 min read </span>
+        <span class="more-meta"> 4626 words </span>
+        <span class="more-meta"> 10 min read </span>
       </div>
     </header>
 
@@ -224,7 +224,7 @@
 
 <h2 id="一-复习">一、复习</h2>
 
-<p>上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法</p>
+<p>上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 <code>GraphDatabaseFacadeFactory.initFacade</code></p>
 
 <ol>
 <li><p><code>PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );</code></p></li>
@@ -254,7 +254,8 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 <h2 id="二-datasourcemanager-预览">二、DataSourceManager 预览</h2>
 
-<p>从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。</p>
+<p>从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。
+在 PlatformModule 的构造方法新建了 dataSourceManager。并且在后面调用 start</p>
 
 <h3 id="1-准备工作">1.准备工作</h3>
 
@@ -336,7 +337,7 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
  12 = {LifeSupport$LifecycleInstance@5685} &quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&quot;
 </code></pre>
 
-<p>这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。</p>
+<p>这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己的内部类？我们后面再看吧。</p>
 
 <p>我们先看和存储有关的 <code>3 = {LifeSupport$LifecycleInstance@5676} &quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&quot;</code></p>
 
@@ -409,7 +410,9 @@ idController.start();
 
 <p>dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，</p>
 
-<p>NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。</p>
+<p>NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。
+它的构造方法中有一句：neoStores = factory.openAllNeoStores( true ); 实际上会创建各种store，
+相关的 store 和构造方法可以看：org.neo4j.kernel.impl.store.StoreType，以 NodeStore 为例，会先新建，然后 init。</p>
 
 <p>RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。</p>
 
@@ -929,7 +932,7 @@ indexMap.putIndexProxy( indexId, indexProxy );
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
     title: 'neo4j源码分析3-LifeCycle查看',
     link: decodeURI(location.href),
-    desc: '一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法 PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这四段代码，',
+    desc: '一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 GraphDatabaseFacadeFactory.initFacade PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

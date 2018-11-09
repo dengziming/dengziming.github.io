@@ -6,10 +6,157 @@
     <description>Recent content in 源码分析 on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Tue, 03 Jul 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 27 Jul 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>tinkerpop查看</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/</link>
+      <pubDate>Fri, 27 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-简单调试&#34;&gt;一、简单调试&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;第一步：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraph graph = JanusGraphFactory.open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;);
+
+GraphTraversalSource g = graph.traversal();
+
+g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).path();
+
+List&amp;lt;Path&amp;gt; paths = path.toList();
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436)
+org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390)
+org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169)
+org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80)
+org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31)
+org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178)
+org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239)
+org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1)
+java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.MapStep.processNextStart(MapStep.java:36)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.PathStep.processNextStart(PathStep.java:118)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
+org.apache.tinkerpop.gremlin.process.traversal.Traversal.fill(Traversal.java:179)
+org.apache.tinkerpop.gremlin.process.traversal.Traversal.toList(Traversal.java:117)
+org.janusgraph.test.dengziming.FirstTest.main(FirstTest.java:46)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;一步一步看整个调用过程：&lt;/p&gt;
+
+&lt;p&gt;进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal)&lt;/p&gt;
+
+&lt;p&gt;fill 方法的代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;final Step&amp;lt;?, E&amp;gt; endStep = this.asAdmin().getEndStep();
+while (true) {
+    final Traverser&amp;lt;E&amp;gt; traverser = endStep.next();
+    TraversalHelper.addToCollection(collection, traverser.get(), traverser.bulk());
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;asAdmin 得到 endStep，有点类似 spark 的 stage 拆分后得到 shuffleMapTask。然后调用 endStep.next() 得到 traverser。&lt;/p&gt;
+
+&lt;p&gt;进入： next:128, AbstractStep (org.apache.tinkerpop.gremlin.process.traversal.step.util)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;final Traverser.Admin&amp;lt;E&amp;gt; traverser = this.processNextStart();
+if (null != traverser.get() &amp;amp;&amp;amp; 0 != traverser.bulk())
+    return this.prepareTraversalForNextStep(traverser);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;进入 processNextStart:118, PathStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)
+&lt;code&gt;return PathProcessor.processTraverserPathLabels(super.processNextStart(), this.keepLabels);&lt;/code&gt;
+可以看出调用了父类的 processNextStart 方法，&lt;/p&gt;
+
+&lt;p&gt;进入 processNextStart:36, MapStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)&lt;/p&gt;
+
+&lt;p&gt;由于是 mapStep，所以类似 spark 的 mapPartitionsRdd ，逻辑就是得到前面的 rdd，然后执行 map 方法的逻辑。
+所以这里 mapStep 也是一样，得到  starts 的 next，然后调用map。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;final Traverser.Admin&amp;lt;S&amp;gt; traverser = this.starts.next();
+return traverser.split(this.map(traverser), this);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;进入 next:50, ExpandableStepIterator (org.apache.tinkerpop.gremlin.process.traversal.step.util)，主要就是&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;if (this.hostStep.getPreviousStep().hasNext())
+   return this.hostStep.getPreviousStep().next();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 hostStep 就是上面的 mapStep。这里有 getPreviousStep 然后 next。&lt;/p&gt;
+
+&lt;p&gt;然后又进入到了 processNextStart:142, GraphStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)，
+这里的 iteratorSupplier 变量其实是在 GraphStep 的子类中赋值的，所以 get 方法得到的就是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public JanusGraphStep(final GraphStep&amp;lt;S, E&amp;gt; originalStep) {
+    super(originalStep.getTraversal(), originalStep.getReturnClass(), originalStep.isStartStep(), originalStep.getIds());
+    originalStep.getLabels().forEach(this::addLabel);
+    this.setIteratorSupplier(() -&amp;gt; {
+        if (this.ids == null) {
+            return Collections.emptyIterator();
+        }
+        else if (this.ids.length &amp;gt; 0) {
+            final Graph graph = (Graph)traversal.asAdmin().getGraph().get();
+            return iteratorList((Iterator)graph.vertices(this.ids));
+        }
+        if (hasLocalContainers.isEmpty()) {
+            hasLocalContainers.put(new ArrayList&amp;lt;&amp;gt;(), new QueryInfo(new ArrayList&amp;lt;&amp;gt;(), 0, BaseQuery.NO_LIMIT));
+        }
+        final JanusGraphTransaction tx = JanusGraphTraversalUtil.getTx(traversal);
+        final GraphCentricQuery globalQuery = buildGlobalGraphCentricQuery(tx);
+
+        final Multimap&amp;lt;Integer, GraphCentricQuery&amp;gt; queries = ArrayListMultimap.create();
+        if (globalQuery != null &amp;amp;&amp;amp; !globalQuery.getSubQuery(0).getBackendQuery().isEmpty()) {
+            queries.put(0, globalQuery);
+        } else {
+            hasLocalContainers.entrySet().forEach(c -&amp;gt; queries.put(c.getValue().getLowLimit(), buildGraphCentricQuery(tx, c)));
+        }
+
+        final GraphCentricQueryBuilder builder = (GraphCentricQueryBuilder) tx.query();
+        final List&amp;lt;Iterator&amp;lt;E&amp;gt;&amp;gt; responses = new ArrayList&amp;lt;&amp;gt;();
+        queries.entries().forEach(q -&amp;gt;  executeGraphCentryQuery(builder, responses, q));
+
+        return new MultiDistinctOrderedIterator&amp;lt;E&amp;gt;(lowLimit, highLimit, responses, orders);
+    });
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;首先是 buildGraphCentricQuery&lt;/p&gt;
+
+&lt;p&gt;然后我们可以进行其他的查询操作，例如 propertyMap 操作，会新建一个 PropertyMapStep ，它的 map 方法就是自动查询。我们差 values ，会调用 JanusGraphPropertiesStep。&lt;/p&gt;
+
+&lt;h2 id=&#34;二-strategies&#34;&gt;二、strategies&lt;/h2&gt;
+
+&lt;p&gt;我们知道 tinkerpop 是一个独立的项目，里面是不带任何和 janus 相关的内容，如何会有 JanusGraphStep 呢，
+其实在很多地方（例如 fill:175, Traversal (org.apache.tinkerpop.gremlin.process.traversal)）会调用 this.asAdmin().applyStrategies();
+会循环调用 traversalStrategy.apply(traversal)。在 apply 方法中得到了所有的 GraphStep。然后new JanusGraphStep ，并且替换掉原有的 step。&lt;/p&gt;
+
+&lt;h2 id=&#34;三-addstep&#34;&gt;三、addStep&lt;/h2&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>janusgraph主要类分析</title>
@@ -19,6 +166,35 @@
       <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%905-%E4%B8%BB%E8%A6%81%E7%B1%BB/</guid>
       
         <description></description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析1-下载编译启动</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98/</link>
+      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98/</guid>
+      
+        <description>
+
+&lt;p&gt;#
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了
+&lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-相关问题&#34;&gt;一、相关问题&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/JanusGraph/janusgraph/issues/1157&#34;&gt;https://github.com/JanusGraph/janusgraph/issues/1157&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;reindex 的时候，一直等待三分钟。并且打印日志：
+&amp;ldquo;&amp;ldquo;2018-06-10 09:03:19 [Thread-15] ERROR o.j.g.d.management.ManagementLogger - Evicted [6@6d56b8c524955-pc-jblur-com3] from cache but waiting too long for transactions to close. Stale transaction alert on: [standardjanusgraphtx[0x67a3ba21], standardjanusgraphtx[0x6cf78315], standardjanusgraphtx[0x48ce7bcd], standardjanusgraphtx[0x1862c45e], standardjanusgraphtx[0x04c1309d], standardjanusgraphtx[0x13bda0b2], standardjanusgraphtx[0x1187c9e8]]&lt;/p&gt;
+
+&lt;p&gt;实际上原因是
+There is a bug when we are reindexing a new index in an empty database. The process tries to fetch data from the database but there are no data. Because of that, the process tries to get some data for 3 minutes with the similar error logged as this one:&lt;/p&gt;
+
+&lt;p&gt;我已经做了修复并提交到 janusgraph 的源码，等待merge。
+&lt;a href=&#34;https://github.com/JanusGraph/janusgraph/pull/1162&#34;&gt;https://github.com/JanusGraph/janusgraph/pull/1162&lt;/a&gt;&lt;/p&gt;
+</description>
       
     </item>
     
@@ -40,9 +216,12 @@
 &lt;p&gt;我直接使用github desktop打开了 janusgraph 的源码，使用IDEA打开，然后编译：&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# 编译完整的
-mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests package install
+mvn -settings ~/opt/soft/apache-maven-3.5.0/conf/settings.xml -Dlicense.skip=true -DskipTests clean install
 # 只编译core部分
 mvn -pl janusgraph-core -am clean install -Dlicense.skip=true -DskipTests -P prod
+
+-rf :janusgraph-test
+mvn -pl janusgraph-test -am clean install -Dlicense.skip=true -DskipTests -P prod
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;我们在 &lt;code&gt;janusgraph-test&lt;/code&gt; 下面编写一个例子 &lt;code&gt;FirstTest&lt;/code&gt;：&lt;/p&gt;
@@ -179,6 +358,31 @@ yellow open   janusgraph_vertices gE4TSXFATnSZUWYdAf46Xg   5   1          6     
 上述第一次运行问题的原因是 &lt;code&gt;janusgraph-core&lt;/code&gt;需要用到 &lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;的类，
 但是&lt;code&gt;janusgraph-berkeleyje&lt;/code&gt;是依赖 &lt;code&gt;janusgraph-core&lt;/code&gt;的，所以两个相互依赖了。
 janus的做法是在core中使用反射，所以编译通过了，打包到了一起就没问题了。但是本地运行没法成功。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>janusgraph源码分析1-下载编译启动</title>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%9010-gremin/</link>
+      <pubDate>Thu, 26 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%9010-gremin/</guid>
+      
+        <description>
+
+&lt;p&gt;#
+研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了
+&lt;code&gt;https://github.com/JanusGraph/janusgraph&lt;/code&gt;和&lt;code&gt;http://janusgraph.org/&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;一-调试&#34;&gt;一、调试&lt;/h2&gt;
+
+&lt;p&gt;首先阅读以下 &lt;a href=&#34;http://tinkerpop.apache.org/docs/3.3.3/reference/#traversal&#34;&gt;http://tinkerpop.apache.org/docs/3.3.3/reference/#traversal&lt;/a&gt; ，了解一下。&lt;/p&gt;
+
+&lt;p&gt;GraphTraversalSource g = graph.traversal();&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+&lt;/code&gt;&lt;/pre&gt;
 </description>
       
     </item>
@@ -1959,16 +2163,231 @@ iterator.next()
 
 &lt;p&gt;updatedTypes.add((PropertyKeyVertex) key);
 schema 分析主要就是这些，我们还有一些地方没细看，接下来我们把几个复杂的过程分析一下。主要包括查询数据库和 update 索引&lt;/p&gt;
+
+&lt;h1 id=&#34;局部调试&#34;&gt;局部调试&lt;/h1&gt;
+
+&lt;p&gt;上面的调试过程让我们大概明白了每一步的过程，大概都在做什么，接下来我们要深入一些局部，看一下每一步具体都在做什么。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-makepropertykey&#34;&gt;1. makePropertyKey&lt;/h2&gt;
+
+&lt;p&gt;我们从简单到复杂，首先看 makePropertyKey，看之前我们大概了解几个相关类。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;JanusGraphSchemaCategory
+这个是 JanusGraph 的所有 schema 的种类，有 EDGELABEL, PROPERTYKEY, VERTEXLABEL, GRAPHINDEX, TYPE_MODIFIER 五种。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;PropertyKeyVertex
+我们所有的 schema 都是以顶点的形式存在数据库中，所以我们 makePropertyKey 也会创建一个顶点，这个顶点的类型是 PropertyKeyVertex 。
+他继承自 RelationTypeVertex，PropertyKey， JanusGraphSchemaVertex，InternalRelationType，RelationType，InternalVertex 等类。
+他有 getBaseType getRelationIndexes getKeyIndexes 等方法，&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;BaseKey
+BaseKey 和 PropertyKeyVertex 类似，PropertyKeyVertex 是我们定义的 schema，而 BaseKey 则是最基本的key，是 schema 的 ProperyKey, 他们是直接放在内存中的。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;JanusGraphVertexProperty&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;JanusGraphVertexProperty 代表一个顶点的 Property，和 JanusGraphEdge 一样继承自 JanusGraphRelation。
+当我们给一个 JanusGraph 添加 Property，实际上会创建一条关系，同时返回一个 JanusGraphVertexProperty。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;InternalRelation&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;InternalRelation 代表一个关系，实际上就是一条边，在 janus 中，分为 VertexProperty 和 Edge 两种，无论是 Edge 还是 VertexProperty ，都是连接两个顶点。
+其中 VertexProperty 是连接一个用户创建的顶点和一个 PropertyKey 顶点，而 Edge 是连接两个 PropertyKey 顶点。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;ElementCategory&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;元素种类，有 VERTEX, EDGE, PROPERTY 三种，可以用来判断 index 的种类。&lt;/p&gt;
+
+&lt;h3 id=&#34;进入断点&#34;&gt;进入断点&lt;/h3&gt;
+
+&lt;p&gt;我们进入断点到： makeSchemaVertex:830, StandardJanusGraphTx (org.janusgraph.graphdb.transaction)&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;schemaVertex = new PropertyKeyVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.UserPropertyKey, temporaryIds.nextID()), ElementLifeCycle.New);&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;新建一个代表 PropertyKey 的 Vertex。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+1. vertex = ((InternalVertex) vertex).it();
+
+// 新建一个 VertexProperty 的对象
+2. StandardVertexProperty prop = new StandardVertexProperty(IDManager.getTemporaryRelationID(temporaryIds.nextID()), key, (InternalVertex) vertex, normalizedValue, ElementLifeCycle.New);
+
+3.connectRelation(InternalRelation r) 
+    
+    success = r.getVertex(i).addRelation(r);
+        r.getVertex(i) 返回的是前面创建的 PropertyKeyVertex
+        addRelation 是在这个 Vertex 内部调用 addedRelations.add(r)
+    
+    addedRelations.add(r); // 这个 addedRelations 是 StandardJanusGraph 的全局变量
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们可以看出，addProperty 实际上就是给 顶点和另一个 PropertyKey 建立一条边。&lt;/p&gt;
+
+&lt;p&gt;到这里似乎就完成了，整个过程实际上就是修改了 addedRelations 。&lt;/p&gt;
+
+&lt;h2 id=&#34;makevertexlabel-makeedgelabel&#34;&gt;makeVertexLabel makeEdgeLabel&lt;/h2&gt;
+
+&lt;p&gt;这两个与 PropertyKey 类似，首先 new JanusGraphSchemaVertex ，分别是 PropertyKeyVertex EdgeLabelVertex VertexLabelVertex 。 然后调用 addProperty 。
+addProperty 会 new 一个 StandardVertexProperty ，然后调用 connectRelation(prop) 。将 prop 中的 Relation 都建立连接，添加到 addedRelations。&lt;/p&gt;
+
+&lt;h2 id=&#34;commit-preparecommit&#34;&gt;commit prepareCommit&lt;/h2&gt;
+
+&lt;p&gt;//1) Collect deleted edges and their index updates and acquire edge locks
+略
+//2) Collect added edges and their index updates and acquire edge locks&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+// 前面所有的关系 关系类型是 InternalRelation ，实现有 StandardVertexProperty 和 StandardEdge 两种
+for (InternalRelation add : Iterables.filter(addedRelations,filter)) {
+    
+    // 每个 Relation 联系多个顶点，如果是 StandardVertexProperty 顶点就是 JanusGraphVertex，如果是 StandardEdge，顶点就是连接的两个 JanusGraphVertex
+    for (int pos = 0; pos &amp;lt; add.getLen(); pos++) {
+    	// 得到对应的顶点，可能有一个或者两个
+    	InternalVertex vertex = add.getVertex(pos);
+    	if (pos == 0 || !add.isLoop()) {
+    	    
+    	    // mutatedProperties: key 是关系连接的 vertex，value 是关系
+    	    if (add.isProperty()) mutatedProperties.put(vertex,add);
+    	    // mutations: key 是 vertex id, 关系是 add
+    	    mutations.put(vertex.longId(), add);
+    	}
+    	if (!vertex.isNew() &amp;amp;&amp;amp; acquireLock(add,pos,acquireLocks)) {
+    	    Entry entry = edgeSerializer.writeRelation(add, pos, tx);
+    	    mutator.acquireEdgeLock(idManager.getKey(vertex.longId()), entry.getColumn());
+        }
+    }
+    // indexUpdates : IndexSerializer.IndexUpdate
+    indexUpdates.addAll(indexSerializer.getIndexUpdates(add));
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;//3) Collect all index update for vertices&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;for (InternalVertex v : mutatedProperties.keySet()) {
+    indexUpdates.addAll(indexSerializer.getIndexUpdates(v,mutatedProperties.get(v)));
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;//4) Acquire index locks (deletions first)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;for (IndexSerializer.IndexUpdate update : indexUpdates) {
+    if (!update.isCompositeIndex() || !update.isDeletion()) continue;
+    CompositeIndexType iIndex = (CompositeIndexType) update.getIndex();
+    if (acquireLock(iIndex,acquireLocks)) {
+        mutator.acquireIndexLock((StaticBuffer)update.getKey(), (Entry)update.getEntry());
+    }
+}
+for (IndexSerializer.IndexUpdate update : indexUpdates) {
+    if (!update.isCompositeIndex() || !update.isAddition()) continue;
+    CompositeIndexType iIndex = (CompositeIndexType) update.getIndex();
+    if (acquireLock(iIndex,acquireLocks)) {
+        mutator.acquireIndexLock((StaticBuffer)update.getKey(), ((Entry)update.getEntry()).getColumn());
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;//5) Add relation mutations&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;// 遍历 mutations，
+for (Long vertexid : mutations.keySet()) {
+    Preconditions.checkArgument(vertexid &amp;gt; 0, &amp;quot;Vertex has no id: %s&amp;quot;, vertexid);
+    List&amp;lt;InternalRelation&amp;gt; edges = mutations.get(vertexid);
+    List&amp;lt;Entry&amp;gt; additions = new ArrayList&amp;lt;Entry&amp;gt;(edges.size());
+    List&amp;lt;Entry&amp;gt; deletions = new ArrayList&amp;lt;Entry&amp;gt;(Math.max(10, edges.size() / 10));
+    
+    // 这个顶点所有的 edges
+    for (InternalRelation edge : edges) {
+        InternalRelationType baseType = (InternalRelationType) edge.getType();
+        assert baseType.getBaseType()==null;
+        // 这个 InternalRelationType 的所有 type ，这里有点不太懂
+        for (InternalRelationType type : baseType.getRelationIndexes()) {
+            if (type.getStatus()== SchemaStatus.DISABLED) continue;
+            
+            // Arity 应该是数据的量，代表的意义应该是 LIST SINGLE 等
+            for (int pos = 0; pos &amp;lt; edge.getArity(); pos++) {
+                if (!type.isUnidirected(Direction.BOTH) &amp;amp;&amp;amp; !type.isUnidirected(EdgeDirection.fromPosition(pos)))
+                    continue; //Directionality is not covered
+                if (edge.getVertex(pos).longId()==vertexid) {
+                    // 序列化数据
+                    StaticArrayEntry entry = edgeSerializer.writeRelation(edge, type, pos, tx);
+                    if (edge.isRemoved()) {
+                        deletions.add(entry);
+                    } else {
+                        Preconditions.checkArgument(edge.isNew());
+                        int ttl = getTTL(edge);
+                        if (ttl &amp;gt; 0) {
+                            entry.setMetaData(EntryMetaData.TTL, ttl);
+                        }
+                        // 添加到 additions
+                        additions.add(entry);
+                    }
+                }
+            }
+        }
+    }
+
+    StaticBuffer vertexKey = idManager.getKey(vertexid);
+    // 写出数据
+    mutator.mutateEdges(vertexKey, additions, deletions);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;//6) Add index updates&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;for (IndexSerializer.IndexUpdate indexUpdate : indexUpdates) {
+    assert indexUpdate.isAddition() || indexUpdate.isDeletion();
+    if (indexUpdate.isCompositeIndex()) {
+        IndexSerializer.IndexUpdate&amp;lt;StaticBuffer,Entry&amp;gt; update = indexUpdate;
+        if (update.isAddition())
+            // 直接调用 update 的方法
+            mutator.mutateIndex(update.getKey(), Lists.newArrayList(update.getEntry()), KCVSCache.NO_DELETIONS);
+        else
+            mutator.mutateIndex(update.getKey(), KeyColumnValueStore.NO_ADDITIONS, Lists.newArrayList(update.getEntry()));
+    } else {
+        IndexSerializer.IndexUpdate&amp;lt;String,IndexEntry&amp;gt; update = indexUpdate;
+        has2iMods = true;
+        IndexTransaction itx = mutator.getIndexTransaction(update.getIndex().getBackingIndexName());
+        String indexStore = ((MixedIndexType)update.getIndex()).getStoreName();
+        if (update.isAddition())
+            itx.add(indexStore, update.getKey(), update.getEntry(), update.getElement().isNew());
+        else
+            itx.delete(indexStore,update.getKey(),update.getEntry().field,update.getEntry().value,update.getElement().isRemoved());
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;到这里我们可能比较迷惑的就是 IndexUpdate 是怎么获得的。&lt;/p&gt;
+
+&lt;p&gt;获得 IndexUpdate 的思路大概是这样：以 CompositeIndex 为例，假如一个顶点，USER，有 name 和 sex 两个 PropertyKey，并且基于 name 和 sex 做了一个 CompositeIndex。
+现在有一个顶点，假设 id 为 007，我设置了他的 name 为 &amp;ldquo;deng&amp;rdquo;，然后我们需要获得这个用户的 sex ，假设为 &amp;ldquo;male&amp;rdquo;，这时候我们需要在 index 插入一条记录 (deng,male) =&amp;gt; 007。&lt;/p&gt;
+
+&lt;p&gt;所以我们可以看 getIndexUpdates 的源代码，首先是  IndexField[] fields = index.getFieldKeys() 得到这个 index 所有的 filedKey， 然后 new RecordEntry[fields.length]，得到一个
+和 fields 长度一样的 RecordEntry 数组，然后从 pos=0 开始给 IndexField 数组赋值，直到 pos &amp;gt;= fields.length。这样就得到了所以和这个属性更新相关的索引更新。
+已上面的例子为例，那么得到的 RecordEntry[] 就是 [deng,male]。&lt;/p&gt;
+
+&lt;p&gt;然后我们得到了 indexUpdate additions 就是分别将他们写到数据库了。&lt;/p&gt;
 </description>
       
     </item>
     
     <item>
       <title>janus源码分析5-复杂操作分析</title>
-      <link>https://dengziming.github.io/post/titan/janus%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/</link>
+      <link>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/titan/janus%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/</guid>
+      <guid>https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/</guid>
       
         <description>
 
@@ -3141,7 +3560,7 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;h2 id=&#34;一-复习&#34;&gt;一、复习&lt;/h2&gt;
 
-&lt;p&gt;上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法&lt;/p&gt;
+&lt;p&gt;上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 &lt;code&gt;GraphDatabaseFacadeFactory.initFacade&lt;/code&gt;&lt;/p&gt;
 
 &lt;ol&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade );&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
@@ -3171,7 +3590,8 @@ life.add( new FileSystemLifecycleAdapter( fileSystem ) );
 
 &lt;h2 id=&#34;二-datasourcemanager-预览&#34;&gt;二、DataSourceManager 预览&lt;/h2&gt;
 
-&lt;p&gt;从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。&lt;/p&gt;
+&lt;p&gt;从上面的分析我们看出，一共22个LifeCycle，DataSourceManager 是最复杂的，我们就从它开始。
+在 PlatformModule 的构造方法新建了 dataSourceManager。并且在后面调用 start&lt;/p&gt;
 
 &lt;h3 id=&#34;1-准备工作&#34;&gt;1.准备工作&lt;/h3&gt;
 
@@ -3253,7 +3673,7 @@ relationshipTypeTokenHolder = life.add( dependencies.satisfyDependency(new Deleg
  12 = {LifeSupport$LifecycleInstance@5685} &amp;quot;org.neo4j.kernel.NeoStoreDataSource$2@2c1b9e4b: NONE&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己？这岂不是会无限调用 start 了？我们后面再看吧。&lt;/p&gt;
+&lt;p&gt;这12个LifeCycle什么时候加进来的我们后面有时间再看吧，我们接下来又要跳进 LifeCycle 的的init和start方法，这13个 LifeCycle 先看哪一个呢？我们发现最后一个好像是他自己的内部类？我们后面再看吧。&lt;/p&gt;
 
 &lt;p&gt;我们先看和存储有关的 &lt;code&gt;3 = {LifeSupport$LifecycleInstance@5676} &amp;quot;org.neo4j.kernel.impl.storageengine.impl.recordstorage.RecordStorageEngine@305f7627: NONE&amp;quot;&lt;/code&gt;&lt;/p&gt;
 
@@ -3326,7 +3746,9 @@ idController.start();
 
 &lt;p&gt;dataSourceManager 只包含一个 LifeCycle NeoStoreDataSource ，&lt;/p&gt;
 
-&lt;p&gt;NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。&lt;/p&gt;
+&lt;p&gt;NeoStoreDataSource 里面有 13 个 LifeCycle ， 其中有和存储有关的 RecordStorageEngine 。
+它的构造方法中有一句：neoStores = factory.openAllNeoStores( true ); 实际上会创建各种store，
+相关的 store 和构造方法可以看：org.neo4j.kernel.impl.store.StoreType，以 NodeStore 为例，会先新建，然后 init。&lt;/p&gt;
 
 &lt;p&gt;RecordStorageEngine 中有和存储相关的很多属性和方法。分别在构造方法赋值，init和start方法进行初始化和启动工作。&lt;/p&gt;
 

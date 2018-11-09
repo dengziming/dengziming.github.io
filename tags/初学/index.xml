@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>初学 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/%E5%88%9D%E5%AD%A6/</link>
+    <description>Recent content in 初学 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/%E5%88%9D%E5%AD%A6/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>tinkerpop查看</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-关键类&#34;&gt;一、关键类&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;GraphTraversalSource
+构造方法：
+GraphTraversalSource(Graph graph)
+GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)&lt;/p&gt;
+
+&lt;p&gt;graph.traversal() 方法返回一个 GraphTraversalSource&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>tinkerpop查看</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-关键类&#34;&gt;一、关键类&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;GraphTraversalSource
+构造方法：
+GraphTraversalSource(Graph graph)
+GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)&lt;/p&gt;
+
+&lt;p&gt;graph.traversal() 方法返回一个 GraphTraversalSource&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

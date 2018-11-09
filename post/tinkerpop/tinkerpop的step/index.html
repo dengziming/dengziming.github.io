@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>tinkerpop查看 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).path(); List&amp;lt;Path&amp;gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="tinkerpop查看" />
+<meta property="og:description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/" />
+
+
+
+<meta property="article:published_time" content="2018-07-27T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-07-27T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="tinkerpop查看">
+<meta itemprop="description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)">
+
+
+<meta itemprop="dateModified" content="2018-07-27T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="883">
+
+
+
+<meta itemprop="keywords" content="tinkerpop,源码," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="tinkerpop查看"/>
+<meta name="twitter:description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">tinkerpop查看</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-07-27 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+            
+          </div>
+        <span class="more-meta"> 883 words </span>
+        <span class="more-meta"> 2 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-简单调试">一、简单调试</a></li>
+<li><a href="#二-strategies">二、strategies</a></li>
+<li><a href="#三-addstep">三、addStep</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h2 id="一-简单调试">一、简单调试</h2>
+
+<p>api地址： <a href="http://tinkerpop.apache.org/javadocs/current/full/">http://tinkerpop.apache.org/javadocs/current/full/</a></p>
+
+<p>第一步：</p>
+
+<pre><code class="language-java">JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;);
+
+GraphTraversalSource g = graph.traversal();
+
+g.V().has(&quot;name&quot;, &quot;saturn&quot;).path();
+
+List&lt;Path&gt; paths = path.toList();
+
+</code></pre>
+
+<p>我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈：</p>
+
+<pre><code class="language-java">org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436)
+org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390)
+org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169)
+org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80)
+org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31)
+org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178)
+org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239)
+org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1)
+java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.MapStep.processNextStart(MapStep.java:36)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.PathStep.processNextStart(PathStep.java:118)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
+org.apache.tinkerpop.gremlin.process.traversal.Traversal.fill(Traversal.java:179)
+org.apache.tinkerpop.gremlin.process.traversal.Traversal.toList(Traversal.java:117)
+org.janusgraph.test.dengziming.FirstTest.main(FirstTest.java:46)
+
+</code></pre>
+
+<p>一步一步看整个调用过程：</p>
+
+<p>进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal)</p>
+
+<p>fill 方法的代码：</p>
+
+<pre><code class="language-java">final Step&lt;?, E&gt; endStep = this.asAdmin().getEndStep();
+while (true) {
+    final Traverser&lt;E&gt; traverser = endStep.next();
+    TraversalHelper.addToCollection(collection, traverser.get(), traverser.bulk());
+</code></pre>
+
+<p>asAdmin 得到 endStep，有点类似 spark 的 stage 拆分后得到 shuffleMapTask。然后调用 endStep.next() 得到 traverser。</p>
+
+<p>进入： next:128, AbstractStep (org.apache.tinkerpop.gremlin.process.traversal.step.util)</p>
+
+<pre><code class="language-java">final Traverser.Admin&lt;E&gt; traverser = this.processNextStart();
+if (null != traverser.get() &amp;&amp; 0 != traverser.bulk())
+    return this.prepareTraversalForNextStep(traverser);
+</code></pre>
+
+<p>进入 processNextStart:118, PathStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)
+<code>return PathProcessor.processTraverserPathLabels(super.processNextStart(), this.keepLabels);</code>
+可以看出调用了父类的 processNextStart 方法，</p>
+
+<p>进入 processNextStart:36, MapStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)</p>
+
+<p>由于是 mapStep，所以类似 spark 的 mapPartitionsRdd ，逻辑就是得到前面的 rdd，然后执行 map 方法的逻辑。
+所以这里 mapStep 也是一样，得到  starts 的 next，然后调用map。</p>
+
+<pre><code class="language-java">final Traverser.Admin&lt;S&gt; traverser = this.starts.next();
+return traverser.split(this.map(traverser), this);
+</code></pre>
+
+<p>进入 next:50, ExpandableStepIterator (org.apache.tinkerpop.gremlin.process.traversal.step.util)，主要就是</p>
+
+<pre><code class="language-java">if (this.hostStep.getPreviousStep().hasNext())
+   return this.hostStep.getPreviousStep().next();
+</code></pre>
+
+<p>这个 hostStep 就是上面的 mapStep。这里有 getPreviousStep 然后 next。</p>
+
+<p>然后又进入到了 processNextStart:142, GraphStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)，
+这里的 iteratorSupplier 变量其实是在 GraphStep 的子类中赋值的，所以 get 方法得到的就是：</p>
+
+<pre><code class="language-java">public JanusGraphStep(final GraphStep&lt;S, E&gt; originalStep) {
+    super(originalStep.getTraversal(), originalStep.getReturnClass(), originalStep.isStartStep(), originalStep.getIds());
+    originalStep.getLabels().forEach(this::addLabel);
+    this.setIteratorSupplier(() -&gt; {
+        if (this.ids == null) {
+            return Collections.emptyIterator();
+        }
+        else if (this.ids.length &gt; 0) {
+            final Graph graph = (Graph)traversal.asAdmin().getGraph().get();
+            return iteratorList((Iterator)graph.vertices(this.ids));
+        }
+        if (hasLocalContainers.isEmpty()) {
+            hasLocalContainers.put(new ArrayList&lt;&gt;(), new QueryInfo(new ArrayList&lt;&gt;(), 0, BaseQuery.NO_LIMIT));
+        }
+        final JanusGraphTransaction tx = JanusGraphTraversalUtil.getTx(traversal);
+        final GraphCentricQuery globalQuery = buildGlobalGraphCentricQuery(tx);
+
+        final Multimap&lt;Integer, GraphCentricQuery&gt; queries = ArrayListMultimap.create();
+        if (globalQuery != null &amp;&amp; !globalQuery.getSubQuery(0).getBackendQuery().isEmpty()) {
+            queries.put(0, globalQuery);
+        } else {
+            hasLocalContainers.entrySet().forEach(c -&gt; queries.put(c.getValue().getLowLimit(), buildGraphCentricQuery(tx, c)));
+        }
+
+        final GraphCentricQueryBuilder builder = (GraphCentricQueryBuilder) tx.query();
+        final List&lt;Iterator&lt;E&gt;&gt; responses = new ArrayList&lt;&gt;();
+        queries.entries().forEach(q -&gt;  executeGraphCentryQuery(builder, responses, q));
+
+        return new MultiDistinctOrderedIterator&lt;E&gt;(lowLimit, highLimit, responses, orders);
+    });
+}
+</code></pre>
+
+<p>首先是 buildGraphCentricQuery</p>
+
+<p>然后我们可以进行其他的查询操作，例如 propertyMap 操作，会新建一个 PropertyMapStep ，它的 map 方法就是自动查询。我们差 values ，会调用 JanusGraphPropertiesStep。</p>
+
+<h2 id="二-strategies">二、strategies</h2>
+
+<p>我们知道 tinkerpop 是一个独立的项目，里面是不带任何和 janus 相关的内容，如何会有 JanusGraphStep 呢，
+其实在很多地方（例如 fill:175, Traversal (org.apache.tinkerpop.gremlin.process.traversal)）会调用 this.asAdmin().applyStrategies();
+会循环调用 traversalStrategy.apply(traversal)。在 apply 方法中得到了所有的 GraphStep。然后new JanusGraphStep ，并且替换掉原有的 step。</p>
+
+<h2 id="三-addstep">三、addStep</h2>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-07-27</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/tinkerpop/">tinkerpop</a>
+          
+          <a href="/tags/%E6%BA%90%E7%A0%81/">源码</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/algorithm/first/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">树</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%907-%E5%85%B3%E7%B3%BB%E5%AD%98%E5%82%A8/">
+            <span class="next-text nav-default">janusgraph源码分析7-关系存储</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-07-27 00:00:00 \x2b0000 UTC',
+    title: 'tinkerpop查看',
+    link: decodeURI(location.href),
+    desc: '一、简单调试 api地址： http:\/\/tinkerpop.apache.org\/javadocs\/current\/full\/ 第一步： JanusGraph graph = JanusGraphFactory.open(\x26quot;janusgraph-dist\/src\/assembly\/cfilter\/conf\/janusgraph-berkeleyje-es.properties\x26quot;); GraphTraversalSource g = graph.traversal(); g.V().has(\x26quot;name\x26quot;, \x26quot;saturn\x26quot;).path(); List\x26lt;Path\x26gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

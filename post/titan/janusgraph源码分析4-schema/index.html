@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="3500">
+<meta itemprop="wordCount" content="5233">
 
 
 
@@ -179,8 +179,8 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 3500 words </span>
-        <span class="more-meta"> 7 min read </span>
+        <span class="more-meta"> 5233 words </span>
+        <span class="more-meta"> 11 min read </span>
       </div>
     </header>
 
@@ -222,6 +222,15 @@
 <li><a href="#commit">commit()</a></li>
 <li><a href="#createcompositeindex-1">createCompositeIndex</a></li>
 </ul></li>
+</ul></li>
+<li><a href="#局部调试">局部调试</a>
+<ul>
+<li><a href="#1-makepropertykey">1. makePropertyKey</a>
+<ul>
+<li><a href="#进入断点">进入断点</a></li>
+</ul></li>
+<li><a href="#makevertexlabel-makeedgelabel">makeVertexLabel makeEdgeLabel</a></li>
+<li><a href="#commit-preparecommit">commit prepareCommit</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -653,6 +662,221 @@ iterator.next()
 <p>updatedTypes.add((PropertyKeyVertex) key);
 schema 分析主要就是这些，我们还有一些地方没细看，接下来我们把几个复杂的过程分析一下。主要包括查询数据库和 update 索引</p>
 
+<h1 id="局部调试">局部调试</h1>
+
+<p>上面的调试过程让我们大概明白了每一步的过程，大概都在做什么，接下来我们要深入一些局部，看一下每一步具体都在做什么。</p>
+
+<h2 id="1-makepropertykey">1. makePropertyKey</h2>
+
+<p>我们从简单到复杂，首先看 makePropertyKey，看之前我们大概了解几个相关类。</p>
+
+<ol>
+<li><p>JanusGraphSchemaCategory
+这个是 JanusGraph 的所有 schema 的种类，有 EDGELABEL, PROPERTYKEY, VERTEXLABEL, GRAPHINDEX, TYPE_MODIFIER 五种。</p></li>
+
+<li><p>PropertyKeyVertex
+我们所有的 schema 都是以顶点的形式存在数据库中，所以我们 makePropertyKey 也会创建一个顶点，这个顶点的类型是 PropertyKeyVertex 。
+他继承自 RelationTypeVertex，PropertyKey， JanusGraphSchemaVertex，InternalRelationType，RelationType，InternalVertex 等类。
+他有 getBaseType getRelationIndexes getKeyIndexes 等方法，</p></li>
+
+<li><p>BaseKey
+BaseKey 和 PropertyKeyVertex 类似，PropertyKeyVertex 是我们定义的 schema，而 BaseKey 则是最基本的key，是 schema 的 ProperyKey, 他们是直接放在内存中的。</p></li>
+
+<li><p>JanusGraphVertexProperty</p></li>
+</ol>
+
+<p>JanusGraphVertexProperty 代表一个顶点的 Property，和 JanusGraphEdge 一样继承自 JanusGraphRelation。
+当我们给一个 JanusGraph 添加 Property，实际上会创建一条关系，同时返回一个 JanusGraphVertexProperty。</p>
+
+<ol>
+<li>InternalRelation</li>
+</ol>
+
+<p>InternalRelation 代表一个关系，实际上就是一条边，在 janus 中，分为 VertexProperty 和 Edge 两种，无论是 Edge 还是 VertexProperty ，都是连接两个顶点。
+其中 VertexProperty 是连接一个用户创建的顶点和一个 PropertyKey 顶点，而 Edge 是连接两个 PropertyKey 顶点。</p>
+
+<ol>
+<li>ElementCategory</li>
+</ol>
+
+<p>元素种类，有 VERTEX, EDGE, PROPERTY 三种，可以用来判断 index 的种类。</p>
+
+<h3 id="进入断点">进入断点</h3>
+
+<p>我们进入断点到： makeSchemaVertex:830, StandardJanusGraphTx (org.janusgraph.graphdb.transaction)</p>
+
+<ol>
+<li><code>schemaVertex = new PropertyKeyVertex(this, IDManager.getTemporaryVertexID(IDManager.VertexIDType.UserPropertyKey, temporaryIds.nextID()), ElementLifeCycle.New);</code></li>
+</ol>
+
+<p>新建一个代表 PropertyKey 的 Vertex。</p>
+
+<ol>
+<li>addProperty(schemaVertex, BaseKey.SchemaName, schemaCategory.getSchemaName(name));</li>
+</ol>
+
+<pre><code class="language-java">
+1. vertex = ((InternalVertex) vertex).it();
+
+// 新建一个 VertexProperty 的对象
+2. StandardVertexProperty prop = new StandardVertexProperty(IDManager.getTemporaryRelationID(temporaryIds.nextID()), key, (InternalVertex) vertex, normalizedValue, ElementLifeCycle.New);
+
+3.connectRelation(InternalRelation r) 
+    
+    success = r.getVertex(i).addRelation(r);
+        r.getVertex(i) 返回的是前面创建的 PropertyKeyVertex
+        addRelation 是在这个 Vertex 内部调用 addedRelations.add(r)
+    
+    addedRelations.add(r); // 这个 addedRelations 是 StandardJanusGraph 的全局变量
+
+</code></pre>
+
+<p>我们可以看出，addProperty 实际上就是给 顶点和另一个 PropertyKey 建立一条边。</p>
+
+<p>到这里似乎就完成了，整个过程实际上就是修改了 addedRelations 。</p>
+
+<h2 id="makevertexlabel-makeedgelabel">makeVertexLabel makeEdgeLabel</h2>
+
+<p>这两个与 PropertyKey 类似，首先 new JanusGraphSchemaVertex ，分别是 PropertyKeyVertex EdgeLabelVertex VertexLabelVertex 。 然后调用 addProperty 。
+addProperty 会 new 一个 StandardVertexProperty ，然后调用 connectRelation(prop) 。将 prop 中的 Relation 都建立连接，添加到 addedRelations。</p>
+
+<h2 id="commit-preparecommit">commit prepareCommit</h2>
+
+<p>//1) Collect deleted edges and their index updates and acquire edge locks
+略
+//2) Collect added edges and their index updates and acquire edge locks</p>
+
+<pre><code class="language-java">
+// 前面所有的关系 关系类型是 InternalRelation ，实现有 StandardVertexProperty 和 StandardEdge 两种
+for (InternalRelation add : Iterables.filter(addedRelations,filter)) {
+    
+    // 每个 Relation 联系多个顶点，如果是 StandardVertexProperty 顶点就是 JanusGraphVertex，如果是 StandardEdge，顶点就是连接的两个 JanusGraphVertex
+    for (int pos = 0; pos &lt; add.getLen(); pos++) {
+    	// 得到对应的顶点，可能有一个或者两个
+    	InternalVertex vertex = add.getVertex(pos);
+    	if (pos == 0 || !add.isLoop()) {
+    	    
+    	    // mutatedProperties: key 是关系连接的 vertex，value 是关系
+    	    if (add.isProperty()) mutatedProperties.put(vertex,add);
+    	    // mutations: key 是 vertex id, 关系是 add
+    	    mutations.put(vertex.longId(), add);
+    	}
+    	if (!vertex.isNew() &amp;&amp; acquireLock(add,pos,acquireLocks)) {
+    	    Entry entry = edgeSerializer.writeRelation(add, pos, tx);
+    	    mutator.acquireEdgeLock(idManager.getKey(vertex.longId()), entry.getColumn());
+        }
+    }
+    // indexUpdates : IndexSerializer.IndexUpdate
+    indexUpdates.addAll(indexSerializer.getIndexUpdates(add));
+}
+</code></pre>
+
+<p>//3) Collect all index update for vertices</p>
+
+<pre><code class="language-java">for (InternalVertex v : mutatedProperties.keySet()) {
+    indexUpdates.addAll(indexSerializer.getIndexUpdates(v,mutatedProperties.get(v)));
+}
+</code></pre>
+
+<p>//4) Acquire index locks (deletions first)</p>
+
+<pre><code class="language-java">for (IndexSerializer.IndexUpdate update : indexUpdates) {
+    if (!update.isCompositeIndex() || !update.isDeletion()) continue;
+    CompositeIndexType iIndex = (CompositeIndexType) update.getIndex();
+    if (acquireLock(iIndex,acquireLocks)) {
+        mutator.acquireIndexLock((StaticBuffer)update.getKey(), (Entry)update.getEntry());
+    }
+}
+for (IndexSerializer.IndexUpdate update : indexUpdates) {
+    if (!update.isCompositeIndex() || !update.isAddition()) continue;
+    CompositeIndexType iIndex = (CompositeIndexType) update.getIndex();
+    if (acquireLock(iIndex,acquireLocks)) {
+        mutator.acquireIndexLock((StaticBuffer)update.getKey(), ((Entry)update.getEntry()).getColumn());
+    }
+}
+</code></pre>
+
+<p>//5) Add relation mutations</p>
+
+<pre><code class="language-java">// 遍历 mutations，
+for (Long vertexid : mutations.keySet()) {
+    Preconditions.checkArgument(vertexid &gt; 0, &quot;Vertex has no id: %s&quot;, vertexid);
+    List&lt;InternalRelation&gt; edges = mutations.get(vertexid);
+    List&lt;Entry&gt; additions = new ArrayList&lt;Entry&gt;(edges.size());
+    List&lt;Entry&gt; deletions = new ArrayList&lt;Entry&gt;(Math.max(10, edges.size() / 10));
+    
+    // 这个顶点所有的 edges
+    for (InternalRelation edge : edges) {
+        InternalRelationType baseType = (InternalRelationType) edge.getType();
+        assert baseType.getBaseType()==null;
+        // 这个 InternalRelationType 的所有 type ，这里有点不太懂
+        for (InternalRelationType type : baseType.getRelationIndexes()) {
+            if (type.getStatus()== SchemaStatus.DISABLED) continue;
+            
+            // Arity 应该是数据的量，代表的意义应该是 LIST SINGLE 等
+            for (int pos = 0; pos &lt; edge.getArity(); pos++) {
+                if (!type.isUnidirected(Direction.BOTH) &amp;&amp; !type.isUnidirected(EdgeDirection.fromPosition(pos)))
+                    continue; //Directionality is not covered
+                if (edge.getVertex(pos).longId()==vertexid) {
+                    // 序列化数据
+                    StaticArrayEntry entry = edgeSerializer.writeRelation(edge, type, pos, tx);
+                    if (edge.isRemoved()) {
+                        deletions.add(entry);
+                    } else {
+                        Preconditions.checkArgument(edge.isNew());
+                        int ttl = getTTL(edge);
+                        if (ttl &gt; 0) {
+                            entry.setMetaData(EntryMetaData.TTL, ttl);
+                        }
+                        // 添加到 additions
+                        additions.add(entry);
+                    }
+                }
+            }
+        }
+    }
+
+    StaticBuffer vertexKey = idManager.getKey(vertexid);
+    // 写出数据
+    mutator.mutateEdges(vertexKey, additions, deletions);
+}
+</code></pre>
+
+<p>//6) Add index updates</p>
+
+<pre><code class="language-java">for (IndexSerializer.IndexUpdate indexUpdate : indexUpdates) {
+    assert indexUpdate.isAddition() || indexUpdate.isDeletion();
+    if (indexUpdate.isCompositeIndex()) {
+        IndexSerializer.IndexUpdate&lt;StaticBuffer,Entry&gt; update = indexUpdate;
+        if (update.isAddition())
+            // 直接调用 update 的方法
+            mutator.mutateIndex(update.getKey(), Lists.newArrayList(update.getEntry()), KCVSCache.NO_DELETIONS);
+        else
+            mutator.mutateIndex(update.getKey(), KeyColumnValueStore.NO_ADDITIONS, Lists.newArrayList(update.getEntry()));
+    } else {
+        IndexSerializer.IndexUpdate&lt;String,IndexEntry&gt; update = indexUpdate;
+        has2iMods = true;
+        IndexTransaction itx = mutator.getIndexTransaction(update.getIndex().getBackingIndexName());
+        String indexStore = ((MixedIndexType)update.getIndex()).getStoreName();
+        if (update.isAddition())
+            itx.add(indexStore, update.getKey(), update.getEntry(), update.getElement().isNew());
+        else
+            itx.delete(indexStore,update.getKey(),update.getEntry().field,update.getEntry().value,update.getElement().isRemoved());
+    }
+}
+</code></pre>
+
+<p>到这里我们可能比较迷惑的就是 IndexUpdate 是怎么获得的。</p>
+
+<p>获得 IndexUpdate 的思路大概是这样：以 CompositeIndex 为例，假如一个顶点，USER，有 name 和 sex 两个 PropertyKey，并且基于 name 和 sex 做了一个 CompositeIndex。
+现在有一个顶点，假设 id 为 007，我设置了他的 name 为 &ldquo;deng&rdquo;，然后我们需要获得这个用户的 sex ，假设为 &ldquo;male&rdquo;，这时候我们需要在 index 插入一条记录 (deng,male) =&gt; 007。</p>
+
+<p>所以我们可以看 getIndexUpdates 的源代码，首先是  IndexField[] fields = index.getFieldKeys() 得到这个 index 所有的 filedKey， 然后 new RecordEntry[fields.length]，得到一个
+和 fields 长度一样的 RecordEntry 数组，然后从 pos=0 开始给 IndexField 数组赋值，直到 pos &gt;= fields.length。这样就得到了所以和这个属性更新相关的索引更新。
+已上面的例子为例，那么得到的 RecordEntry[] 就是 [deng,male]。</p>
+
+<p>然后我们得到了 indexUpdate additions 就是分别将他们写到数据库了。</p>
+
     </div>
 
     
@@ -711,7 +935,7 @@ schema 分析主要就是这些，我们还有一些地方没细看，接下来�
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/titan/janus%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/">
+          <a class="next" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/">
             <span class="next-text nav-default">janus源码分析5-复杂操作分析</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>

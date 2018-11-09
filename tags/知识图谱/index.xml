@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>知识图谱 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/</link>
+    <description>Recent content in 知识图谱 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 30 Oct 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>tinkerpop源码解析2-简单例子debug</title>
+      <link>https://dengziming.github.io/post/tinkerpop/first/</link>
+      <pubDate>Tue, 30 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/first/</guid>
+      
+        <description>
+
+&lt;p&gt;tinkerpop 源码是JanusGraph 源码解析的第一步，我们需要大概有个了解。&lt;/p&gt;
+
+&lt;h2 id=&#34;demo-编写&#34;&gt;demo 编写&lt;/h2&gt;
+
+&lt;p&gt;我们可以直接复制来自 tinkerpop 官方的源码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public static void main(String[] args) {
+
+    TinkerGraph graph = TinkerGraph.open();
+    GraphTraversalSource g = graph.traversal();
+
+    Vertex v = g.addV().property(&amp;quot;name&amp;quot;,&amp;quot;marko&amp;quot;).property(&amp;quot;nam&amp;quot;,&amp;quot;marko a. rodriguez&amp;quot;).next();
+
+    GraphTraversal&amp;lt;Vertex, Long&amp;gt; name = g.V(v).properties(&amp;quot;name&amp;quot;).count();
+    v.property(list, &amp;quot;name&amp;quot;, &amp;quot;m. a. rodriguez&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).count();
+    g.V(v).properties();
+    g.V(v).properties(&amp;quot;name&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko&amp;quot;).property(&amp;quot;acl&amp;quot;,&amp;quot;private&amp;quot;); //
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko a. rodriguez&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko a. rodriguez&amp;quot;).property(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;).value();
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;).drop(); //4\
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;).value();
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;private&amp;quot;).value();
+    g.V(v).properties();
+    g.V(v).properties().properties(); //5\
+    g.V(v).properties().property(&amp;quot;date&amp;quot;,2014) ;//6\
+    g.V(v).properties().property(&amp;quot;creator&amp;quot;,&amp;quot;stephen&amp;quot;);
+    g.V(v).properties().properties();
+    g.V(v).properties(&amp;quot;name&amp;quot;).valueMap();
+    g.V(v).property(&amp;quot;name&amp;quot;,&amp;quot;okram&amp;quot;); //7\
+    g.V(v).properties(&amp;quot;name&amp;quot;);
+    g.V(v).values(&amp;quot;name&amp;quot;); //8
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后从第一行开始 打断点，debug。首先注意 TinkerGraph 是一个很简单的图数据库，超级简单。&lt;/p&gt;
+
+&lt;h2 id=&#34;tinkergraph&#34;&gt;TinkerGraph&lt;/h2&gt;
+
+&lt;p&gt;TinkerGraph.open() 方法会新建一个 TinkerGraph：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private TinkerGraph(final Configuration configuration) {
+    this.configuration = configuration;
+    vertexIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_ID_MANAGER, Vertex.class);
+    edgeIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_EDGE_ID_MANAGER, Edge.class);
+    vertexPropertyIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
+    defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
+            configuration.getString(GREMLIN_TINKERGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY, VertexProperty.Cardinality.single.name()));
+
+    graphLocation = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_LOCATION, null);
+    graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
+
+    if ((graphLocation != null &amp;amp;&amp;amp; null == graphFormat) || (null == graphLocation &amp;amp;&amp;amp; graphFormat != null))
+        throw new IllegalStateException(String.format(&amp;quot;The %s and %s must both be specified if either is present&amp;quot;,
+                GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
+
+    if (graphLocation != null) loadGraph();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的 configuration 类似一个map。然后有几个 IDManager 和其他变量赋值。&lt;/p&gt;
+
+&lt;p&gt;然后是 GraphTraversalSource g = graph.traversal(); 这一句仅仅是 return new GraphTraversalSource(this);&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public GraphTraversalSource(final Graph graph) {
+    this(graph, TraversalStrategies.GlobalCache.getStrategies(graph.getClass()));
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这时候我们取看一下几个特殊的类： Traversal&lt;S,E&gt; Traversal.Admin&lt;S, E&gt; 。 他们两个都是接口，而且 Admin 是继承自 Traversal。
+Traversal 代表遍历，主要方法包括 next， asNext，iterator toList 等，可以看成一个迭代器，而 Admin 的主要方法和他没有什么关系。&lt;/p&gt;
+
+&lt;p&gt;GraphTraversal&lt;S, E&gt; extends Traversal&lt;S, E&gt; , 新增加了很多和 gremlin 相关的方法。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

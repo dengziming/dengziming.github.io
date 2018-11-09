@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>数据结构 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/</link>
+    <description>Recent content in 数据结构 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 07 Aug 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>树</title>
+      <link>https://dengziming.github.io/post/algorithm/first/</link>
+      <pubDate>Tue, 07 Aug 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/algorithm/first/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;平衡二叉树&#34;&gt;平衡二叉树&lt;/h1&gt;
+
+&lt;p&gt;平衡二叉树，就是左右最高差都不大于1的树。和二叉查找树不一样在于，在插入和删除的时候通过左旋和右旋的方式，使得树保持平衡。&lt;/p&gt;
+
+&lt;p&gt;实现可以通过递归，注意每次左旋右旋的时候root结的改变l。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

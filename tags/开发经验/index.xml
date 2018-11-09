@@ -12,174 +12,62 @@
     
     
     <item>
-      <title>常用sql写法</title>
-      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/</link>
+      <title>如何在github.io搭建Hugo博客</title>
+      <link>https://dengziming.github.io/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/sql/</guid>
+      <guid>https://dengziming.github.io/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</guid>
       
         <description>
 
-&lt;h2 id=&#34;sql语法&#34;&gt;sql语法&lt;/h2&gt;
+&lt;h2 id=&#34;一-过滤器模式&#34;&gt;一、过滤器模式&lt;/h2&gt;
 
-&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
+&lt;p&gt;过滤器模式（Filter Pattern）或标准模式（Criteria Pattern）允许开发人员使用不同的标准来过滤一组对象，通过逻辑运算以解耦的方式把它们连接起来。&lt;/p&gt;
 
-&lt;h3 id=&#34;1-调优经验&#34;&gt;1. 调优经验&lt;/h3&gt;
+&lt;p&gt;mongo 的查询接口有很多方法，例如 and，or，实际上就是串在一起。&lt;/p&gt;
 
-&lt;p&gt;可以先explain，分析一下。然后再运行。&lt;/p&gt;
+&lt;h2 id=&#34;二-组合模式&#34;&gt;二、组合模式&lt;/h2&gt;
 
-&lt;p&gt;join可能会导致数据倾斜的情况：&lt;/p&gt;
+&lt;p&gt;树枝内部组合该接口，并且含有内部属性 List，里面放 Component。叶子和树枝的声明都是实现类，而不是接口，违反了依赖倒置原则。&lt;/p&gt;
 
-&lt;p&gt;join的key是不均匀的，
-join的key有很多事空值，这时候可以分为两部分进行union&lt;/p&gt;
-
-&lt;p&gt;多表join：
-一般是前面的stage一起执行，最后有一个stage。
-如果发现很慢，数据也没有倾斜，可能是某些表的key重复，导致join会有笛卡尔积操作，得到很多数据所以慢，可以根据业务进行过滤。&lt;/p&gt;
-
-&lt;h2 id=&#34;常用sql&#34;&gt;常用sql&lt;/h2&gt;
-
-&lt;h3 id=&#34;1-不等值join&#34;&gt;1.不等值join&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;
-cache table b as select * from location ;
-
-select
-    a.ip,
-    b.city
-from
-    b
-RIGHT JOIN
-    fin_kg.kg_v2_v_ip a
-ON
-    a.ip &amp;gt;= b.ip_start
-AND
-    a.ip &amp;lt;= b.ip_end
-
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class Employee {
+   private String name;
+   private String dept;
+   private int salary;
+   private List&amp;lt;Employee&amp;gt; subordinates;
+ 
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;和&lt;/p&gt;
+&lt;h2 id=&#34;三-装饰器模式&#34;&gt;三、装饰器模式&lt;/h2&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;CACHE TABLE chuanxiao AS SELECT id,name,regs FROM vdm_fin.chuanxiao_20180417;
+&lt;p&gt;类似适配器，代理，桥接&lt;/p&gt;
 
-insert overwrite table kg_v2_e_userid_gang
-select
-    b.id,
-    b.name,
-    a.phone,
-    a.contact_phone,
-    a.contact_name
-from
-     a
-right join
-    chuanxiao b
-on
-    a.contact_name regexp regexp_replace(b.regs,&amp;quot;%&amp;quot;,&amp;quot;.*&amp;quot;);
+&lt;p&gt;java 的 IO 包就是典型代表&lt;/p&gt;
+
+&lt;h2 id=&#34;四-外观模式&#34;&gt;四、外观模式&lt;/h2&gt;
+
+&lt;p&gt;为子系统中的一组接口提供一个一致的界面，外观模式定义了一个高层接口，这个接口使得这一子系统更加容易使用。不符合开放封闭原则，如果要改东西很麻烦。&lt;/p&gt;
+
+&lt;h2 id=&#34;五-桥接模式&#34;&gt;五、桥接模式&lt;/h2&gt;
+
+&lt;p&gt;抽象类依赖实现类。&lt;/p&gt;
+
+&lt;h2 id=&#34;六-责任链模式&#34;&gt;六、责任链模式&lt;/h2&gt;
+
+&lt;p&gt;拦截器模式：以 Logger 为例，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public abstract class AbstractLogger {
+protected AbstractLogger nextLogger;
+}
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;2-分位点&#34;&gt;2.分位点&lt;/h3&gt;
+&lt;h2 id=&#34;七-观察者模式&#34;&gt;七、观察者模式&lt;/h2&gt;
 
-&lt;p&gt;percentile
-percentile_approx
-percentile_rank&lt;/p&gt;
+&lt;p&gt;微博动态可以设计成观察者模式，每个人记录自己的观察者，发送的时候通知。&lt;/p&gt;
 
-&lt;h3 id=&#34;3-保留小数&#34;&gt;3.保留小数&lt;/h3&gt;
+&lt;h2 id=&#34;八-策略模式&#34;&gt;八、策略模式&lt;/h2&gt;
 
-&lt;p&gt;printf&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>常用正则表达式</title>
-      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/maven%E5%91%BD%E4%BB%A4/</guid>
-      
-        <description>
-
-&lt;h2 id=&#34;正则语法&#34;&gt;正则语法&lt;/h2&gt;
-
-&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
-
-&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
-
-&lt;h2 id=&#34;常用正则&#34;&gt;常用正则&lt;/h2&gt;
-
-&lt;h3 id=&#34;1-nginx匹配&#34;&gt;1.nginx匹配&lt;/h3&gt;
-
-&lt;p&gt;([^\s]+) - ([.+])&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;select 
-&#39;([^\\s]+) - (\\[.+\\])&#39;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;注释：
-\转义，这里加上sql转义是两个转义。
-括号括起来是一个字符集
-. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）&lt;/p&gt;
-
-&lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT split(&#39;%180%霖易%|%180%商城%|%霖易商城%&#39;,&#39;\\|&#39;);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;|代表或，如果分割需要转义。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT   regexp_replace(&#39;(名字)。|得到的sssa》《？&#39;,&#39;\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&amp;quot;|\&#39;&#39;,&#39;&#39;) as contact_name
-
--- 得到的sssa
-&lt;/code&gt;&lt;/pre&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>常用正则表达式</title>
-      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E5%B8%B8%E7%94%A8%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</guid>
-      
-        <description>
-
-&lt;h2 id=&#34;正则语法&#34;&gt;正则语法&lt;/h2&gt;
-
-&lt;p&gt;每个语言的语法不一样，大致类似。&lt;/p&gt;
-
-&lt;h3 id=&#34;1&#34;&gt;1.&lt;/h3&gt;
-
-&lt;h2 id=&#34;常用正则&#34;&gt;常用正则&lt;/h2&gt;
-
-&lt;h3 id=&#34;1-nginx匹配&#34;&gt;1.nginx匹配&lt;/h3&gt;
-
-&lt;p&gt;([^\s]+) - ([.+])&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;select 
-&#39;([^\\s]+) - (\\[.+\\])&#39;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;注释：
-\转义，这里加上sql转义是两个转义。
-括号括起来是一个字符集
-. 代表任意字符，+代表至少一次（*为任意次，？为最多一次）&lt;/p&gt;
-
-&lt;h3 id=&#34;2-字符串分割&#34;&gt;2.字符串分割&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT split(&#39;%180%霖易%|%180%商城%|%霖易商城%&#39;,&#39;\\|&#39;);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;|代表或，如果分割需要转义。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-特殊字符替换&#34;&gt;3.特殊字符替换&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;SELECT   regexp_replace(&#39;(名字)。|得到的sssa》《？&#39;,&#39;\\(.*?\\)|[^(a-zA-Z0-9\\u2E80-\\u9FFF)]|[\\( \\)《》。，〈〉、⼂\\⼁]|\\s+|,|&amp;quot;|\&#39;&#39;,&#39;&#39;) as contact_name
-
--- 得到的sssa
-&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;诸葛亮的锦囊妙计，每一个锦囊就是一个策略。&lt;/p&gt;
 </description>
       
     </item>

@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>janus源码分析5-复杂操作分析 - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="janus源码分析5-复杂操作分析" />
+<meta property="og:description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="janus源码分析5-复杂操作分析">
+<meta itemprop="description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="5063">
+
+
+
+<meta itemprop="keywords" content="图计算,janusgraph," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="janus源码分析5-复杂操作分析"/>
+<meta name="twitter:description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">janus源码分析5-复杂操作分析</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+            
+          </div>
+        <span class="more-meta"> 5063 words </span>
+        <span class="more-meta"> 11 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li><a href="#源码分析">源码分析</a>
+<ul>
+<li><a href="#查询操作">查询操作</a>
+<ul>
+<li><a href="#query">Query</a></li>
+<li><a href="#indexserializer">IndexSerializer</a></li>
+<li><a href="#stream">Stream</a></li>
+<li><a href="#subqueryiterator">SubqueryIterator</a></li>
+<li><a href="#standardjanusgraphtx">StandardJanusGraphTx</a>
+<ul>
+<li><a href="#elementprocessorimpl">elementProcessorImpl</a></li>
+<li><a href="#edgeprocessorimpl">edgeProcessorImpl</a></li>
+</ul></li>
+<li><a href="#limitadjustingiterator">LimitAdjustingIterator</a></li>
+<li><a href="#resultsetiterator">ResultSetIterator</a></li>
+<li><a href="#vertexcentricquerybuilder-和-graphcentricquerybuilder">VertexCentricQueryBuilder 和 GraphCentricQueryBuilder</a></li>
+<li><a href="#总结">总结</a></li>
+</ul></li>
+<li><a href="#更新索引">更新索引</a>
+<ul>
+<li><a href="#index">Index</a></li>
+<li><a href="#indextype-internalrelationtype">IndexType InternalRelationType</a></li>
+<li><a href="#indexbuilder">IndexBuilder</a></li>
+<li><a href="#updatestatustrigger">UpdateStatusTrigger</a></li>
+<li><a href="#standardscanner">StandardScanner</a></li>
+<li><a href="#managementsystem">ManagementSystem</a></li>
+<li><a href="#reindex">reindex</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#debug">debug</a></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h1 id="源码分析">源码分析</h1>
+
+<h2 id="查询操作">查询操作</h2>
+
+<p>之前已经遇到过很多查询操作</p>
+
+<pre><code class="language-java">mgmt.containsVertexLabel(vType.toString())
+    transaction.containsVertexLabel(name);
+        return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null;
+        1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt
+        2. JanusGraphSchemaVertex getSchemaVertex(String schemaName)
+            graph.getSchemaCache().getSchemaId(schemaName)
+            1. getSchemaCache 
+            2. StandardSchemaCache.getSchemaId
+                id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，
+                    typeCacheRetrieval.retrieveSchemaByName
+                        StandardJanusGraph.this.newTransaction
+                            QueryUtil.getVertices(consistentTx, BaseKey.SchemaName, typeName)
+                            return v!=null?v.longId():null;
+        
+</code></pre>
+
+<pre><code class="language-java">iterator
+    return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
+        1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
+            Iterator&lt;R&gt; subiter = new LimitAdjustingIterator(subq);
+        2. this.next = nextInternal();
+            hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                    execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
+                        new SubqueryIterator
+                            indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
+</code></pre>
+
+<p>其实查询操作并不复杂，这是有很多层的嵌套，导致我们看起来很麻烦而已，前面我们已经大概介绍了： 首先是 AbstractIterator 和 Iterators 类，然后是 ResultSetIterator LimitAdjustingIterator SubqueryIterator ，然后还有一个 Stream 类。</p>
+
+<p>我们一层一层进行查看：</p>
+
+<h3 id="query">Query</h3>
+
+<p>继承体系：</p>
+
+<pre><code class="language-java">Query (org.janusgraph.graphdb.query)
+	ElementQuery (org.janusgraph.graphdb.query)
+	    GraphCentricQuery (org.janusgraph.graphdb.query.graph)
+	    VertexCentricQuery (org.janusgraph.graphdb.query.vertex)
+	BaseQuery (org.janusgraph.graphdb.query)
+	    MultiKeySliceQuery (org.janusgraph.graphdb.query.graph)
+	    JointIndexQuery (org.janusgraph.graphdb.query.graph)
+	    RawQuery (org.janusgraph.diskstorage.indexing)
+	    BaseVertexCentricQuery (org.janusgraph.graphdb.query.vertex)
+	        VertexCentricQuery (org.janusgraph.graphdb.query.vertex)
+	    SliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeyRangeQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeySliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	    KVQuery (org.janusgraph.diskstorage.keycolumnvalue.keyvalue)
+	    IndexQuery (org.janusgraph.diskstorage.indexing)
+	    IndexQueryBuilder (org.janusgraph.graphdb.query.graph)
+	    GraphCentricQuery (org.janusgraph.graphdb.query.graph)
+	BackendQuery (org.janusgraph.graphdb.query)
+	    MultiKeySliceQuery (org.janusgraph.graphdb.query.graph)
+	    JointIndexQuery (org.janusgraph.graphdb.query.graph)
+	    SliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeyRangeQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	        KeySliceQuery (org.janusgraph.diskstorage.keycolumnvalue)
+	    IndexQuery (org.janusgraph.diskstorage.indexing)
+	    Subquery in JointIndexQuery (org.janusgraph.graphdb.query.graph)
+</code></pre>
+
+<p>我们主要能发现 BaseQuery 和 BackendQuery 两大子类，</p>
+
+<p>BaseQuery 比较简单，里面就一个 limit 属性，应该是指返回的条数。而 BackendQuery 接口更简单，只有一个方法 updateLimit(int newLimit)，返回一个新的 BackendQuery。至于有什么用后续才能知道。</p>
+
+<p>基于 BaseQuery 和 BackendQuery ，有很多子类。</p>
+
+<p>SliceQuery 有两个 StaticBuffer 类型的属性： sliceStart 和 sliceEnd 。这应该是 bigtable 模型的 nosql 都会提供的一种功能，给一个 slice 进行查询。</p>
+
+<p>KeySliceQuery 继承自 SliceQuery ，扩展 SliceQuery ，增加了 StaticBuffer 类型的 key，能够查询某个 key 的 slice。</p>
+
+<p>KeyRangeQuery 继承自 SliceQuery ，扩展 SliceQuery ，增加了两个 StaticBuffer 类型的 keyStart keyEnd 。为何这样就要查询 bigtable 相关资料了。</p>
+
+<p>MultiKeySliceQuery 继承自 BaseQuery 和 BackendQuery ，内部有一个 List<KeySliceQuery> queries。很明显这是多个 key 一起查。</p>
+
+<p>IndexQuery 官方注释 在 IndexProvider 中执行的外部 query，query 由两部分组成：一个是查询应该执行的 store 的标识符，另一个是查询的条件。
+IndexProvider 的代码我们介绍过，是指外部索引，例如 ElasticSearchIndex ，主要有 register mutate restore query 等方法，很明显是提供一些查询。</p>
+
+<p>JointIndexQuery 的静态内部类 Subquery 继承自 BackendQuery ，内部有两个主要属性：  IndexType index; BackendQuery query;
+Index 可以是 MixedIndexType 或者 CompositeIndexType，对应的 query 分别是 IndexQuery 和 MultiKeySliceQuery
+JointIndexQuery 则有 List<Subquery> queries 属性代表很多个 Subquery。
+我们可以看出其实 Subquery 代表的是可以在一种索引平台上执行的查询。而 JointIndexQuery 则是很多个这样的查询，可以在各自的平台上进行查询。</p>
+
+<p>GraphCentricQuery 包含了一个 Condition<JanusGraphElement> condition 作为条件，一个 BackendQueryHolder<JointIndexQuery> indexQuery 保存 Query 信息。
+BaseVertexCentricQuery 包含了 Condition<JanusGraphRelation> condition 作为添加 ，List<BackendQueryHolder<SliceQuery>&gt; queries 保存 Query 信息
+VertexCentricQuery 继承自 BaseVertexCentricQuery ，添加一个 InternalVertex vertex ，至于干啥的还不知道。
+他们都是 ElementQuery。</p>
+
+<p>看到这里我们大概能看出 ：
+GraphCentricQuery 是基于 JanusGraphElement 的，查询需要 JointIndexQuery ，
+JointIndexQuery 内部则是 Subquery，Subquery 主要分为 MixedQuery 和 CompositeQuery，对应的查询分别为 IndexQuery 和 MultiKeySliceQuery，对应的索引分别为 MixedIndexType 和 CompositeIndexType
+VertexCentricQuery 是基于 JanusGraphRelation 的，查询需要 SliceQuery ，SliceQuery 就是查询 key + cf 对应的所有的 keyvalue 。</p>
+
+<p>RawQuery 继承自 BaseQuery ，没什么特殊参数，我想应该是值一些粗糙的直接查询。
+剩下的 IndexQueryBuilder 和 KVQuery 先不说了。</p>
+
+<p>我们可以看出这些 Query 只是一些描述性的东西，并没有任何执行调用的方法。通过类的关系我们也大概能总结一下：</p>
+
+<ul>
+<li>一切都是为了查出 janus 中的元素，所以 是围绕 ElementQuery 展开，ElementQuery 有两个子类，GraphCentricQuery 和 VertexCentricQuery。
+GraphCentricQuery 代表以 graph 为中心的查询，例如查询 name=aaa 的所有顶点，VertexCentricQuery 代表以 vertex-centric 的查询，例如查和某个人关系为同事的所有人。
+为了完成 GraphCentricQuery 包括两类：IndexQuery 和 MultiKeySliceQuery ，IndexQuery 代表使用外部索引的查询，MultiKeySliceQuery 代表使用 bigtable 自带索引的查询。
+这两种合在一起就是 Subquery ，而 JointIndexQuery 内部有多个 Subquery，GraphCentricQuery 中有一个 JointIndexQuery 对象。
+为了完成 VertexCentricQuery，也就是加快基于 PropertyKey 和 EdgeLabel 的查询，需要使用 SliceQuery 进行配合。SliceQuery 有很多实现，除了本身还有 KeySliceQuery 和 KeyRangeQuery。</li>
+<li>而 RawQuery 看名字猜测是直接查询。</li>
+<li>IndexQueryBuilder 就是一个 Builder，内部有一个 IndexSerializer ，它的 execute 方法，实际上就是调用 IndexSerializer 的 executeQuery。</li>
+</ul>
+
+<h3 id="indexserializer">IndexSerializer</h3>
+
+<p>从 JointIndexQuery 我们能看出，SubQuery 是在 IndexSerializer 中执行的，我们大概了解一下 IndexSerializer。</p>
+
+<p>内部有一个 Map<String, ? extends IndexInformation> mixedIndexes，IndexInformation 有很多子类，例如 ElasticSearchIndex，
+还有很多内部类 IndexInfoRetriever IndexRecords IndexUpdate RecordEntry。这应该是一直设计模式吧。
+而它的 executeQuery 方法，最终会调用 backendTx.rawQuery(index.getBackingIndexName(), rawQuery) 方法。这里有点奇怪的是为什么只有 MixedIndexType</p>
+
+<p>另外 query 方法 有两种情况，如果是 isCompositeIndex ，会得到 MultiKeySliceQuery 并调用 sq.execute(tx)，如果是 MixedQuery ，调用 tx.indexQuery。
+然后都是调用 BackendTransaction 的 indexQuery，CompositeIndex 对应的是 indexQuery(final KeySliceQuery query)，MixedIndex 是 indexQuery(final String index, final IndexQuery query)。
+这两个方法将会分别跳转到 KeyColumnValueStore.getSlice(KeySliceQuery query, StoreTransaction txh) 和 IndexProvider.query(IndexQuery query, KeyInformation.IndexRetriever information, BaseTransaction tx)</p>
+
+<h3 id="stream">Stream</h3>
+
+<p>Stream 是 java 自带的类，目的是实现 lambda 编程，如 map filter reduce 等。java.util.list 调用 stream() 方法就返回一个 Stream 对象。Stream 的部分方法：
+peek(Consumer) 方法主要用来调试。类似 map ，但是它返回原对象。例如：</p>
+
+<pre><code class="language-java">Stream.of(&quot;one&quot;, &quot;two&quot;, &quot;three&quot;, &quot;four&quot;)
+    .filter(e -&gt; e.length() &gt; 3)
+    .peek(e -&gt; System.out.println(&quot;Filtered value: &quot; + e)) // 打印
+    .map(String::toUpperCase)
+    .peek(e -&gt; System.out.println(&quot;Mapped value: &quot; + e))
+    .collect(Collectors.toList());
+</code></pre>
+
+<p>limit(long ) 类似 sql 的 limit。
+iterator() 返回一个迭代器。</p>
+
+<h3 id="subqueryiterator">SubqueryIterator</h3>
+
+<p>根据名字大概可以判断 SubqueryIterator 是一个查询结果迭代器，这里的 Subquery 就是上面我们介绍的，它的成员变量：</p>
+
+<pre><code class="language-java">private final JointIndexQuery.Subquery subQuery;
+private final Cache&lt;JointIndexQuery.Subquery, List&lt;Object&gt;&gt; indexCache;
+private Iterator&lt;? extends JanusGraphElement&gt; elementIterator;
+private List&lt;Object&gt; currentIds;
+private QueryProfiler profiler;
+</code></pre>
+
+<p>SubqueryIterator 的构造方法如下：</p>
+
+<pre><code class="language-java">// 传入了 subQuery 和 indexSerializer
+public SubqueryIterator(JointIndexQuery.Subquery subQuery, IndexSerializer indexSerializer, BackendTransaction tx,
+        Cache&lt;JointIndexQuery.Subquery, List&lt;Object&gt;&gt; indexCache, int limit,
+        Function&lt;Object, ? extends JanusGraphElement&gt; function, List&lt;Object&gt; otherResults) {
+    this.subQuery = subQuery;
+    this.indexCache = indexCache;
+    // 先从缓存里面取
+    final List&lt;Object&gt; cacheResponse = indexCache.getIfPresent(subQuery);
+    final Stream&lt;?&gt; stream;
+    if (cacheResponse != null) {
+        stream = cacheResponse.stream();
+    } else {
+        try {
+            currentIds = new ArrayList&lt;&gt;();
+            profiler = QueryProfiler.startProfile(subQuery.getProfiler(), subQuery);
+            isTimerRunning = true;
+            // 缓存没有就查
+            stream = indexSerializer.query(subQuery, tx).peek(r -&gt; currentIds.add(r));
+        } catch (final Exception e) {
+            throw new JanusGraphException(&quot;Could not call index&quot;, e.getCause());
+        }
+    }
+    // 生成 elementIterator
+    elementIterator = stream.limit(limit).filter(e -&gt; otherResults == null || otherResults.contains(e)).map(function).map(r -&gt; (JanusGraphElement) r).iterator();
+}
+</code></pre>
+
+<h3 id="standardjanusgraphtx">StandardJanusGraphTx</h3>
+
+<p>之前我们已经见到介绍过 StandardJanusGraphTx ，实际上这个代表的就是一个事务，内部有很多操作图的方法，我们这次主要是看看他的 elementProcessorImpl 和 edgeProcessorImpl。
+他的定义：QueryExecutor<GraphCentricQuery, JanusGraphElement, JointIndexQuery> elementProcessorImpl ，
+QueryExecutor<VertexCentricQuery, JanusGraphRelation, SliceQuery> edgeProcessorImpl
+听名字就知道大概是执行查询的？这是一个匿名内部类，继承自 QueryExecutor，主要方法是 execute。</p>
+
+<h4 id="elementprocessorimpl">elementProcessorImpl</h4>
+
+<p>我们只看 execute 方法，如果 indexQuery.isEmpty() 会告诉你 &ldquo;Query requires iterating over all vertices [{}]. For better performance, use indexes&rdquo;。说明我们上面说 RawQuery 是直接查询不利用索引是错误判断。
+最后返回了一个
+new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(),
+getConversionFunction(query.getResultType()),retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));</p>
+
+<p>这里 SubQueryIterator 就是上面讲的。</p>
+
+<h4 id="edgeprocessorimpl">edgeProcessorImpl</h4>
+
+<p>他的 execute 方法：</p>
+
+<pre><code class="language-java">
+final InternalVertex v = query.getVertex();
+final EntryList iterable = v.loadRelations(sq, query1 -&gt; QueryProfiler.profile(profiler, query1, q -&gt; graph.edgeQuery(v.longId(), q, txHandle)));
+return RelationConstructor.readRelation(v, iterable, StandardJanusGraphTx.this).iterator();
+</code></pre>
+
+<p>最终会调用 BackendTransation 的  edgeStoreQuery(final KeySliceQuery query)。</p>
+
+<h3 id="limitadjustingiterator">LimitAdjustingIterator</h3>
+
+<p>QueryProcessor$LimitAdjustingIterator</p>
+
+<p>QueryProcessor 主要有两个属性：</p>
+
+<pre><code class="language-java">private final Q query;
+private final QueryExecutor&lt;Q, R, B&gt; executor;
+</code></pre>
+
+<p>这里的 query 就是上面讲的 query ，一般是 GraphCentricQuery 或者 VertexCentricQuery，executor 就是我们上面讲的 edgeProcessorImpl 和 elementProcessorImpl。
+它的 iterator 方法返回一个 ResultSetIterator。
+LimitAdjustingIterator 初始化的时候会调用 getNewIterator ，这时候执行 executor.execute(query, backendQuery, executionInfo, profiler)。</p>
+
+<p>和它类似的还有 PreSortingIterator ，加了一个排序 。</p>
+
+<h3 id="resultsetiterator">ResultSetIterator</h3>
+
+<p>ResultSetIterator 只是类似 guava 的一个封装，通过 nextInternal 方法实现 iterator 提前加载。</p>
+
+<h3 id="vertexcentricquerybuilder-和-graphcentricquerybuilder">VertexCentricQueryBuilder 和 GraphCentricQueryBuilder</h3>
+
+<p>GraphCentricQueryBuilder 是用来构造一个 Query 的。它的很多方法都和 gremin 对接，最重要的方法还是 constructQuery ，用来构造上面我们讲解的 Query。</p>
+
+<p>BasicVertexCentricQueryBuilder 是 VertexCentricQueryBuilder 的父类，StandardJanusGraphTx 的 query(JanusGraphVertex vertex) 会产生一个 VertexCentricQueryBuilder。</p>
+
+<h3 id="总结">总结</h3>
+
+<p>到这里我们基本搞清楚了整个查询过程。
+首先我们的代码的查询会生成 GraphCentricQueryBuilder 或者 BasicVertexCentricQueryBuilder，
+然后 我们调用 builder 的查询时会生成 GraphCentricQuery 或者 VertexCentricQuery，并 new QueryProcessor&lt;&gt;(query, tx.elementProcessor)。</p>
+
+<p>QueryProcessor 的 iterator 方法生成一个 ResultSetIterator 封装的 LimitAdjustingIterator ，
+LimitAdjustingIterator 的 getNewIterator 会调用 QueryExecutor 的 execute 方法，生成 SubqueryIterator 或者 graph.edgeQuery(v.longId(), q, txHandle) 最终调用 edgeStore 的查询
+SubqueryIterator 构造方法会调用 indexSerializer.query(subQuery, tx)，最终调用 edgeStore 或者 IndexProvider 的查询。</p>
+
+<p>以上使我们查看源代码的心得，要想深入了解还需要进一步 debug 代码。</p>
+
+<h2 id="更新索引">更新索引</h2>
+
+<h3 id="index">Index</h3>
+
+<p>Index 类继承自  JanusGraphSchemaElement ，后者我们已经讲过代表 schema 的元素，它的子类如 PropertyKeyVertex 代表 schema 的一部分。
+Index 有两个子类 JanusGraphIndex 和 RelationTypeIndex ，分别代表 Graph index 和 基于 Relation 的 Index ，实现类分别是 ：JanusGraphIndexWrapper 和 RelationTypeIndexWrapper。</p>
+
+<p>JanusGraphIndexWrapper 包括了 composite indexes 和 mixed indexes。可以通过 JanusGraphManagement#buildIndex(String, Class) 构造，
+通过 JanusGraphManagement#getGraphIndex(String) 或者 JanusGraphManagement#getGraphIndexes(Class) 获得。注意方法包括：</p>
+
+<pre><code class="language-java">getBackingIndex
+getFieldKeys
+getIndexedElement
+getIndexStatus
+getParametersFor
+isCompositeIndex
+isMixedIndex
+isUnique
+name
+</code></pre>
+
+<p>RelationTypeIndex 包括 EdgeIndex 和 PropertyKeyIndex ，通过 JanusGraphManagement#buildEdgeIndex(org.janusgraph.core.EdgeLabel &hellip;)和 JanusGraphManagement#buildPropertyIndex(org.janusgraph.core.PropertyKey&hellip;) 构造，
+通过JanusGraphManagement#getRelationIndex(org.janusgraph.core.RelationType, String) 获得。主要方法包括：</p>
+
+<pre><code class="language-java">getDirection
+getIndexStatus
+getSortKey
+getSortOrder
+getType
+</code></pre>
+
+<h3 id="indextype-internalrelationtype">IndexType InternalRelationType</h3>
+
+<p>JanusGraphIndex 和 RelationTypeIndex 中分别有一个 IndexType 和 InternalRelationType 的属性。</p>
+
+<p>IndexType 又有 CompositeIndexType 和 MixedIndexTypeWrapper 两大子类， CompositeIndexType 还有一个子类是 BaseKey 的索引， 也就是 schema 默认有的索引。</p>
+
+<p>CompositeIndexTypeWrapper 和 MixedIndexTypeWrapper 的构造方法需要传入一个 SchemaSource 对象，也就是 JanusGraphSchemaVertex 的对象。</p>
+
+<h3 id="indexbuilder">IndexBuilder</h3>
+
+<p>IndexBuilder 是 JanusGraphManagement 内部接口，顾名思义是用来构建索引的，建造者模式。里面封装了索引的属性，例如： addKey indexOnly unique 等。</p>
+
+<p>实现类在 ManagementSystem 中，实现类 主要属性：</p>
+
+<pre><code>private final String indexName;
+private final ElementCategory elementCategory;
+private boolean unique = false;
+private JanusGraphSchemaType constraint = null;
+private final Map&lt;PropertyKey, Parameter[]&gt; keys = new HashMap&lt;&gt;();
+</code></pre>
+
+<p>主要方法还是 createCompositeIndex 和 buildMixedIndex 。都会调用宿主类的方法。
+实际上创建索引过程就是创建一个 INDEX 类型的 SchemaVertex ，然后建立到 对应的 PropertyKey 的 Edge。</p>
+
+<h3 id="updatestatustrigger">UpdateStatusTrigger</h3>
+
+<p>根据名字判断是更新 status 的触发器。它的属性：</p>
+
+<pre><code class="language-java">private final StandardJanusGraph graph;
+private final long schemaVertexId;
+private final SchemaStatus newStatus;
+private final Set&lt;Long&gt; propertyKeys;
+</code></pre>
+
+<p>构造方法：</p>
+
+<pre><code class="language-java">private UpdateStatusTrigger(StandardJanusGraph graph, JanusGraphSchemaVertex vertex, SchemaStatus newStatus, Iterable&lt;PropertyKeyVertex&gt; keys) {
+    this.graph = graph;
+    this.schemaVertexId = vertex.longId();
+    this.newStatus = newStatus;
+    this.propertyKeys = Sets.newHashSet(Iterables.transform(keys, new Function&lt;PropertyKey, Long&gt;() {
+        @Nullable
+        @Override
+        public Long apply(@Nullable PropertyKey propertyKey) {
+            return propertyKey.longId();
+        }
+    }));
+}
+</code></pre>
+
+<p>call 方法主要就是：</p>
+
+<pre><code class="language-java">management.setStatus(schemaVertex, newStatus, keys);
+management.updatedTypes.addAll(keys);
+management.updatedTypes.add(schemaVertex);
+management.commit();
+</code></pre>
+
+<p>它被使用的地方是在 updateIndex 的时候，有一步： <code>setUpdateTrigger(new UpdateStatusTrigger(graph, schemaVertex, SchemaStatus.REGISTERED, keySubset))</code>
+这里的 set 方法只是将它 add 到了一个 List 中，而在调用 commit 的时候，会有个判断，然后调用 <code>mgmtLogger.sendCacheEviction(updatedTypes, updatedTypeTriggers, getOpenInstancesInternal());</code>
+这里 ManagementLogger 实际上又调用 <code>evictionTriggerMap.put(evictionId,new EvictionTrigger(evictionId,updatedTypeTriggers,openInstances))</code> 将它封装为 EvictionTrigger 放进一个 map 中。</p>
+
+<p>这要从新建 StandardJanusGraph 开始说起，在它的构造方法有一句：<code>mgmtLog.registerReader(ReadMarker.fromNow(), mgmtLogger);</code>
+然后调用 KCVSLog 的 registerReader 方法，然后调用 msgPullers[pos]=new MessagePuller(partitionId,bucketId);
+新建 MessagePuller 后，调用 readExecutor.scheduleWithFixedDelay 放进线程池
+MessagePuller 的 run 方法会调用 prepareMessageProcessing ，然后调用 readExecutor.submit(new ProcessMessageJob(message,reader)) 放进线程池。
+ProcessMessageJob 的 run 方法调用 ManagementLogger 的 read 方法，
+然后会调用 EvictionTrigger evictTrigger = evictionTriggerMap.get(evictionId)，这里就取出了我们上面放进去的 evictTrigger，
+调用 receivedAcknowledgement 方法，会调用 trigger.call() 方法，然后会 setStatus。</p>
+
+<p>我们稍微总结一下。 StandardJanusGraph 的构造方法实际上会 new 一个 KCVSLog managementLog 和一个 new ManagementLogger managementLogger，前者是日志，后者是 management 的日志。
+然后调用 managementLog.registerReader(ReadMarker.fromNow(), managementLogger)，这个 managementLogger 实现了 MessageReader 接口， 也就是将 managementLogger 注册到 KCVSLog 上。
+注册以后，会通过一个 ScheduledThreadPoolExecutor 定时调度，将 KCVSLog 按照分区分桶拆分成多个快，发送到 KCVSLog 的消息都会发送给 ManagementLogger。
+ManagementLogger 调用 read 方法，判断 MgmtLogType，根据不同的类型，做出不同的响应。当收到 CACHED_TYPE_EVICTION_ACK 类型的消息，将会得到 evictTrigger，并且调用 call 方法。</p>
+
+<h3 id="standardscanner">StandardScanner</h3>
+
+<p>看名字是一个扫描器。内部有 KeyColumnValueStoreManager manager 和  Set<KeyColumnValueStore> openStores ，应该是构造的时候传进来的，来自 graph。
+我们比较关心的是他的内部类： Builder ，内部有 ScanJob job，job 有 process 方法，而 Builder 则有 execute 方法，executor 会 new 一个 StandardScannerExecutor，
+StandardScannerExecutor executor = new StandardScannerExecutor(job, finishJob, kcvs, storeTx,manager.getFeatures(), numProcessingThreads, workBlockSize, jobConfiguration, graphConfiguration);
+executor 是继承自 Runnable 的，然后调用它的 start 方法启动这个线程。executor 的 run 方法就是关键，
+StandardScannerExecutor 的 run 方法会 new Processor(job.clone(),processorQueue)，Processor 也是 Runnable ，然后调用 start ，Processor 的 run 中调用了 job 的 process。</p>
+
+<p>这个 job 的 process 方法就是重点。例如 SimpleScanJob 的 process 方法，就是扫描一遍数据库。</p>
+
+<p>StandardScanner 的使用主要是在 updateIndex 的时候，有一步： <code>builder.setJob(VertexJobConverter.convert(graph, new IndexRepairJob(indexId.indexName, indexId.relationTypeName)));</code>
+这里会设置 job，然后调用 builder.execute()，
+里面会 new StandardScannerExecutor，这是一个 Runnable，然后 start。
+它的 run 方法会 new Processor(job.clone(),processorQueue) ，这是一个 Runnable ，然后 start。
+然后调用  job.process(row.key,row.entries,metrics)。
+例如 IndexRepairJob 的 process 方法，会调用 BackendTransaction.mutateIndex 或者 restore 方法，和 IndexSerializer.reindexElement 方法，其实就是重新索引。</p>
+
+<p>想要了解可以在 CassandraScanJobIT 中进行简单测试。</p>
+
+<p>我们可以看出其实  StandardScanner 和 UpdateStatusTrigger 完成工作类似，都是通过线程调用线程，完成所以更新，只不过前者比较简单，后者操作复杂一点。</p>
+
+<h3 id="managementsystem">ManagementSystem</h3>
+
+<p>有关索引的操作也是在 ManagementSystem 中完成，最重要的就是 updateIndex 方法，</p>
+
+<h3 id="reindex">reindex</h3>
+
+<p>mgmt.updateIndex(mgmt.getGraphIndex(indexName), SchemaAction.REINDEX).get();</p>
+
+<p>我们发现这个步骤特别久，就算没有数据也要很久，这不科学。而且打断点也进不去，我们只能直接拍快照，通过分析某个时刻的快照，分析有没有线程死锁的情况。</p>
+
+<p>我们每次在程序运行的时候拍快照都会有两个线程：</p>
+
+<pre><code class="language-java">&quot;Thread-61@7893&quot; prio=5 tid=0x51 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2078)
+	  at java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:467)
+	  at org.janusgraph.diskstorage.keycolumnvalue.scan.StandardScannerExecutor.run(StandardScannerExecutor.java:148)
+	  at java.lang.Thread.run(Thread.java:745)
+
+</code></pre>
+
+<pre><code class="language-java">&quot;Thread-65@7897&quot; prio=5 tid=0x55 nid=NA waiting
+  java.lang.Thread.State: WAITING
+	  at sun.misc.Unsafe.park(Unsafe.java:-1)
+	  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)
+	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2078)
+	  at java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:467)
+	  at org.janusgraph.diskstorage.keycolumnvalue.scan.StandardScannerExecutor$Processor.run(StandardScannerExecutor.java:272)
+
+</code></pre>
+
+<p>偶尔还能发现一个：</p>
+
+<pre><code class="language-java">&quot;Thread-4@4217&quot; daemon prio=5 tid=0x18 nid=NA sleeping
+  java.lang.Thread.State: TIMED_WAITING
+	  at java.lang.Thread.sleep(Thread.java:-1)
+	  at java.lang.Thread.sleep(Thread.java:340)
+	  at java.util.concurrent.TimeUnit.sleep(TimeUnit.java:386)
+	  at org.janusgraph.diskstorage.util.time.TimestampProviders.sleepPast(TimestampProviders.java:152)
+	  at org.janusgraph.graphdb.database.management.ManagementLogger$SendAckOnTxClose.run(ManagementLogger.java:208)
+	  at java.lang.Thread.run(Thread.java:745)
+
+</code></pre>
+
+<p>前两个是常在的线程，在 index 的过程中几乎一致都在，后面那个是偶尔会有出现。</p>
+
+<p>中间还报：</p>
+
+<pre><code class="language-java">2018-06-30 14:16:35.282 ERROR   --- [      Thread-66] o.j.g.d.management.ManagementLogger      : 
+Evicted [23@c0a8007113617-dengzimings-MacBook-Pro-local1] from cache but waiting too long for transactions to close. 
+Stale transaction alert on: [standardjanusgraphtx[0x0fd51357], standardjanusgraphtx[0x42d0f747], 
+standardjanusgraphtx[0x54168b3c], standardjanusgraphtx[0x27eff5b4], standardjanusgraphtx[0x20cfedd2], 
+standardjanusgraphtx[0x7bd7769a], standardjanusgraphtx[0x1095d23a]]
+</code></pre>
+
+<p>这三个可以给我们提供比较多的信息。前面两个可能是由于 poll 的参数等待时间是 100 ms 比较长，所以每次拍快照很大概率刚好在等待。</p>
+
+<h1 id="debug">debug</h1>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/%E5%9B%BE%E8%AE%A1%E7%AE%97/">图计算</a>
+          
+          <a href="/tags/janusgraph/">janusgraph</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-schema/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">janusgraph线上schema过程Debug</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/neo4j/neo4j%E4%BC%81%E4%B8%9A%E7%89%88%E5%88%86%E6%9E%90/">
+            <span class="next-text nav-default">neo4j企业版分析</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'janus源码分析5-复杂操作分析',
+    link: decodeURI(location.href),
+    desc: '源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) \/\/ 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); \/\/ 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

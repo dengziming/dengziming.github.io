@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tinkerpop on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/tinkerpop/</link>
+    <description>Recent content in Tinkerpop on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 30 Oct 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/tinkerpop/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>tinkerpop源码解析2-简单例子debug</title>
+      <link>https://dengziming.github.io/post/tinkerpop/first/</link>
+      <pubDate>Tue, 30 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/first/</guid>
+      
+        <description>
+
+&lt;p&gt;tinkerpop 源码是JanusGraph 源码解析的第一步，我们需要大概有个了解。&lt;/p&gt;
+
+&lt;h2 id=&#34;demo-编写&#34;&gt;demo 编写&lt;/h2&gt;
+
+&lt;p&gt;我们可以直接复制来自 tinkerpop 官方的源码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public static void main(String[] args) {
+
+    TinkerGraph graph = TinkerGraph.open();
+    GraphTraversalSource g = graph.traversal();
+
+    Vertex v = g.addV().property(&amp;quot;name&amp;quot;,&amp;quot;marko&amp;quot;).property(&amp;quot;nam&amp;quot;,&amp;quot;marko a. rodriguez&amp;quot;).next();
+
+    GraphTraversal&amp;lt;Vertex, Long&amp;gt; name = g.V(v).properties(&amp;quot;name&amp;quot;).count();
+    v.property(list, &amp;quot;name&amp;quot;, &amp;quot;m. a. rodriguez&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).count();
+    g.V(v).properties();
+    g.V(v).properties(&amp;quot;name&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko&amp;quot;).property(&amp;quot;acl&amp;quot;,&amp;quot;private&amp;quot;); //
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko a. rodriguez&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).hasValue(&amp;quot;marko a. rodriguez&amp;quot;).property(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;);
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;).value();
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;).drop(); //4\
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;public&amp;quot;).value();
+    g.V(v).properties(&amp;quot;name&amp;quot;).has(&amp;quot;acl&amp;quot;,&amp;quot;private&amp;quot;).value();
+    g.V(v).properties();
+    g.V(v).properties().properties(); //5\
+    g.V(v).properties().property(&amp;quot;date&amp;quot;,2014) ;//6\
+    g.V(v).properties().property(&amp;quot;creator&amp;quot;,&amp;quot;stephen&amp;quot;);
+    g.V(v).properties().properties();
+    g.V(v).properties(&amp;quot;name&amp;quot;).valueMap();
+    g.V(v).property(&amp;quot;name&amp;quot;,&amp;quot;okram&amp;quot;); //7\
+    g.V(v).properties(&amp;quot;name&amp;quot;);
+    g.V(v).values(&amp;quot;name&amp;quot;); //8
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后从第一行开始 打断点，debug。首先注意 TinkerGraph 是一个很简单的图数据库，超级简单。&lt;/p&gt;
+
+&lt;h2 id=&#34;tinkergraph&#34;&gt;TinkerGraph&lt;/h2&gt;
+
+&lt;p&gt;TinkerGraph.open() 方法会新建一个 TinkerGraph：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private TinkerGraph(final Configuration configuration) {
+    this.configuration = configuration;
+    vertexIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_ID_MANAGER, Vertex.class);
+    edgeIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_EDGE_ID_MANAGER, Edge.class);
+    vertexPropertyIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
+    defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
+            configuration.getString(GREMLIN_TINKERGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY, VertexProperty.Cardinality.single.name()));
+
+    graphLocation = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_LOCATION, null);
+    graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
+
+    if ((graphLocation != null &amp;amp;&amp;amp; null == graphFormat) || (null == graphLocation &amp;amp;&amp;amp; graphFormat != null))
+        throw new IllegalStateException(String.format(&amp;quot;The %s and %s must both be specified if either is present&amp;quot;,
+                GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
+
+    if (graphLocation != null) loadGraph();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里的 configuration 类似一个map。然后有几个 IDManager 和其他变量赋值。&lt;/p&gt;
+
+&lt;p&gt;然后是 GraphTraversalSource g = graph.traversal(); 这一句仅仅是 return new GraphTraversalSource(this);&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public GraphTraversalSource(final Graph graph) {
+    this(graph, TraversalStrategies.GlobalCache.getStrategies(graph.getClass()));
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这时候我们取看一下几个特殊的类： Traversal&lt;S,E&gt; Traversal.Admin&lt;S, E&gt; 。 他们两个都是接口，而且 Admin 是继承自 Traversal。
+Traversal 代表遍历，主要方法包括 next， asNext，iterator toList 等，可以看成一个迭代器，而 Admin 的主要方法和他没有什么关系。&lt;/p&gt;
+
+&lt;p&gt;GraphTraversal&lt;S, E&gt; extends Traversal&lt;S, E&gt; , 新增加了很多和 gremlin 相关的方法。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>tinkerpop查看</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/</link>
+      <pubDate>Fri, 27 Jul 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-简单调试&#34;&gt;一、简单调试&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;第一步：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;JanusGraph graph = JanusGraphFactory.open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;);
+
+GraphTraversalSource g = graph.traversal();
+
+g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).path();
+
+List&amp;lt;Path&amp;gt; paths = path.toList();
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436)
+org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390)
+org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169)
+org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80)
+org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31)
+org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178)
+org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239)
+org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1)
+java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90)
+org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.MapStep.processNextStart(MapStep.java:36)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.PathStep.processNextStart(PathStep.java:118)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
+org.apache.tinkerpop.gremlin.process.traversal.Traversal.fill(Traversal.java:179)
+org.apache.tinkerpop.gremlin.process.traversal.Traversal.toList(Traversal.java:117)
+org.janusgraph.test.dengziming.FirstTest.main(FirstTest.java:46)
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;一步一步看整个调用过程：&lt;/p&gt;
+
+&lt;p&gt;进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal)&lt;/p&gt;
+
+&lt;p&gt;fill 方法的代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;final Step&amp;lt;?, E&amp;gt; endStep = this.asAdmin().getEndStep();
+while (true) {
+    final Traverser&amp;lt;E&amp;gt; traverser = endStep.next();
+    TraversalHelper.addToCollection(collection, traverser.get(), traverser.bulk());
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;asAdmin 得到 endStep，有点类似 spark 的 stage 拆分后得到 shuffleMapTask。然后调用 endStep.next() 得到 traverser。&lt;/p&gt;
+
+&lt;p&gt;进入： next:128, AbstractStep (org.apache.tinkerpop.gremlin.process.traversal.step.util)&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;final Traverser.Admin&amp;lt;E&amp;gt; traverser = this.processNextStart();
+if (null != traverser.get() &amp;amp;&amp;amp; 0 != traverser.bulk())
+    return this.prepareTraversalForNextStep(traverser);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;进入 processNextStart:118, PathStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)
+&lt;code&gt;return PathProcessor.processTraverserPathLabels(super.processNextStart(), this.keepLabels);&lt;/code&gt;
+可以看出调用了父类的 processNextStart 方法，&lt;/p&gt;
+
+&lt;p&gt;进入 processNextStart:36, MapStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)&lt;/p&gt;
+
+&lt;p&gt;由于是 mapStep，所以类似 spark 的 mapPartitionsRdd ，逻辑就是得到前面的 rdd，然后执行 map 方法的逻辑。
+所以这里 mapStep 也是一样，得到  starts 的 next，然后调用map。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;final Traverser.Admin&amp;lt;S&amp;gt; traverser = this.starts.next();
+return traverser.split(this.map(traverser), this);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;进入 next:50, ExpandableStepIterator (org.apache.tinkerpop.gremlin.process.traversal.step.util)，主要就是&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;if (this.hostStep.getPreviousStep().hasNext())
+   return this.hostStep.getPreviousStep().next();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 hostStep 就是上面的 mapStep。这里有 getPreviousStep 然后 next。&lt;/p&gt;
+
+&lt;p&gt;然后又进入到了 processNextStart:142, GraphStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)，
+这里的 iteratorSupplier 变量其实是在 GraphStep 的子类中赋值的，所以 get 方法得到的就是：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public JanusGraphStep(final GraphStep&amp;lt;S, E&amp;gt; originalStep) {
+    super(originalStep.getTraversal(), originalStep.getReturnClass(), originalStep.isStartStep(), originalStep.getIds());
+    originalStep.getLabels().forEach(this::addLabel);
+    this.setIteratorSupplier(() -&amp;gt; {
+        if (this.ids == null) {
+            return Collections.emptyIterator();
+        }
+        else if (this.ids.length &amp;gt; 0) {
+            final Graph graph = (Graph)traversal.asAdmin().getGraph().get();
+            return iteratorList((Iterator)graph.vertices(this.ids));
+        }
+        if (hasLocalContainers.isEmpty()) {
+            hasLocalContainers.put(new ArrayList&amp;lt;&amp;gt;(), new QueryInfo(new ArrayList&amp;lt;&amp;gt;(), 0, BaseQuery.NO_LIMIT));
+        }
+        final JanusGraphTransaction tx = JanusGraphTraversalUtil.getTx(traversal);
+        final GraphCentricQuery globalQuery = buildGlobalGraphCentricQuery(tx);
+
+        final Multimap&amp;lt;Integer, GraphCentricQuery&amp;gt; queries = ArrayListMultimap.create();
+        if (globalQuery != null &amp;amp;&amp;amp; !globalQuery.getSubQuery(0).getBackendQuery().isEmpty()) {
+            queries.put(0, globalQuery);
+        } else {
+            hasLocalContainers.entrySet().forEach(c -&amp;gt; queries.put(c.getValue().getLowLimit(), buildGraphCentricQuery(tx, c)));
+        }
+
+        final GraphCentricQueryBuilder builder = (GraphCentricQueryBuilder) tx.query();
+        final List&amp;lt;Iterator&amp;lt;E&amp;gt;&amp;gt; responses = new ArrayList&amp;lt;&amp;gt;();
+        queries.entries().forEach(q -&amp;gt;  executeGraphCentryQuery(builder, responses, q));
+
+        return new MultiDistinctOrderedIterator&amp;lt;E&amp;gt;(lowLimit, highLimit, responses, orders);
+    });
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;首先是 buildGraphCentricQuery&lt;/p&gt;
+
+&lt;p&gt;然后我们可以进行其他的查询操作，例如 propertyMap 操作，会新建一个 PropertyMapStep ，它的 map 方法就是自动查询。我们差 values ，会调用 JanusGraphPropertiesStep。&lt;/p&gt;
+
+&lt;h2 id=&#34;二-strategies&#34;&gt;二、strategies&lt;/h2&gt;
+
+&lt;p&gt;我们知道 tinkerpop 是一个独立的项目，里面是不带任何和 janus 相关的内容，如何会有 JanusGraphStep 呢，
+其实在很多地方（例如 fill:175, Traversal (org.apache.tinkerpop.gremlin.process.traversal)）会调用 this.asAdmin().applyStrategies();
+会循环调用 traversalStrategy.apply(traversal)。在 apply 方法中得到了所有的 GraphStep。然后new JanusGraphStep ，并且替换掉原有的 step。&lt;/p&gt;
+
+&lt;h2 id=&#34;三-addstep&#34;&gt;三、addStep&lt;/h2&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>tinkerpop查看</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-关键类&#34;&gt;一、关键类&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;GraphTraversalSource
+构造方法：
+GraphTraversalSource(Graph graph)
+GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)&lt;/p&gt;
+
+&lt;p&gt;graph.traversal() 方法返回一个 GraphTraversalSource&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>tinkerpop查看</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-关键类&#34;&gt;一、关键类&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;GraphTraversalSource
+构造方法：
+GraphTraversalSource(Graph graph)
+GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)&lt;/p&gt;
+
+&lt;p&gt;graph.traversal() 方法返回一个 GraphTraversalSource&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

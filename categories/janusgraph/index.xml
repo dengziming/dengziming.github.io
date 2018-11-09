@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Janusgraph on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/categories/janusgraph/</link>
+    <description>Recent content in Janusgraph on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Fri, 26 Oct 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/categories/janusgraph/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>janus官方实例调试解析</title>
+      <link>https://dengziming.github.io/post/titan/janus%E6%B5%8B%E8%AF%95%E8%B0%83%E8%AF%95/</link>
+      <pubDate>Fri, 26 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/janus%E6%B5%8B%E8%AF%95%E8%B0%83%E8%AF%95/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;开始&#34;&gt;开始&lt;/h2&gt;
+
+&lt;p&gt;打好断点。主要类：&lt;/p&gt;
+
+&lt;p&gt;JanusGraphFactory.build() 建造者模式。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+// new GraphDatabaseConfiguration
+
+// 创建两个 conf 对象
+BasicConfiguration localBasicConfiguration = new BasicConfiguration(ROOT_NS,localConfig, BasicConfiguration.Restriction.NONE);
+ModifiableConfiguration overwrite = new ModifiableConfiguration(ROOT_NS,new CommonsConfiguration(), BasicConfiguration.Restriction.NONE);
+
+// get storeManager，根据配置反射生成。
+final KeyColumnValueStoreManager storeManager = Backend.getStorageManager(localBasicConfiguration);
+
+// conf ，需要连接数据库获得配置。
+KCVSConfiguration keyColumnValueStoreConfiguration=Backend.getStandaloneGlobalConfiguration(storeManager,localBasicConfiguration);
+
+// 后面是连接数据库进行读写和默认设置
+preLoadConfiguration()
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Builder.open() 新建 StandardJanusGraph,首先是静态代码和成员变量&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+// TraversalStrategies 优化策略， 需要结合 tinkerpop 的代码才能理解
+static {
+        TraversalStrategies graphStrategies = TraversalStrategies.GlobalCache.getStrategies(Graph.class).clone()
+                .addStrategies(AdjacentVertexFilterOptimizerStrategy.instance(), JanusGraphLocalQueryOptimizerStrategy.instance(), JanusGraphStepStrategy.instance());
+
+        //Register with cache
+        TraversalStrategies.GlobalCache.registerStrategies(StandardJanusGraph.class, graphStrategies);
+        TraversalStrategies.GlobalCache.registerStrategies(StandardJanusGraphTx.class, graphStrategies);
+    }
+    
+&amp;lt;clinit&amp;gt;:641, StandardJanusGraph (org.janusgraph.graphdb.database)
+
+// Predicate 用来判断新增的 Relation 是 schema 还是 data，可以看出 BaseRelationType 是属于 schema ，而且第一个顶点是 JanusGraphSchemaVertex
+private static final Predicate&amp;lt;InternalRelation&amp;gt; SCHEMA_FILTER =
+        internalRelation -&amp;gt; internalRelation.getType() instanceof BaseRelationType &amp;amp;&amp;amp; internalRelation.getVertex(0) instanceof JanusGraphSchemaVertex;
+    
+// NO_SCHEMA_FILTER NO_FILTER 
+
+private final SchemaCache.StoreRetrieval typeCacheRetrieval = new SchemaCache.StoreRetrieval() {。。。}
+
+this.backend = configuration.getBackend();
+
+// 序列化
+this.serializer = config.getSerializer();
+StoreFeatures storeFeatures = backend.getStoreFeatures();
+this.indexSerializer = new IndexSerializer(configuration.getConfiguration(), this.serializer,
+        this.backend.getIndexInformation(), storeFeatures.isDistributed() &amp;amp;&amp;amp; storeFeatures.isKeyOrdered());
+this.edgeSerializer = new EdgeSerializer(this.serializer);
+this.vertexExistenceQuery = edgeSerializer.getQuery(BaseKey.VertexExists, Direction.OUT, new EdgeSerializer.TypedInterval[0]).setLimit(1);
+this.queryCache = new RelationQueryCache(this.edgeSerializer);
+this.schemaCache = configuration.getTypeCache(typeCacheRetrieval);
+ 
+// management 日志管理
+Log managementLog = backend.getSystemMgmtLog();
+// registerReader 后，就会不断的读取日志。
+managementLogger = new ManagementLogger(this, managementLog, schemaCache, this.times);
+managementLog.registerReader(ReadMarker.fromNow(), managementLogger);
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Backend, 协调和配置所有后端系统&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+private final ConcurrentHashMap&amp;lt;String, Locker&amp;gt; lockers = new ConcurrentHashMap&amp;lt;&amp;gt;();
+
+// 并发锁创建
+CONSISTENT_KEY_LOCKER_CREATOR = .....// lockerStore = storeManager.openDatabase(lockerName);// 
+
+ASTYANAX_RECIPE_LOCKER_CREATOR = 。。
+
+indexes = getIndexes(configuration);
+
+managementLogManager = getKCVSLogManager(MANAGEMENT_LOG);
+txLogManager = getKCVSLogManager(TRANSACTION_LOG);
+userLogManager = getLogManager(USER_LOG);
+
+KeyColumnValueStore idStore = storeManager.openDatabase(config.get(IDS_STORE_NAME));
+idAuthority = new ConsistentKeyIDAuthority(idStore, storeManager, config);
+KeyColumnValueStore edgeStoreRaw = storeManagerLocking.openDatabase(EDGESTORE_NAME);
+KeyColumnValueStore indexStoreRaw = storeManagerLocking.openDatabase(INDEXSTORE_NAME);
+
+txLogManager.openLog(SYSTEM_TX_LOG_NAME);
+
+txLogStore = new NoKCVSCache(storeManager.openDatabase(SYSTEM_TX_LOG_NAME));
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;JanusGraphManagement management = graph.openManagement();&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;skip
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>
