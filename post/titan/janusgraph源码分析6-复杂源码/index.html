@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，" />
+  <meta name="description" content="源码分析 查询操作 之前已经遇到过很多查询操作，比如查询 schema mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -50,7 +50,7 @@
 
 
 <meta property="og:title" content="janus源码分析5-复杂操作分析" />
-<meta property="og:description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，" />
+<meta property="og:description" content="源码分析 查询操作 之前已经遇到过很多查询操作，比如查询 schema mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%906-%E5%A4%8D%E6%9D%82%E6%BA%90%E7%A0%81/" />
 
@@ -70,17 +70,17 @@
 
 
 <meta itemprop="name" content="janus源码分析5-复杂操作分析">
-<meta itemprop="description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，">
+<meta itemprop="description" content="源码分析 查询操作 之前已经遇到过很多查询操作，比如查询 schema mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="5063">
+<meta itemprop="wordCount" content="5695">
 
 
 
 <meta itemprop="keywords" content="图计算,janusgraph," />
 <meta name="twitter:card" content="summary"/><meta name="twitter:title" content="janus源码分析5-复杂操作分析"/>
-<meta name="twitter:description" content="源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，"/>
+<meta name="twitter:description" content="源码分析 查询操作 之前已经遇到过很多查询操作，比如查询 schema mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) // 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); // 这个 retriever 是 StandardJanusGraph"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -179,8 +179,8 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 5063 words </span>
-        <span class="more-meta"> 11 min read </span>
+        <span class="more-meta"> 5695 words </span>
+        <span class="more-meta"> 12 min read </span>
       </div>
     </header>
 
@@ -196,19 +196,21 @@
 <ul>
 <li><a href="#查询操作">查询操作</a>
 <ul>
+<li><a href="#executing-vertex-centric-queries">Executing vertex centric queries</a></li>
+<li><a href="#executing-global-graph-queries">Executing global graph queries</a></li>
+<li><a href="#vertexcentricquerybuilder-和-graphcentricquerybuilder">VertexCentricQueryBuilder 和 GraphCentricQueryBuilder</a></li>
 <li><a href="#query">Query</a></li>
-<li><a href="#indexserializer">IndexSerializer</a></li>
-<li><a href="#stream">Stream</a></li>
-<li><a href="#subqueryiterator">SubqueryIterator</a></li>
-<li><a href="#standardjanusgraphtx">StandardJanusGraphTx</a>
+<li><a href="#queryexecutor">QueryExecutor</a>
 <ul>
 <li><a href="#elementprocessorimpl">elementProcessorImpl</a></li>
 <li><a href="#edgeprocessorimpl">edgeProcessorImpl</a></li>
 </ul></li>
+<li><a href="#queryprocessor">QueryProcessor</a></li>
+<li><a href="#indexserializer">IndexSerializer</a></li>
+<li><a href="#stream">Stream</a></li>
+<li><a href="#subqueryiterator">SubqueryIterator</a></li>
 <li><a href="#limitadjustingiterator">LimitAdjustingIterator</a></li>
-<li><a href="#resultsetiterator">ResultSetIterator</a></li>
-<li><a href="#vertexcentricquerybuilder-和-graphcentricquerybuilder">VertexCentricQueryBuilder 和 GraphCentricQueryBuilder</a></li>
-<li><a href="#总结">总结</a></li>
+<li><a href="#小结">小结</a></li>
 </ul></li>
 <li><a href="#更新索引">更新索引</a>
 <ul>
@@ -235,7 +237,7 @@
 
 <h2 id="查询操作">查询操作</h2>
 
-<p>之前已经遇到过很多查询操作</p>
+<p>之前已经遇到过很多查询操作，比如查询 schema</p>
 
 <pre><code class="language-java">mgmt.containsVertexLabel(vType.toString())
     transaction.containsVertexLabel(name);
@@ -253,27 +255,63 @@
         
 </code></pre>
 
-<pre><code class="language-java">iterator
-    return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
-        1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
-            Iterator&lt;R&gt; subiter = new LimitAdjustingIterator(subq);
-        2. this.next = nextInternal();
-            hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
-                getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
-                    execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
-                        new SubqueryIterator
-                            indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
+<p>和</p>
+
+<pre><code class="language-java">
+iterator()
+return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
+    1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
+        Iterator&lt;R&gt; subiter = new LimitAdjustingIterator(subq);
+    2. this.next = nextInternal();
+        hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
+            getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
+                    new SubqueryIterator
+                        indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
 </code></pre>
 
 <p>其实查询操作并不复杂，这是有很多层的嵌套，导致我们看起来很麻烦而已，前面我们已经大概介绍了： 首先是 AbstractIterator 和 Iterators 类，然后是 ResultSetIterator LimitAdjustingIterator SubqueryIterator ，然后还有一个 Stream 类。</p>
 
+<h3 id="executing-vertex-centric-queries">Executing vertex centric queries</h3>
+
+<p>返回结果是一个 vertex 的 所有 Relation 的 subset。通过 VertexCentricQueryBuilder 构建查询条件。查询会通过条件限制找原始，一共有三种限制：
+- Cmp: Comparison constraints (==, !=, &lt;, &lt;=, &gt;, &gt;=, interval: &ldquo;a &lt;= x &lt; b&rdquo;)
+- Geo: Geographic shape constraints (intersect, disjoint, within)
+- Text: Text constraints (contains, starts with)</p>
+
+<p>查询的步骤：</p>
+
+<ul>
+<li>VertexCentricQueryBuilder 构建 VertexCentricQuery，然后将 VertexCentricQuery 传给 QueryProcessor<VertexCentricQuery, JanusGraphRelation> edgeProcessor，
+得到所有的 matching records。</li>
+<li>VertexCentricQuery 传给 EdgeSerializer，得到一个 FittedSliceQuery，通过在 edgestore 的 row 中 找到尽量小而且匹配所有满足条件的的 segment，结果返回一个带 byte buffers specifying begin and end of this segment.</li>
+<li>The calculated segment is traversed until enough matching records have been found or the end of the segment is reached. The segment may or may not &ldquo;fit&rdquo;, that is, it may or may not guarantee that all relations inside the segment are guaranteed to match. If this is not guaranteed, matching is checked explicitly for each visited relation.</li>
+</ul>
+
 <p>我们一层一层进行查看：</p>
+
+<h3 id="executing-global-graph-queries">Executing global graph queries</h3>
+
+<p>一般步骤：
+- ElementQuery 传给 QueryProcessor，得到满足条件的记录。
+- ElementQuery 传给 IndexSerializer，如果只有 one equality constraint ，将使用自己的index， 否则使用 external index 。</p>
+
+<h3 id="vertexcentricquerybuilder-和-graphcentricquerybuilder">VertexCentricQueryBuilder 和 GraphCentricQueryBuilder</h3>
+
+<p>GraphCentricQueryBuilder 是用来构造一个 Query 的。它的很多方法都和 gremin 对接，最重要的方法还是 constructQuery ，用来构造 Query。
+他的方法 iterables(final GraphCentricQuery query, final Class<E> aClass) 返回一个对应 GraphCentricQuery 结果迭代器。</p>
+
+<p>BasicVertexCentricQueryBuilder 是 VertexCentricQueryBuilder 的父类，StandardJanusGraphTx 的 query(JanusGraphVertex vertex) 会产生一个 VertexCentricQueryBuilder。</p>
+
+<p>继承自 JanusGraphVertexQuery 和 BasicVertexCentricQueryBuilder，用来构建 Query。它主要有 execute 方法。
+BasicVertexCentricQueryBuilder 有 constructQuery 方法。</p>
 
 <h3 id="query">Query</h3>
 
 <p>继承体系：</p>
 
-<pre><code class="language-java">Query (org.janusgraph.graphdb.query)
+<pre><code class="language-java">
+Query (org.janusgraph.graphdb.query)
 	ElementQuery (org.janusgraph.graphdb.query)
 	    GraphCentricQuery (org.janusgraph.graphdb.query.graph)
 	    VertexCentricQuery (org.janusgraph.graphdb.query.vertex)
@@ -306,7 +344,7 @@
 
 <p>基于 BaseQuery 和 BackendQuery ，有很多子类。</p>
 
-<p>SliceQuery 有两个 StaticBuffer 类型的属性： sliceStart 和 sliceEnd 。这应该是 bigtable 模型的 nosql 都会提供的一种功能，给一个 slice 进行查询。</p>
+<p>SliceQuery 有两个 StaticBuffer 类型的属性： sliceStart 和 sliceEnd 。前面说的返回一个带 byte buffers specifying begin and end of this segment.。</p>
 
 <p>KeySliceQuery 继承自 SliceQuery ，扩展 SliceQuery ，增加了 StaticBuffer 类型的 key，能够查询某个 key 的 slice。</p>
 
@@ -346,6 +384,47 @@ GraphCentricQuery 代表以 graph 为中心的查询，例如查询 name=aaa 的
 <li>而 RawQuery 看名字猜测是直接查询。</li>
 <li>IndexQueryBuilder 就是一个 Builder，内部有一个 IndexSerializer ，它的 execute 方法，实际上就是调用 IndexSerializer 的 executeQuery。</li>
 </ul>
+
+<h3 id="queryexecutor">QueryExecutor</h3>
+
+<p>之前我们已经见到介绍过 StandardJanusGraphTx ，实际上这个代表的就是一个事务，内部有很多操作图的方法，我们这次主要是看看他的 elementProcessorImpl 和 edgeProcessorImpl。
+他的定义：QueryExecutor<GraphCentricQuery, JanusGraphElement, JointIndexQuery> elementProcessorImpl ，
+QueryExecutor<VertexCentricQuery, JanusGraphRelation, SliceQuery> edgeProcessorImpl
+听名字就知道大概是执行查询的？这是一个匿名内部类，继承自 QueryExecutor，主要方法是 execute。</p>
+
+<h4 id="elementprocessorimpl">elementProcessorImpl</h4>
+
+<p>我们只看 execute 方法，如果 indexQuery.isEmpty() 会告诉你 &ldquo;Query requires iterating over all vertices [{}]. For better performance, use indexes&rdquo;。
+最后返回了一个
+new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(),
+getConversionFunction(query.getResultType()),retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));</p>
+
+<p>这里 SubQueryIterator 就是上面讲的。</p>
+
+<h4 id="edgeprocessorimpl">edgeProcessorImpl</h4>
+
+<p>他的 execute 方法：</p>
+
+<pre><code class="language-java">
+final InternalVertex v = query.getVertex();
+final EntryList iterable = v.loadRelations(sq, query1 -&gt; QueryProfiler.profile(profiler, query1, q -&gt; graph.edgeQuery(v.longId(), q, txHandle)));
+return RelationConstructor.readRelation(v, iterable, StandardJanusGraphTx.this).iterator();
+</code></pre>
+
+<p>最终会调用 BackendTransation 的  edgeStoreQuery(final KeySliceQuery query)。</p>
+
+<h3 id="queryprocessor">QueryProcessor</h3>
+
+<p>Executes a given {@link ElementQuery} against a provided {@link QueryExecutor} to produce the result set of elements.</p>
+
+<p>看名字我们可以认为是查询处理器，他实现了 Iterable 接口，说明它是一个迭代器。
+iterator 方法返回 <code>new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);</code>
+ResultSetIterator 只是类似 guava 的一个封装，通过 nextInternal 方法实现 iterator 提前加载。所以我们可以不管，直接当成 getUnfoldedIterator()。</p>
+
+<p>getUnfoldedIterator 方法看起来比较复杂，但是主要的代码就是
+<code>Iterator&lt;R&gt; newElements = executor.getNew(query);</code>, <code>query.getSubQuery(i);new LimitAdjustingIterator(subquery);</code>, 以及 <code>executor.execute(query, backendQuery, executionInfo, profiler)</code></p>
+
+<p>executor 的 getNew  方法代表返回符合条件的新元素，execute 方法应该是执行查询。</p>
 
 <h3 id="indexserializer">IndexSerializer</h3>
 
@@ -415,34 +494,6 @@ public SubqueryIterator(JointIndexQuery.Subquery subQuery, IndexSerializer index
 }
 </code></pre>
 
-<h3 id="standardjanusgraphtx">StandardJanusGraphTx</h3>
-
-<p>之前我们已经见到介绍过 StandardJanusGraphTx ，实际上这个代表的就是一个事务，内部有很多操作图的方法，我们这次主要是看看他的 elementProcessorImpl 和 edgeProcessorImpl。
-他的定义：QueryExecutor<GraphCentricQuery, JanusGraphElement, JointIndexQuery> elementProcessorImpl ，
-QueryExecutor<VertexCentricQuery, JanusGraphRelation, SliceQuery> edgeProcessorImpl
-听名字就知道大概是执行查询的？这是一个匿名内部类，继承自 QueryExecutor，主要方法是 execute。</p>
-
-<h4 id="elementprocessorimpl">elementProcessorImpl</h4>
-
-<p>我们只看 execute 方法，如果 indexQuery.isEmpty() 会告诉你 &ldquo;Query requires iterating over all vertices [{}]. For better performance, use indexes&rdquo;。说明我们上面说 RawQuery 是直接查询不利用索引是错误判断。
-最后返回了一个
-new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(),
-getConversionFunction(query.getResultType()),retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));</p>
-
-<p>这里 SubQueryIterator 就是上面讲的。</p>
-
-<h4 id="edgeprocessorimpl">edgeProcessorImpl</h4>
-
-<p>他的 execute 方法：</p>
-
-<pre><code class="language-java">
-final InternalVertex v = query.getVertex();
-final EntryList iterable = v.loadRelations(sq, query1 -&gt; QueryProfiler.profile(profiler, query1, q -&gt; graph.edgeQuery(v.longId(), q, txHandle)));
-return RelationConstructor.readRelation(v, iterable, StandardJanusGraphTx.this).iterator();
-</code></pre>
-
-<p>最终会调用 BackendTransation 的  edgeStoreQuery(final KeySliceQuery query)。</p>
-
 <h3 id="limitadjustingiterator">LimitAdjustingIterator</h3>
 
 <p>QueryProcessor$LimitAdjustingIterator</p>
@@ -459,17 +510,7 @@ LimitAdjustingIterator 初始化的时候会调用 getNewIterator ，这时候�
 
 <p>和它类似的还有 PreSortingIterator ，加了一个排序 。</p>
 
-<h3 id="resultsetiterator">ResultSetIterator</h3>
-
-<p>ResultSetIterator 只是类似 guava 的一个封装，通过 nextInternal 方法实现 iterator 提前加载。</p>
-
-<h3 id="vertexcentricquerybuilder-和-graphcentricquerybuilder">VertexCentricQueryBuilder 和 GraphCentricQueryBuilder</h3>
-
-<p>GraphCentricQueryBuilder 是用来构造一个 Query 的。它的很多方法都和 gremin 对接，最重要的方法还是 constructQuery ，用来构造上面我们讲解的 Query。</p>
-
-<p>BasicVertexCentricQueryBuilder 是 VertexCentricQueryBuilder 的父类，StandardJanusGraphTx 的 query(JanusGraphVertex vertex) 会产生一个 VertexCentricQueryBuilder。</p>
-
-<h3 id="总结">总结</h3>
+<h3 id="小结">小结</h3>
 
 <p>到这里我们基本搞清楚了整个查询过程。
 首先我们的代码的查询会生成 GraphCentricQueryBuilder 或者 BasicVertexCentricQueryBuilder，
@@ -479,7 +520,7 @@ LimitAdjustingIterator 初始化的时候会调用 getNewIterator ，这时候�
 LimitAdjustingIterator 的 getNewIterator 会调用 QueryExecutor 的 execute 方法，生成 SubqueryIterator 或者 graph.edgeQuery(v.longId(), q, txHandle) 最终调用 edgeStore 的查询
 SubqueryIterator 构造方法会调用 indexSerializer.query(subQuery, tx)，最终调用 edgeStore 或者 IndexProvider 的查询。</p>
 
-<p>以上使我们查看源代码的心得，要想深入了解还需要进一步 debug 代码。</p>
+<p>以上使我们查看源代码的猜想，要想深入了解还需要进一步 debug 代码。通过网络查到的资料我们进一步进行总结。</p>
 
 <h2 id="更新索引">更新索引</h2>
 
@@ -748,7 +789,7 @@ standardjanusgraphtx[0x7bd7769a], standardjanusgraphtx[0x1095d23a]]
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
     title: 'janus源码分析5-复杂操作分析',
     link: decodeURI(location.href),
-    desc: '源码分析 查询操作 之前已经遇到过很多查询操作 mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) \/\/ 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); \/\/ 这个 retriever 是 StandardJanusGraph 中的变量 typeCacheRetrieval ，',
+    desc: '源码分析 查询操作 之前已经遇到过很多查询操作，比如查询 schema mgmt.containsVertexLabel(vType.toString()) transaction.containsVertexLabel(name); return getSchemaVertex(JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name))!=null; 1. JanusGraphSchemaCategory.VERTEXLABEL.getSchemaName(name) \/\/ 这一步就是在 name 前面加上标识，例如 vl rt 2. JanusGraphSchemaVertex getSchemaVertex(String schemaName) graph.getSchemaCache().getSchemaId(schemaName) 1. getSchemaCache 2. StandardSchemaCache.getSchemaId id = retriever.retrieveSchemaByName(schemaName); \/\/ 这个 retriever 是 StandardJanusGraph',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

@@ -24,7 +24,7 @@
 
 &lt;h2 id=&#34;查询操作&#34;&gt;查询操作&lt;/h2&gt;
 
-&lt;p&gt;之前已经遇到过很多查询操作&lt;/p&gt;
+&lt;p&gt;之前已经遇到过很多查询操作，比如查询 schema&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;mgmt.containsVertexLabel(vType.toString())
     transaction.containsVertexLabel(name);
@@ -42,27 +42,63 @@
         
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;iterator
-    return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
-        1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
-            Iterator&amp;lt;R&amp;gt; subiter = new LimitAdjustingIterator(subq);
-        2. this.next = nextInternal();
-            hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
-                getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
-                    execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
-                        new SubqueryIterator
-                            indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
+&lt;p&gt;和&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+iterator()
+return new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);   
+    1. QueryProcessor (org.janusgraph.graphdb.query).getUnfoldedIterator:107, 
+        Iterator&amp;lt;R&amp;gt; subiter = new LimitAdjustingIterator(subq);
+    2. this.next = nextInternal();
+        hasNext:68, LimitAdjustingIterator (org.janusgraph.graphdb.query)
+            getNewIterator:209, QueryProcessor$LimitAdjustingIterator (org.janusgraph.graphdb.query)
+                execute:1150, StandardJanusGraphTx$elementProcessorImpl (org.janusgraph.graphdb.transaction)
+                    new SubqueryIterator
+                        indexCache.getIfPresent(subQuery); // 这里的 schema 应该都是在启动的时候 cache 到了内存中，所以直接得到了，如果是 数据，应该要查询
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;其实查询操作并不复杂，这是有很多层的嵌套，导致我们看起来很麻烦而已，前面我们已经大概介绍了： 首先是 AbstractIterator 和 Iterators 类，然后是 ResultSetIterator LimitAdjustingIterator SubqueryIterator ，然后还有一个 Stream 类。&lt;/p&gt;
 
+&lt;h3 id=&#34;executing-vertex-centric-queries&#34;&gt;Executing vertex centric queries&lt;/h3&gt;
+
+&lt;p&gt;返回结果是一个 vertex 的 所有 Relation 的 subset。通过 VertexCentricQueryBuilder 构建查询条件。查询会通过条件限制找原始，一共有三种限制：
+- Cmp: Comparison constraints (==, !=, &amp;lt;, &amp;lt;=, &amp;gt;, &amp;gt;=, interval: &amp;ldquo;a &amp;lt;= x &amp;lt; b&amp;rdquo;)
+- Geo: Geographic shape constraints (intersect, disjoint, within)
+- Text: Text constraints (contains, starts with)&lt;/p&gt;
+
+&lt;p&gt;查询的步骤：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;VertexCentricQueryBuilder 构建 VertexCentricQuery，然后将 VertexCentricQuery 传给 QueryProcessor&lt;VertexCentricQuery, JanusGraphRelation&gt; edgeProcessor，
+得到所有的 matching records。&lt;/li&gt;
+&lt;li&gt;VertexCentricQuery 传给 EdgeSerializer，得到一个 FittedSliceQuery，通过在 edgestore 的 row 中 找到尽量小而且匹配所有满足条件的的 segment，结果返回一个带 byte buffers specifying begin and end of this segment.&lt;/li&gt;
+&lt;li&gt;The calculated segment is traversed until enough matching records have been found or the end of the segment is reached. The segment may or may not &amp;ldquo;fit&amp;rdquo;, that is, it may or may not guarantee that all relations inside the segment are guaranteed to match. If this is not guaranteed, matching is checked explicitly for each visited relation.&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;p&gt;我们一层一层进行查看：&lt;/p&gt;
+
+&lt;h3 id=&#34;executing-global-graph-queries&#34;&gt;Executing global graph queries&lt;/h3&gt;
+
+&lt;p&gt;一般步骤：
+- ElementQuery 传给 QueryProcessor，得到满足条件的记录。
+- ElementQuery 传给 IndexSerializer，如果只有 one equality constraint ，将使用自己的index， 否则使用 external index 。&lt;/p&gt;
+
+&lt;h3 id=&#34;vertexcentricquerybuilder-和-graphcentricquerybuilder&#34;&gt;VertexCentricQueryBuilder 和 GraphCentricQueryBuilder&lt;/h3&gt;
+
+&lt;p&gt;GraphCentricQueryBuilder 是用来构造一个 Query 的。它的很多方法都和 gremin 对接，最重要的方法还是 constructQuery ，用来构造 Query。
+他的方法 iterables(final GraphCentricQuery query, final Class&lt;E&gt; aClass) 返回一个对应 GraphCentricQuery 结果迭代器。&lt;/p&gt;
+
+&lt;p&gt;BasicVertexCentricQueryBuilder 是 VertexCentricQueryBuilder 的父类，StandardJanusGraphTx 的 query(JanusGraphVertex vertex) 会产生一个 VertexCentricQueryBuilder。&lt;/p&gt;
+
+&lt;p&gt;继承自 JanusGraphVertexQuery 和 BasicVertexCentricQueryBuilder，用来构建 Query。它主要有 execute 方法。
+BasicVertexCentricQueryBuilder 有 constructQuery 方法。&lt;/p&gt;
 
 &lt;h3 id=&#34;query&#34;&gt;Query&lt;/h3&gt;
 
 &lt;p&gt;继承体系：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Query (org.janusgraph.graphdb.query)
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+Query (org.janusgraph.graphdb.query)
 	ElementQuery (org.janusgraph.graphdb.query)
 	    GraphCentricQuery (org.janusgraph.graphdb.query.graph)
 	    VertexCentricQuery (org.janusgraph.graphdb.query.vertex)
@@ -95,7 +131,7 @@
 
 &lt;p&gt;基于 BaseQuery 和 BackendQuery ，有很多子类。&lt;/p&gt;
 
-&lt;p&gt;SliceQuery 有两个 StaticBuffer 类型的属性： sliceStart 和 sliceEnd 。这应该是 bigtable 模型的 nosql 都会提供的一种功能，给一个 slice 进行查询。&lt;/p&gt;
+&lt;p&gt;SliceQuery 有两个 StaticBuffer 类型的属性： sliceStart 和 sliceEnd 。前面说的返回一个带 byte buffers specifying begin and end of this segment.。&lt;/p&gt;
 
 &lt;p&gt;KeySliceQuery 继承自 SliceQuery ，扩展 SliceQuery ，增加了 StaticBuffer 类型的 key，能够查询某个 key 的 slice。&lt;/p&gt;
 
@@ -135,6 +171,47 @@ GraphCentricQuery 代表以 graph 为中心的查询，例如查询 name=aaa 的
 &lt;li&gt;而 RawQuery 看名字猜测是直接查询。&lt;/li&gt;
 &lt;li&gt;IndexQueryBuilder 就是一个 Builder，内部有一个 IndexSerializer ，它的 execute 方法，实际上就是调用 IndexSerializer 的 executeQuery。&lt;/li&gt;
 &lt;/ul&gt;
+
+&lt;h3 id=&#34;queryexecutor&#34;&gt;QueryExecutor&lt;/h3&gt;
+
+&lt;p&gt;之前我们已经见到介绍过 StandardJanusGraphTx ，实际上这个代表的就是一个事务，内部有很多操作图的方法，我们这次主要是看看他的 elementProcessorImpl 和 edgeProcessorImpl。
+他的定义：QueryExecutor&lt;GraphCentricQuery, JanusGraphElement, JointIndexQuery&gt; elementProcessorImpl ，
+QueryExecutor&lt;VertexCentricQuery, JanusGraphRelation, SliceQuery&gt; edgeProcessorImpl
+听名字就知道大概是执行查询的？这是一个匿名内部类，继承自 QueryExecutor，主要方法是 execute。&lt;/p&gt;
+
+&lt;h4 id=&#34;elementprocessorimpl&#34;&gt;elementProcessorImpl&lt;/h4&gt;
+
+&lt;p&gt;我们只看 execute 方法，如果 indexQuery.isEmpty() 会告诉你 &amp;ldquo;Query requires iterating over all vertices [{}]. For better performance, use indexes&amp;rdquo;。
+最后返回了一个
+new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(),
+getConversionFunction(query.getResultType()),retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));&lt;/p&gt;
+
+&lt;p&gt;这里 SubQueryIterator 就是上面讲的。&lt;/p&gt;
+
+&lt;h4 id=&#34;edgeprocessorimpl&#34;&gt;edgeProcessorImpl&lt;/h4&gt;
+
+&lt;p&gt;他的 execute 方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+final InternalVertex v = query.getVertex();
+final EntryList iterable = v.loadRelations(sq, query1 -&amp;gt; QueryProfiler.profile(profiler, query1, q -&amp;gt; graph.edgeQuery(v.longId(), q, txHandle)));
+return RelationConstructor.readRelation(v, iterable, StandardJanusGraphTx.this).iterator();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;最终会调用 BackendTransation 的  edgeStoreQuery(final KeySliceQuery query)。&lt;/p&gt;
+
+&lt;h3 id=&#34;queryprocessor&#34;&gt;QueryProcessor&lt;/h3&gt;
+
+&lt;p&gt;Executes a given {@link ElementQuery} against a provided {@link QueryExecutor} to produce the result set of elements.&lt;/p&gt;
+
+&lt;p&gt;看名字我们可以认为是查询处理器，他实现了 Iterable 接口，说明它是一个迭代器。
+iterator 方法返回 &lt;code&gt;new ResultSetIterator(getUnfoldedIterator(),(query.hasLimit()) ? query.getLimit() : Query.NO_LIMIT);&lt;/code&gt;
+ResultSetIterator 只是类似 guava 的一个封装，通过 nextInternal 方法实现 iterator 提前加载。所以我们可以不管，直接当成 getUnfoldedIterator()。&lt;/p&gt;
+
+&lt;p&gt;getUnfoldedIterator 方法看起来比较复杂，但是主要的代码就是
+&lt;code&gt;Iterator&amp;lt;R&amp;gt; newElements = executor.getNew(query);&lt;/code&gt;, &lt;code&gt;query.getSubQuery(i);new LimitAdjustingIterator(subquery);&lt;/code&gt;, 以及 &lt;code&gt;executor.execute(query, backendQuery, executionInfo, profiler)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;executor 的 getNew  方法代表返回符合条件的新元素，execute 方法应该是执行查询。&lt;/p&gt;
 
 &lt;h3 id=&#34;indexserializer&#34;&gt;IndexSerializer&lt;/h3&gt;
 
@@ -204,34 +281,6 @@ public SubqueryIterator(JointIndexQuery.Subquery subQuery, IndexSerializer index
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;standardjanusgraphtx&#34;&gt;StandardJanusGraphTx&lt;/h3&gt;
-
-&lt;p&gt;之前我们已经见到介绍过 StandardJanusGraphTx ，实际上这个代表的就是一个事务，内部有很多操作图的方法，我们这次主要是看看他的 elementProcessorImpl 和 edgeProcessorImpl。
-他的定义：QueryExecutor&lt;GraphCentricQuery, JanusGraphElement, JointIndexQuery&gt; elementProcessorImpl ，
-QueryExecutor&lt;VertexCentricQuery, JanusGraphRelation, SliceQuery&gt; edgeProcessorImpl
-听名字就知道大概是执行查询的？这是一个匿名内部类，继承自 QueryExecutor，主要方法是 execute。&lt;/p&gt;
-
-&lt;h4 id=&#34;elementprocessorimpl&#34;&gt;elementProcessorImpl&lt;/h4&gt;
-
-&lt;p&gt;我们只看 execute 方法，如果 indexQuery.isEmpty() 会告诉你 &amp;ldquo;Query requires iterating over all vertices [{}]. For better performance, use indexes&amp;rdquo;。说明我们上面说 RawQuery 是直接查询不利用索引是错误判断。
-最后返回了一个
-new SubqueryIterator(indexQuery.getQuery(0), indexSerializer, txHandle, indexCache, indexQuery.getLimit(),
-getConversionFunction(query.getResultType()),retrievals.isEmpty() ? null: QueryUtil.processIntersectingRetrievals(retrievals, indexQuery.getLimit()));&lt;/p&gt;
-
-&lt;p&gt;这里 SubQueryIterator 就是上面讲的。&lt;/p&gt;
-
-&lt;h4 id=&#34;edgeprocessorimpl&#34;&gt;edgeProcessorImpl&lt;/h4&gt;
-
-&lt;p&gt;他的 execute 方法：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
-final InternalVertex v = query.getVertex();
-final EntryList iterable = v.loadRelations(sq, query1 -&amp;gt; QueryProfiler.profile(profiler, query1, q -&amp;gt; graph.edgeQuery(v.longId(), q, txHandle)));
-return RelationConstructor.readRelation(v, iterable, StandardJanusGraphTx.this).iterator();
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;最终会调用 BackendTransation 的  edgeStoreQuery(final KeySliceQuery query)。&lt;/p&gt;
-
 &lt;h3 id=&#34;limitadjustingiterator&#34;&gt;LimitAdjustingIterator&lt;/h3&gt;
 
 &lt;p&gt;QueryProcessor$LimitAdjustingIterator&lt;/p&gt;
@@ -248,17 +297,7 @@ LimitAdjustingIterator 初始化的时候会调用 getNewIterator ，这时候�
 
 &lt;p&gt;和它类似的还有 PreSortingIterator ，加了一个排序 。&lt;/p&gt;
 
-&lt;h3 id=&#34;resultsetiterator&#34;&gt;ResultSetIterator&lt;/h3&gt;
-
-&lt;p&gt;ResultSetIterator 只是类似 guava 的一个封装，通过 nextInternal 方法实现 iterator 提前加载。&lt;/p&gt;
-
-&lt;h3 id=&#34;vertexcentricquerybuilder-和-graphcentricquerybuilder&#34;&gt;VertexCentricQueryBuilder 和 GraphCentricQueryBuilder&lt;/h3&gt;
-
-&lt;p&gt;GraphCentricQueryBuilder 是用来构造一个 Query 的。它的很多方法都和 gremin 对接，最重要的方法还是 constructQuery ，用来构造上面我们讲解的 Query。&lt;/p&gt;
-
-&lt;p&gt;BasicVertexCentricQueryBuilder 是 VertexCentricQueryBuilder 的父类，StandardJanusGraphTx 的 query(JanusGraphVertex vertex) 会产生一个 VertexCentricQueryBuilder。&lt;/p&gt;
-
-&lt;h3 id=&#34;总结&#34;&gt;总结&lt;/h3&gt;
+&lt;h3 id=&#34;小结&#34;&gt;小结&lt;/h3&gt;
 
 &lt;p&gt;到这里我们基本搞清楚了整个查询过程。
 首先我们的代码的查询会生成 GraphCentricQueryBuilder 或者 BasicVertexCentricQueryBuilder，
@@ -268,7 +307,7 @@ LimitAdjustingIterator 初始化的时候会调用 getNewIterator ，这时候�
 LimitAdjustingIterator 的 getNewIterator 会调用 QueryExecutor 的 execute 方法，生成 SubqueryIterator 或者 graph.edgeQuery(v.longId(), q, txHandle) 最终调用 edgeStore 的查询
 SubqueryIterator 构造方法会调用 indexSerializer.query(subQuery, tx)，最终调用 edgeStore 或者 IndexProvider 的查询。&lt;/p&gt;
 
-&lt;p&gt;以上使我们查看源代码的心得，要想深入了解还需要进一步 debug 代码。&lt;/p&gt;
+&lt;p&gt;以上使我们查看源代码的猜想，要想深入了解还需要进一步 debug 代码。通过网络查到的资料我们进一步进行总结。&lt;/p&gt;
 
 &lt;h2 id=&#34;更新索引&#34;&gt;更新索引&lt;/h2&gt;
 

@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 InternalRelation 和 InternalRelationType ## RelationCache StaticArrayEntry 类似 java.nio 的 ByteBuffer。 EdgeSerializer" />
+  <meta name="description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 IndexSerializer 用来序列化，反序列化 IndexProvider IndexProvider 继承自 IndexInformation ，Inde" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -50,7 +50,7 @@
 
 
 <meta property="og:title" content="janusgraph源码分析8-索引存储" />
-<meta property="og:description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 InternalRelation 和 InternalRelationType ## RelationCache StaticArrayEntry 类似 java.nio 的 ByteBuffer。 EdgeSerializer" />
+<meta property="og:description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 IndexSerializer 用来序列化，反序列化 IndexProvider IndexProvider 继承自 IndexInformation ，Inde" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%908-%E7%B4%A2%E5%BC%95%E5%AD%98%E5%82%A8/" />
 
@@ -70,17 +70,17 @@
 
 
 <meta itemprop="name" content="janusgraph源码分析8-索引存储">
-<meta itemprop="description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 InternalRelation 和 InternalRelationType ## RelationCache StaticArrayEntry 类似 java.nio 的 ByteBuffer。 EdgeSerializer">
+<meta itemprop="description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 IndexSerializer 用来序列化，反序列化 IndexProvider IndexProvider 继承自 IndexInformation ，Inde">
 
 
 <meta itemprop="dateModified" content="2018-07-09T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="71">
+<meta itemprop="wordCount" content="1610">
 
 
 
 <meta itemprop="keywords" content="janusgraph,源码," />
 <meta name="twitter:card" content="summary"/><meta name="twitter:title" content="janusgraph源码分析8-索引存储"/>
-<meta name="twitter:description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 InternalRelation 和 InternalRelationType ## RelationCache StaticArrayEntry 类似 java.nio 的 ByteBuffer。 EdgeSerializer"/>
+<meta name="twitter:description" content="上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 IndexSerializer 用来序列化，反序列化 IndexProvider IndexProvider 继承自 IndexInformation ，Inde"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -179,8 +179,8 @@
               <a href="/categories/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> janusgraph源码分析 </a>
             
           </div>
-        <span class="more-meta"> 71 words </span>
-        <span class="more-meta"> 1 min read </span>
+        <span class="more-meta"> 1610 words </span>
+        <span class="more-meta"> 4 min read </span>
       </div>
     </header>
 
@@ -194,13 +194,25 @@
 <ul>
 <li><a href="#基础类">基础类</a>
 <ul>
-<li><a href="#internalrelation-和-internalrelationtype">InternalRelation 和 InternalRelationType</a></li>
-<li><a href="#relationcache">RelationCache</a></li>
-<li><a href="#staticarrayentry">StaticArrayEntry</a></li>
-</ul></li>
-<li><a href="#edgeserializer">EdgeSerializer</a>
+<li><a href="#indexserializer">IndexSerializer</a></li>
+<li><a href="#indexprovider">IndexProvider</a></li>
+<li><a href="#keyinformation">KeyInformation</a>
 <ul>
-<li><a href="#writerelation">writeRelation</a></li>
+<li><a href="#storeretriever">StoreRetriever</a></li>
+<li><a href="#indexretriever">IndexRetriever</a></li>
+<li><a href="#retriever">Retriever</a></li>
+</ul></li>
+<li><a href="#indexserializer-indexinforetriever">IndexSerializer.IndexInfoRetriever</a></li>
+<li><a href="#recordentry">RecordEntry</a></li>
+<li><a href="#indexrecords">IndexRecords</a></li>
+<li><a href="#indexupdate">IndexUpdate</a></li>
+<li><a href="#索引回顾">索引回顾</a></li>
+<li><a href="#indexserializer-getindexupdates-del">indexSerializer.getIndexUpdates(del)</a>
+<ul>
+<li><a href="#compositeindextype">CompositeIndexType</a></li>
+<li><a href="#getmixedindexupdate">getMixedIndexUpdate</a></li>
+</ul></li>
+<li><a href="#反序列化查询">反序列化查询</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -215,19 +227,290 @@
 
 <h1 id="基础类">基础类</h1>
 
-<h2 id="internalrelation-和-internalrelationtype">InternalRelation 和 InternalRelationType</h2>
+<h2 id="indexserializer">IndexSerializer</h2>
 
-<p>##</p>
+<p>用来序列化，反序列化</p>
 
-<h2 id="relationcache">RelationCache</h2>
+<h2 id="indexprovider">IndexProvider</h2>
 
-<h2 id="staticarrayentry">StaticArrayEntry</h2>
+<p>IndexProvider 继承自 IndexInformation ，IndexInformation 主要判断是否支持某个 KeyInformation，
+IndexProvider 最主要的是 mutate 方法，该方法就是用来保存数据到底层存储系统。</p>
 
-<p>类似 java.nio 的 ByteBuffer。</p>
+<h2 id="keyinformation">KeyInformation</h2>
 
-<h1 id="edgeserializer">EdgeSerializer</h1>
+<p>保存key的信息，有三个内部接口</p>
 
-<h2 id="writerelation">writeRelation</h2>
+<h3 id="storeretriever">StoreRetriever</h3>
+
+<p>能够根据key得到 KeyInformation</p>
+
+<h3 id="indexretriever">IndexRetriever</h3>
+
+<p>能够根据key 和 store得到 KeyInformation
+根据store 得到 StoreRetriever</p>
+
+<h3 id="retriever">Retriever</h3>
+
+<p>根据 index 得到IndexRetriever</p>
+
+<p>这几个比较混乱。主要实现在 IndexInfoRetriever 中。</p>
+
+<h2 id="indexserializer-indexinforetriever">IndexSerializer.IndexInfoRetriever</h2>
+
+<p>IndexInfoRetriever 继承自 KeyInformation.Retriever，只有一个 get 方法：</p>
+
+<pre><code class="language-java">public static class IndexInfoRetriever implements KeyInformation.Retriever {
+
+    private final StandardJanusGraphTx transaction;
+
+    private IndexInfoRetriever(StandardJanusGraphTx tx) {
+        Preconditions.checkNotNull(tx);
+        transaction=tx;
+    }
+
+    @Override
+    public KeyInformation.IndexRetriever get(final String index) {
+        return new KeyInformation.IndexRetriever() {
+
+            final Map&lt;String,KeyInformation.StoreRetriever&gt; indexes = new ConcurrentHashMap&lt;&gt;();
+
+            @Override
+            public KeyInformation get(String store, String key) {
+                return get(store).get(key);
+            }
+
+            @Override
+            public KeyInformation.StoreRetriever get(final String store) {
+                if (indexes.get(store)==null) {
+                    Preconditions.checkState(transaction!=null,&quot;Retriever has not been initialized&quot;);
+                    final MixedIndexType extIndex = getMixedIndex(store, transaction);
+                    assert extIndex.getBackingIndexName().equals(index);
+                    final ImmutableMap.Builder&lt;String,KeyInformation&gt; b = ImmutableMap.builder();
+                    for (final ParameterIndexField field : extIndex.getFieldKeys()) b.put(key2Field(field),getKeyInformation(field));
+                    final ImmutableMap&lt;String,KeyInformation&gt; infoMap = b.build();
+                    final KeyInformation.StoreRetriever storeRetriever = infoMap::get;
+                    indexes.put(store,storeRetriever);
+                }
+                return indexes.get(store);
+            }
+
+        };
+    }
+}
+</code></pre>
+
+<p>通过看代码，我们发现其实都是几个map。
+1. 首先 IndexInfoRetriever 里面有个 <code>final Map&lt;String,KeyInformation.StoreRetriever&gt; indexes = new ConcurrentHashMap&lt;&gt;();</code>
+2. KeyInformation.StoreRetriever 实际上也就是一个 <code>final ImmutableMap&lt;String,KeyInformation&gt; infoMap = b.build();</code>
+3. 调用 IndexInfoRetriever 的 get 方法，会调用getMixedIndex(store, transaction); 也就是说这个得到的只是 MixedIndexType。</p>
+
+<h2 id="recordentry">RecordEntry</h2>
+
+<p>这个类 有三个属性，分别是 long relationId, Object value, PropertyKey key，这应该就代表了待建索引的一个记录。</p>
+
+<h2 id="indexrecords">IndexRecords</h2>
+
+<p>public static class IndexRecords extends ArrayList<RecordEntry[]></p>
+
+<p>看上去像一个二维数组，记录索引的更新。</p>
+
+<h2 id="indexupdate">IndexUpdate</h2>
+
+<p>这个类主要是提供一些计算索引更新的工具方法。</p>
+
+<h2 id="索引回顾">索引回顾</h2>
+
+<p>我们先回顾一下相关知识，主要是我们建索引的时候发生了什么。<code>JanusGraphIndex nameIndex = management.buildIndex(&quot;name&quot;, Vertex.class).addKey(name).buildCompositeIndex();</code></p>
+
+<pre><code class="language-java">private JanusGraphIndex createCompositeIndex(String indexName, ElementCategory elementCategory, boolean unique, JanusGraphSchemaType constraint, PropertyKey... keys) {
+    // 
+    Preconditions.checkArgument(!unique || elementCategory == ElementCategory.VERTEX, &quot;Unique indexes can only be created on vertices [%s]&quot;, indexName);
+    boolean allSingleKeys = true;
+    boolean oneNewKey = false;
+    for (PropertyKey key : keys) {
+        if (key.cardinality() != Cardinality.SINGLE) allSingleKeys = false;
+        if (key.isNew()) oneNewKey = true;
+        else updatedTypes.add((PropertyKeyVertex) key);
+    }
+
+    Cardinality indexCardinality;
+    if (unique) indexCardinality = Cardinality.SINGLE;
+    else indexCardinality = (allSingleKeys ? Cardinality.SET : Cardinality.LIST);
+
+    boolean canIndexBeEnabled = oneNewKey || (constraint != null &amp;&amp; constraint.isNew());
+
+    TypeDefinitionMap def = new TypeDefinitionMap();
+    def.setValue(TypeDefinitionCategory.INTERNAL_INDEX, true);
+    def.setValue(TypeDefinitionCategory.ELEMENT_CATEGORY, elementCategory);
+    def.setValue(TypeDefinitionCategory.BACKING_INDEX, Token.INTERNAL_INDEX_NAME);
+    def.setValue(TypeDefinitionCategory.INDEXSTORE_NAME, indexName);
+    def.setValue(TypeDefinitionCategory.INDEX_CARDINALITY, indexCardinality);
+    def.setValue(TypeDefinitionCategory.STATUS, canIndexBeEnabled ? SchemaStatus.ENABLED : SchemaStatus.INSTALLED);
+    // 新建一个顶点。
+    JanusGraphSchemaVertex indexVertex = transaction.makeSchemaVertex(JanusGraphSchemaCategory.GRAPHINDEX, indexName, def);
+    for (int i = 0; i &lt; keys.length; i++) {
+        Parameter[] paras = {ParameterType.INDEX_POSITION.getParameter(i)};
+        // 添加边，顶点分别是两个 index 和 propertykey
+        addSchemaEdge(indexVertex, keys[i], TypeDefinitionCategory.INDEX_FIELD, paras);
+    }
+
+    Preconditions.checkArgument(constraint == null || (elementCategory.isValidConstraint(constraint) &amp;&amp; constraint instanceof JanusGraphSchemaVertex));
+    if (constraint != null) {
+        // 如果加了限制 ，在添加一条边。
+        addSchemaEdge(indexVertex, (JanusGraphSchemaVertex) constraint, TypeDefinitionCategory.INDEX_SCHEMA_CONSTRAINT, null);
+    }
+    updateSchemaVertex(indexVertex);
+    JanusGraphIndexWrapper index = new JanusGraphIndexWrapper(indexVertex.asIndexType());
+    if (!oneNewKey) updateIndex(index, SchemaAction.REGISTER_INDEX);
+    return index;
+}
+</code></pre>
+
+<p>addSchemaEdge 方法</p>
+
+<pre><code class="language-java">public JanusGraphEdge addSchemaEdge(JanusGraphVertex out, JanusGraphVertex in, TypeDefinitionCategory def, Object modifier) {
+    assert def.isEdge();
+    // 加一条边，边的 label 是 SchemaDefinitionEdge
+    JanusGraphEdge edge = addEdge(out, in, BaseLabel.SchemaDefinitionEdge);
+    TypeDefinitionDescription desc = new TypeDefinitionDescription(def, modifier);
+    edge.property(BaseKey.SchemaDefinitionDesc.name(), desc);
+    return edge;
+}
+</code></pre>
+
+<p>可以看出其实就是新建一个 顶点，添加属性，然后添加边。</p>
+
+<h2 id="indexserializer-getindexupdates-del">indexSerializer.getIndexUpdates(del)</h2>
+
+<p>我们现在就看看 index 如何序列化。</p>
+
+<pre><code class="language-java">public Collection&lt;IndexUpdate&gt; getIndexUpdates(InternalRelation relation) {
+    assert relation.isNew() || relation.isRemoved();
+    final Set&lt;IndexUpdate&gt; updates = Sets.newHashSet();
+    final IndexUpdate.Type updateType = getUpdateType(relation);
+    final int ttl = updateType==IndexUpdate.Type.ADD?StandardJanusGraph.getTTL(relation):0;
+    for (final RelationType type : relation.getPropertyKeysDirect()) {
+        if (!(type instanceof PropertyKey)) continue;
+        final PropertyKey key = (PropertyKey)type;
+        for (final IndexType index : ((InternalRelationType)key).getKeyIndexes()) {
+            if (!indexAppliesTo(index,relation)) continue;
+            IndexUpdate update;
+            if (index instanceof CompositeIndexType) {
+                final CompositeIndexType iIndex= (CompositeIndexType) index;
+                final RecordEntry[] record = indexMatch(relation, iIndex);
+                if (record==null) continue;
+                update = new IndexUpdate&lt;&gt;(iIndex, updateType, getIndexKey(iIndex, record), getIndexEntry(iIndex, record, relation), relation);
+            } else {
+                assert relation.valueOrNull(key)!=null;
+                if (((MixedIndexType)index).getField(key).getStatus()== SchemaStatus.DISABLED) continue;
+                update = getMixedIndexUpdate(relation, key, relation.valueOrNull(key), (MixedIndexType) index, updateType);
+            }
+            if (ttl&gt;0) update.setTTL(ttl);
+            updates.add(update);
+        }
+    }
+    return updates;
+}
+</code></pre>
+
+<h3 id="compositeindextype">CompositeIndexType</h3>
+
+<p>我们先看 CompositeIndexType 部分，我们发现主要就是 indexMatch 方法 和 new IndexUpdate，得到某个 relation 相关的index：</p>
+
+<pre><code class="language-java">public static RecordEntry[] indexMatch(JanusGraphRelation relation, CompositeIndexType index) {
+    // 得到所有的key。
+    final IndexField[] fields = index.getFieldKeys();
+    // 新建一个对应的数组
+    final RecordEntry[] match = new RecordEntry[fields.length];
+    for (int i = 0; i &lt;fields.length; i++) {
+        final IndexField f = fields[i];
+        final Object value = relation.valueOrNull(f.getFieldKey());
+        if (value==null) return null; //No match
+        match[i] = new RecordEntry(relation.longId(),value,f.getFieldKey());
+    }
+    return match;
+}
+</code></pre>
+
+<p>总的来说还是很简单的，得到所有的索引字段的值即可，但是假如一个索引有两个字段，我们每次更新其中一个字段，都会更新一次索引，这岂不是会很麻烦。</p>
+
+<pre><code class="language-java">private StaticBuffer getIndexKey(CompositeIndexType index, Object[] values) {
+    final DataOutput out = serializer.getDataOutput(8*DEFAULT_OBJECT_BYTELEN + 8);
+    // 写入 indexType 的 ID
+    VariableLong.writePositive(out, index.getID());
+    final IndexField[] fields = index.getFieldKeys();
+    Preconditions.checkArgument(fields.length&gt;0 &amp;&amp; fields.length==values.length);
+    for (int i = 0; i &lt; fields.length; i++) {
+        final IndexField f = fields[i];
+        final Object value = values[i];
+        Preconditions.checkNotNull(value);
+        // 写入 index 的值。
+        if (AttributeUtil.hasGenericDataType(f.getFieldKey())) {
+            out.writeClassAndObject(value);
+        } else {
+            assert value.getClass().equals(f.getFieldKey().dataType()) : value.getClass() + &quot; - &quot; + f.getFieldKey().dataType();
+            out.writeObjectNotNull(value);
+        }
+    }
+    StaticBuffer key = out.getStaticBuffer();
+    if (hashKeys) key = HashingUtil.hashPrefixKey(hashLength,key);
+    return key;
+}
+</code></pre>
+
+<p>可以看出 compositeindex 数据的key结构，indexId+value(所有的)。</p>
+
+<pre><code class="language-java">private Entry getIndexEntry(CompositeIndexType index, RecordEntry[] record, JanusGraphElement element) {
+    final DataOutput out = serializer.getDataOutput(1+8+8*record.length+4*8);
+    out.putByte(FIRST_INDEX_COLUMN_BYTE);
+    if (index.getCardinality()!=Cardinality.SINGLE) { // 代表是 SET 或者 LIST
+        // 写出 value 的 id
+        VariableLong.writePositive(out,element.longId());
+        if (index.getCardinality()!=Cardinality.SET) { // 如果是LIST
+            // 循环写出 relationId
+            for (final RecordEntry re : record) {
+                VariableLong.writePositive(out,re.relationId);
+            }
+        }
+    }
+    // column 和 value 的分界点。
+    final int valuePosition=out.getPosition();
+    if (element instanceof JanusGraphVertex) { // 如果是顶点
+        VariableLong.writePositive(out,element.longId());
+    } else {
+        assert element instanceof JanusGraphRelation;
+        final RelationIdentifier rid = (RelationIdentifier)element.id();
+        final long[] longs = rid.getLongRepresentation();
+        Preconditions.checkArgument(longs.length == 3 || longs.length == 4);
+        for (final long aLong : longs) VariableLong.writePositive(out, aLong);
+    }
+    return new StaticArrayEntry(out.getStaticBuffer(),valuePosition);
+}
+</code></pre>
+
+<p>这两个都比较类似的，按照固定的格式，生成看key 和value。</p>
+
+<h3 id="getmixedindexupdate">getMixedIndexUpdate</h3>
+
+<p>上面看的是 compositeIndex 的序列化过程，还有 MixedIndex。<code>return new IndexUpdate&lt;&gt;(index, updateType, element2String(element), new IndexEntry(key2Field(index.getField(key)), value), element);</code></p>
+
+<pre><code class="language-java">private static String element2String(Object elementId) {
+    if (elementId instanceof Long) return longID2Name((Long)elementId);
+    else return ((RelationIdentifier) elementId).toString();
+}
+</code></pre>
+
+<pre><code class="language-java">private static String key2Field(ParameterIndexField field) {
+    assert field!=null;
+    return ParameterType.MAPPED_NAME.findParameter(field.getParameters(),keyID2Name(field.getFieldKey()));
+}
+</code></pre>
+
+<p>这两个部分有很多其他的类，比较乱，后续可以自己整理一下，但是整体意思就是得到一个 key value 的类。。</p>
+
+<h2 id="反序列化查询">反序列化查询</h2>
+
+<p>查询过程稍微有点复杂，一般会通过读索引。后续进行分析。</p>
 
     </div>
 
@@ -308,7 +591,7 @@
     id: '2018-07-09 00:00:00 \x2b0000 UTC',
     title: 'janusgraph源码分析8-索引存储',
     link: decodeURI(location.href),
-    desc: '上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 InternalRelation 和 InternalRelationType ## RelationCache StaticArrayEntry 类似 java.nio 的 ByteBuffer。 EdgeSerializer',
+    desc: '上一节我们了解了 JanusGraph 的关系存储，主要是在 EdgeSerializer 中的序列化和反序列化，我们还要这次看看 IndexSerializer 的相关类。 基础类 IndexSerializer 用来序列化，反序列化 IndexProvider IndexProvider 继承自 IndexInformation ，Inde',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

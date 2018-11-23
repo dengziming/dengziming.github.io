@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>tinkerpop源码解析2-查询流程debug - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="一、关键类 api地址： http://tinkerpop.apache.org/javadocs/current/full/ GraphTraversalSource 构造方法： GraphTraversalSource(Graph graph) GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies) graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8Bdebug/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="tinkerpop源码解析2-查询流程debug" />
+<meta property="og:description" content="一、关键类 api地址： http://tinkerpop.apache.org/javadocs/current/full/ GraphTraversalSource 构造方法： GraphTraversalSource(Graph graph) GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies) graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8Bdebug/" />
+
+
+
+<meta property="article:published_time" content="2018-03-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-03-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="tinkerpop源码解析2-查询流程debug">
+<meta itemprop="description" content="一、关键类 api地址： http://tinkerpop.apache.org/javadocs/current/full/ GraphTraversalSource 构造方法： GraphTraversalSource(Graph graph) GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies) graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算">
+
+
+<meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="2322">
+
+
+
+<meta itemprop="keywords" content="tinkerpop,初学," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="tinkerpop源码解析2-查询流程debug"/>
+<meta name="twitter:description" content="一、关键类 api地址： http://tinkerpop.apache.org/javadocs/current/full/ GraphTraversalSource 构造方法： GraphTraversalSource(Graph graph) GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies) graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">tinkerpop源码解析2-查询流程debug</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-03-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/tinkerpop/"> tinkerpop </a>
+            
+          </div>
+        <span class="more-meta"> 2322 words </span>
+        <span class="more-meta"> 5 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#一-关键类">一、关键类</a>
+<ul>
+<li><a href="#graphtraversalsource">GraphTraversalSource</a></li>
+<li><a href="#graphtraversal">GraphTraversal</a></li>
+<li><a href="#traverser">Traverser</a></li>
+</ul></li>
+<li><a href="#二-简单调试">二、简单调试</a>
+<ul>
+<li><a href="#debug简单总结">debug简单总结</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h2 id="一-关键类">一、关键类</h2>
+
+<p>api地址： <a href="http://tinkerpop.apache.org/javadocs/current/full/">http://tinkerpop.apache.org/javadocs/current/full/</a></p>
+
+<h3 id="graphtraversalsource">GraphTraversalSource</h3>
+
+<p>构造方法：
+GraphTraversalSource(Graph graph)
+GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)</p>
+
+<p>graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算。但是不同的数据库怎么切换逻辑呢？</p>
+
+<h3 id="graphtraversal">GraphTraversal</h3>
+
+<p>代表了遍历，在graph中的一条路径。</p>
+
+<h3 id="traverser">Traverser</h3>
+
+<p>代表 GraphTraversal 中的对象遍历过程的当前状态</p>
+
+<h2 id="二-简单调试">二、简单调试</h2>
+
+<p>我们使用自带的一个库进行调试：</p>
+
+<pre><code class="language-java">TinkerGraph graph = TinkerFactory.createModern();
+
+GraphTraversalSource g = graph.traversal();
+Object next = g.V(1).outE(&quot;knows&quot;).inV().values(&quot;name&quot;).next();
+
+System.out.println(next.toString());
+
+
+</code></pre>
+
+<p>然后我们的断点设置在 TinkerGraph 的增删改查方法上。</p>
+
+<p>第一次是 <code>org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph.addVertex(TinkerGraph.java:161)</code>，这个方法的内容比较简单，得到 id label ，新建 TinkerVertex。</p>
+
+<p>然后是<code>TinkerGraph.vertices</code>,完整调用信息：</p>
+
+<pre><code>org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph.vertices(TinkerGraph.java:245)
+org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep.vertices(TinkerGraphStep.java:85)
+org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep.lambda$new$0(TinkerGraphStep.java:59)
+org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep$$Lambda$23.846254484.get(Unknown Source:-1)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.FlatMapStep.processNextStart(FlatMapStep.java:48)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.FlatMapStep.processNextStart(FlatMapStep.java:48)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
+org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal.next(DefaultTraversal.java:200)
+我们的代码：Object next = g.V(1).outE(&quot;knows&quot;).inV().values(&quot;name&quot;).next();
+</code></pre>
+
+<p>一共出现了 TinkerGraphStep，GraphStep，AbstractStep，FlatMapStep 四类 Step，最后一个 TinkerGraphStep 是怎么出现的？按理说都是tinkerpop 的实现，其实是  TinkerGraphStepStrategy 的缘故。</p>
+
+<p>接下来我们吧 <code>Object next = g.V(1).outE(&quot;knows&quot;).inV().values(&quot;name&quot;).next();</code> 拆开分析：</p>
+
+<pre><code class="language-java">GraphTraversal&lt;Vertex, Vertex&gt; v = g.V(1);
+GraphTraversal&lt;Vertex, Edge&gt; knows = v.outE(&quot;knows&quot;);
+GraphTraversal&lt;Vertex, Vertex&gt; inV = knows.inV();
+GraphTraversal&lt;Vertex, Object&gt; name = inV.values(&quot;name&quot;);
+Object next = name.next();
+</code></pre>
+
+<p>每一步我们都断点，然后查看当前 GraphTraversal 的属性，状态等。</p>
+
+<ol>
+<li>注册  traversalStrategies ：</li>
+</ol>
+
+<pre><code>traversalStrategies = {ArrayList@1426}  size = 14
+ 0 = {ConnectiveStrategy@1428} &quot;ConnectiveStrategy&quot;
+ 1 = {IncidentToAdjacentStrategy@1429} &quot;IncidentToAdjacentStrategy&quot;
+ 2 = {MatchPredicateStrategy@1430} &quot;MatchPredicateStrategy&quot;
+ 3 = {FilterRankingStrategy@1431} &quot;FilterRankingStrategy&quot;
+ 4 = {InlineFilterStrategy@1432} &quot;InlineFilterStrategy&quot;
+ 5 = {AdjacentToIncidentStrategy@1433} &quot;AdjacentToIncidentStrategy&quot;
+ 6 = {RepeatUnrollStrategy@1434} &quot;RepeatUnrollStrategy&quot;
+ 7 = {PathRetractionStrategy@1435} &quot;PathRetractionStrategy&quot;
+ 8 = {CountStrategy@1436} &quot;CountStrategy&quot;
+ 9 = {LazyBarrierStrategy@1437} &quot;LazyBarrierStrategy&quot;
+ 10 = {TinkerGraphCountStrategy@1438} &quot;TinkerGraphCountStrategy&quot;
+ 11 = {TinkerGraphStepStrategy@1439} &quot;TinkerGraphStepStrategy&quot;
+ 12 = {ProfileStrategy@1440} &quot;ProfileStrategy&quot;
+ 13 = {StandardVerificationStrategy@1441} &quot;StandardVerificationStrategy&quot;
+</code></pre>
+
+<ol>
+<li>g.V(id)</li>
+</ol>
+
+<pre><code class="language-java">public GraphTraversal&lt;Vertex, Vertex&gt; V(final Object... vertexIds) {
+    final GraphTraversalSource clone = this.clone(); // 克隆 对象
+    clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds); // 记录
+    final GraphTraversal.Admin&lt;Vertex, Vertex&gt; traversal = new DefaultGraphTraversal&lt;&gt;(clone);
+    {// 这里逻辑很简单，直接赋值
+        this.graph = graph;
+        this.strategies = traversalStrategies;
+        this.bytecode = bytecode;
+    }
+    return traversal.addStep(new GraphStep&lt;&gt;(traversal, Vertex.class, true, vertexIds));
+    {
+    // 1. new GraphStep&lt;&gt;(traversal, Vertex.class, true, vertexIds)
+        {
+        super(traversal);// AbstractStep
+        // 这一步要注意，这里的 iteratorSupplier 使用了 getGraph。如果graph 是 JanusGraph，那么就会查询 JanusGraph 的相关方法。
+        this.iteratorSupplier = () -&gt; (Iterator&lt;E&gt;) (Vertex.class.isAssignableFrom(this.returnClass) ?
+             this.getTraversal().getGraph().get().vertices(this.ids) :
+             this.getTraversal().getGraph().get().edges(this.ids));
+        }
+    
+    // 2. traversal.addStep
+    {
+    return (GraphTraversal.Admin&lt;S, E2&gt;) Traversal.Admin.super.addStep((Step) step);
+    {
+        public &lt;S2, E2&gt; Traversal.Admin&lt;S2, E2&gt; addStep(final int index, final Step&lt;?, ?&gt; step) throws IllegalStateException {
+        	if (this.locked) throw Exceptions.traversalIsLocked();
+        	step.setId(this.stepPosition.nextXId());
+        	this.steps.add(index, step); // 添加到集合
+        	final Step previousStep = this.steps.size() &gt; 0 &amp;&amp; index != 0 ? steps.get(index - 1) : null;
+        	final Step nextStep = this.steps.size() &gt; index + 1 ? steps.get(index + 1) : null;
+        	// 设置前后依赖
+        	step.setPreviousStep(null != previousStep ? previousStep : EmptyStep.instance());
+        	step.setNextStep(null != nextStep ? nextStep : EmptyStep.instance());
+        	if (null != previousStep) previousStep.setNextStep(step);
+        	if (null != nextStep) nextStep.setPreviousStep(step);
+        	step.setTraversal(this);
+        	return (Traversal.Admin&lt;S2, E2&gt;) this;
+    	}
+    }
+    }
+    }
+}
+</code></pre>
+
+<ol>
+<li>v.outE(&ldquo;knows&rdquo;);</li>
+</ol>
+
+<pre><code class="language-java">public default GraphTraversal&lt;S, Edge&gt; outE(final String... edgeLabels) {
+    this.asAdmin().getBytecode().addStep(Symbols.outE, edgeLabels); // 记录
+    return this.asAdmin().addStep(new VertexStep&lt;&gt;(this.asAdmin(), Edge.class, Direction.OUT, edgeLabels));
+    {
+    // 1. new VertexStep&lt;&gt;(this.asAdmin(), Edge.class, Direction.OUT, edgeLabels)
+        {
+        super(traversal);// FlatMapStep -&gt; AbstractStep
+        this.direction = direction;
+        this.edgeLabels = edgeLabels;
+        this.returnClass = returnClass;
+        }
+    // 2. addStep
+    // 和上面一样
+    }
+}
+</code></pre>
+
+<ol>
+<li>knows.inV()</li>
+</ol>
+
+<pre><code class="language-java">public default GraphTraversal&lt;S, Vertex&gt; inV() {
+    this.asAdmin().getBytecode().addStep(Symbols.inV); 
+    return this.asAdmin().addStep(new EdgeVertexStep(this.asAdmin(), Direction.IN));
+    {
+    // 1. new EdgeVertexStep(this.asAdmin(), Direction.IN)
+    {
+        public EdgeVertexStep(final Traversal.Admin traversal, final Direction direction) {
+        super(traversal);
+        this.direction = direction;
+        }
+    }
+    // 2. 和上面一样
+    }
+}
+</code></pre>
+
+<ol>
+<li>inV.values(&ldquo;name&rdquo;);</li>
+</ol>
+
+<pre><code class="language-java">public default &lt;E2&gt; GraphTraversal&lt;S, E2&gt; values(final String... propertyKeys) {
+    this.asAdmin().getBytecode().addStep(Symbols.values, propertyKeys);
+    return this.asAdmin().addStep(new PropertiesStep&lt;&gt;(this.asAdmin(), PropertyType.VALUE, propertyKeys));
+    {
+    // 1. new PropertiesStep&lt;&gt;(this.asAdmin(), PropertyType.VALUE, propertyKeys)
+    {
+        public PropertiesStep(final Traversal.Admin traversal, final PropertyType propertyType, final String... propertyKeys) {
+        super(traversal);
+        this.returnType = propertyType;
+        this.propertyKeys = propertyKeys;
+    	}
+    }
+    }
+}
+</code></pre>
+
+<ol>
+<li>name.next();</li>
+</ol>
+
+<p>next 方法类似spark中的 action，</p>
+
+<pre><code class="language-java">
+public E next() {
+    try {
+        if (!this.locked) this.applyStrategies();
+        if (this.lastTraverser.bulk() == 0L) // 这个判断的意义是什么。
+            this.lastTraverser = this.finalEndStep.next();
+        this.lastTraverser.setBulk(this.lastTraverser.bulk() - 1L);
+        return this.lastTraverser.get();
+    } catch (final FastNoSuchElementException e) {
+        throw this.parent instanceof EmptyStep ? new NoSuchElementException() : e;
+    }
+}
+</code></pre>
+
+<p>可以看出这里调用了 this.finalEndStep.next()，有点像spark，将逻辑转到 Step 中。</p>
+
+<p>这个 next 方法触发了查询等操作，所以逻辑会比其他的复杂，我们可以看看几个关键步骤：</p>
+
+<pre><code class="language-java">
+this.applyStrategies();
+this.lastTraverser = this.finalEndStep.next();
+this.lastTraverser.setBulk(this.lastTraverser.bulk() - 1L);
+</code></pre>
+
+<p>涉及到几个属性：</p>
+
+<pre><code class="language-java">private Traverser.Admin&lt;E&gt; lastTraverser = EmptyTraverser.instance();
+private Step&lt;?, E&gt; finalEndStep = EmptyStep.instance();  
+protected List&lt;Step&gt; steps = new ArrayList&lt;&gt;(); 
+</code></pre>
+
+<p>在 applyStrategies 方法中有 <code>this.finalEndStep = this.getEndStep();</code> 我们可以知道一个 Traversal 有很多steps，前后都有依赖关系，有一个 finalEndStep。
+然后是 <code>this.lastTraverser = this.finalEndStep.next();</code> 可以看出 step 的 next 方法很重要，返回一个 Traverser ,Traverser 能干嘛我们现在还不知道。
+但是我们现在看出 Traverser 有 bulk 属性，如果 bulk &gt;0 证明当前已经执行过了，每次调用 hasNext 或者 next 的时候就直接返回数据，否则需要查询。
+而查询的逻辑很明显就在 <code>this.lastTraverser = this.finalEndStep.next();</code></p>
+
+<ol>
+<li>AbstractStep.next()</li>
+</ol>
+
+<p>Step 继承自Iterator，Step.next() 返回一个 Traverser，中间涉及了查询的操作。next 实现 在 AbstractStep 中，还有两个类实现了重写。重写也会调用父类。</p>
+
+<pre><code class="language-java">public Traverser.Admin&lt;E&gt; next() {
+    if (null != this.nextEnd) { // nextEnd 应该是缓存，如果不为空直接返回，否则查询。
+        try {
+            return this.prepareTraversalForNextStep(this.nextEnd);
+        } finally {
+            this.nextEnd = null;
+        }
+    } else {
+        while (true) {
+            if (Thread.interrupted()) throw new TraversalInterruptedException();
+            final Traverser.Admin&lt;E&gt; traverser = this.processNextStart();
+            if (null != traverser.get() &amp;&amp; 0 != traverser.bulk())
+                return this.prepareTraversalForNextStep(traverser);
+        }
+    }
+}
+</code></pre>
+
+<p>然后调用 processNextStart()，这就是真正的逻辑发生的地方。processNextStart 在 AbstractStep 中是一个抽象方法，需要底层不同的实现。就拿我们这里的几个例子来说：</p>
+
+<pre><code>0 = {GraphStep@1408} &quot;GraphStep(vertex,[1])&quot;    GraphStep 是最原始的step，它的next 方法是从数据库拿数据。所以 会保存一个 iterator，还有个 iteratorSupplier。
+1 = {VertexStep@1409} &quot;VertexStep(OUT,[knows],edge)&quot; 继承自 FlatMapStep，内部保存了一个 ExpandableStepIterator starts 实现 processNextStart 方法，
+2 = {EdgeVertexStep@1410} &quot;EdgeVertexStep(IN)&quot;   和 VertexStep 一样，只是实现了自己的 flatMap 方法。
+3 = {PropertiesStep@1411} &quot;PropertiesStep([name],value)&quot; 同上。
+</code></pre>
+
+<p>看到这里我们稍微清楚了一点，还是有很多问题， FlatMapStep 的 processNextStart 逻辑是在干啥我们并没有理清楚。</p>
+
+<p>AbstractStep 有一个 <code>protected ExpandableStepIterator&lt;S&gt; starts = new ExpandableStepIterator&lt;&gt;(this);</code> 它的 next 方法如下：</p>
+
+<pre><code class="language-java">public Traverser.Admin&lt;S&gt; next() {
+    if (!this.traverserSet.isEmpty())
+        return this.traverserSet.remove();
+    /////////////
+    if (this.hostStep.getPreviousStep().hasNext())
+        return this.hostStep.getPreviousStep().next();
+    /////////////
+    return this.traverserSet.remove();
+}
+</code></pre>
+
+<p>我们可以看出，其实并没有什么逻辑，就是 <code>return this.hostStep.getPreviousStep().next()</code>，而前面会加一个 traverserSet 判断，而且 traverserSet 是空的，需要显式调用
+add 方法才能添加，所以 ExpandableStepIterator 实际上就是对 Step 的一个拓展代理，让 Step 拥有更多功能。</p>
+
+<p>然后我们回到 FlatMapStep 的 processNextStart 方法，我们可以看出，实际上逻辑就是 flatMap( getPreviousStep().next() ) ，也就是先调用父Step的next方法，然后执行一个 flatMap。
+具体的flatMap 方法逻辑由子类实现。</p>
+
+<h3 id="debug简单总结">debug简单总结</h3>
+
+<p>通过这次debug我们大概知道了整个程序运行的逻辑。</p>
+
+<ol>
+<li><p>g 是一个 GraphTraversalSource 类型对象，g 作为一个 遍历源每次初始会 new DefaultGraphTraversal&lt;&gt;(GraphTraversalSource)；</p></li>
+
+<li><p>首先我们的代码，g.V().outE().inV().values() 每次调用都会添加一个 Step。
+例如 g.V() 添加 GraphStep，outE() inV() values() 分别 VertexStep EdgeVertexStep PropertiesStep，他们都继承自 FlatMapStep。step之间有依赖关系。</p></li>
+
+<li><p>当调用 Traversal 的 next 等action 方法，会触发查询。实际上会调用 finalEndStep 的next 方法。实际上会调用 AbstractStep 的 processNextStart。
+不同的 processNextStart 会有不同的实现，例如 GraphStep 就是查库，FlatMapStep 就是调用上一个 Step 的 next 然后执行 flatMap 方法。类似 spark 的实现方式。</p></li>
+</ol>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-03-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/tinkerpop/">tinkerpop</a>
+          
+          <a href="/tags/%E5%88%9D%E5%AD%A6/">初学</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">tinkerpop查看</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/java/first/">
+            <span class="next-text nav-default">如何在github.io搭建Hugo博客</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-03-22 00:00:00 \x2b0000 UTC',
+    title: 'tinkerpop源码解析2-查询流程debug',
+    link: decodeURI(location.href),
+    desc: '一、关键类 api地址： http:\/\/tinkerpop.apache.org\/javadocs\/current\/full\/ GraphTraversalSource 构造方法： GraphTraversalSource(Graph graph) GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies) graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

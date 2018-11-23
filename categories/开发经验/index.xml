@@ -674,5 +674,31 @@ limits -a
       
     </item>
     
+    <item>
+      <title>面向对象经验</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/</guid>
+      
+        <description>&lt;p&gt;用面向对象方法开发软件，通常需要建立3种形式的模型它们分别是：描述系统数据结构的对象模型、描述系统控制结构的动态模型和描述系统功能的功能模型。&lt;/p&gt;
+
+&lt;p&gt;面向对象的软件工程主要包括以下部分：&lt;/p&gt;
+
+&lt;p&gt;1) 面向对象分析（object oriented analysis，OOA）;&lt;/p&gt;
+
+&lt;p&gt;2) 面向对象设计（object oriented design，OOD）;&lt;/p&gt;
+
+&lt;p&gt;3) 面向对象编程（object oriented programming，OOP）;&lt;/p&gt;
+
+&lt;p&gt;4) 面向对象测试（object oriented test，OOT）;&lt;/p&gt;
+
+&lt;p&gt;5) 面向对象维护（object oriented soft maintenance,OOSM）;&lt;/p&gt;
+
+&lt;p&gt;源码分析统计扫描所有代码并且展示类之间的关系。市场上有很多设备与工具。比如：Architexa， AgileJ， UModel， Poseidon等。&lt;/p&gt;
+</description>
+      
+    </item>
+    
   </channel>
 </rss>

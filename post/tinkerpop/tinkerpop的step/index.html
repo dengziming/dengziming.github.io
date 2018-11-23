@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>tinkerpop查看 - 数据分析师之旅</title>
+  <title>tinkerpop 的 step - 数据分析师之旅</title>
   <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
 
 <meta name="renderer" content="webkit" />
@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).path(); List&amp;lt;Path&amp;gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)" />
+  <meta name="description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&amp;quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&amp;quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&amp;quot;name&amp;quot;, &amp;quot;saturn&amp;quot;).path(); List&amp;lt;Path&amp;gt; paths = path.toList(); 一步一步看整个调用过程： 进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal) fill 方法的代码： final Step&amp;lt;?, E&amp;gt; endStep = this.asAdmin().getEndStep(); while (true) { final Traverser&amp;lt;E&amp;gt; traverser = endStep.next();" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -49,8 +49,8 @@
 
 
 
-<meta property="og:title" content="tinkerpop查看" />
-<meta property="og:description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)" />
+<meta property="og:title" content="tinkerpop 的 step" />
+<meta property="og:description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 一步一步看整个调用过程： 进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal) fill 方法的代码： final Step&lt;?, E&gt; endStep = this.asAdmin().getEndStep(); while (true) { final Traverser&lt;E&gt; traverser = endStep.next();" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/tinkerpop/tinkerpop%E7%9A%84step/" />
 
@@ -69,18 +69,18 @@
 
 
 
-<meta itemprop="name" content="tinkerpop查看">
-<meta itemprop="description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)">
+<meta itemprop="name" content="tinkerpop 的 step">
+<meta itemprop="description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 一步一步看整个调用过程： 进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal) fill 方法的代码： final Step&lt;?, E&gt; endStep = this.asAdmin().getEndStep(); while (true) { final Traverser&lt;E&gt; traverser = endStep.next();">
 
 
 <meta itemprop="dateModified" content="2018-07-27T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="883">
+<meta itemprop="wordCount" content="1034">
 
 
 
 <meta itemprop="keywords" content="tinkerpop,源码," />
-<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="tinkerpop查看"/>
-<meta name="twitter:description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)"/>
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="tinkerpop 的 step"/>
+<meta name="twitter:description" content="一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 一步一步看整个调用过程： 进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal) fill 方法的代码： final Step&lt;?, E&gt; endStep = this.asAdmin().getEndStep(); while (true) { final Traverser&lt;E&gt; traverser = endStep.next();"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -170,7 +170,7 @@
           <article class="post bg-white">
     
     <header class="post-header">
-      <h1 class="post-title">tinkerpop查看</h1>
+      <h1 class="post-title">tinkerpop 的 step</h1>
 
       <div class="post-meta">
         <span class="post-time"> 2018-07-27 </span>
@@ -179,8 +179,8 @@
               <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
             
           </div>
-        <span class="more-meta"> 883 words </span>
-        <span class="more-meta"> 2 min read </span>
+        <span class="more-meta"> 1034 words </span>
+        <span class="more-meta"> 3 min read </span>
       </div>
     </header>
 
@@ -195,8 +195,14 @@
 <li>
 <ul>
 <li><a href="#一-简单调试">一、简单调试</a></li>
-<li><a href="#二-strategies">二、strategies</a></li>
-<li><a href="#三-addstep">三、addStep</a></li>
+<li><a href="#简单-step-查看">简单 Step 查看</a>
+<ul>
+<li><a href="#mapstep">MapStep</a></li>
+<li><a href="#filterstep">FilterStep</a></li>
+<li><a href="#flatmapstep">FlatMapStep</a></li>
+<li><a href="#aggregatestep">AggregateStep</a></li>
+<li><a href="#groupstep">GroupStep</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
@@ -223,35 +229,6 @@ List&lt;Path&gt; paths = path.toList();
 
 </code></pre>
 
-<p>我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈：</p>
-
-<pre><code class="language-java">org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436)
-org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390)
-org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169)
-org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80)
-org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31)
-org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178)
-org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239)
-org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226)
-org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149)
-org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90)
-org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1)
-java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671)
-org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90)
-org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1)
-org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
-org.apache.tinkerpop.gremlin.process.traversal.step.map.MapStep.processNextStart(MapStep.java:36)
-org.apache.tinkerpop.gremlin.process.traversal.step.map.PathStep.processNextStart(PathStep.java:118)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
-org.apache.tinkerpop.gremlin.process.traversal.Traversal.fill(Traversal.java:179)
-org.apache.tinkerpop.gremlin.process.traversal.Traversal.toList(Traversal.java:117)
-org.janusgraph.test.dengziming.FirstTest.main(FirstTest.java:46)
-
-</code></pre>
-
 <p>一步一步看整个调用过程：</p>
 
 <p>进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal)</p>
@@ -266,7 +243,7 @@ while (true) {
 
 <p>asAdmin 得到 endStep，有点类似 spark 的 stage 拆分后得到 shuffleMapTask。然后调用 endStep.next() 得到 traverser。</p>
 
-<p>进入： next:128, AbstractStep (org.apache.tinkerpop.gremlin.process.traversal.step.util)</p>
+<p>这里的代码我们前面已经熟悉过了，再看一下。进入： next:128, AbstractStep (org.apache.tinkerpop.gremlin.process.traversal.step.util)</p>
 
 <pre><code class="language-java">final Traverser.Admin&lt;E&gt; traverser = this.processNextStart();
 if (null != traverser.get() &amp;&amp; 0 != traverser.bulk())
@@ -286,7 +263,7 @@ if (null != traverser.get() &amp;&amp; 0 != traverser.bulk())
 return traverser.split(this.map(traverser), this);
 </code></pre>
 
-<p>进入 next:50, ExpandableStepIterator (org.apache.tinkerpop.gremlin.process.traversal.step.util)，主要就是</p>
+<p>进入 next:50, ExpandableStepIterator (org.apache.tinkerpop.gremlin.process.traversal.step.util)，我们说过这就是对 hostStep 的一个封装。主要就是</p>
 
 <pre><code class="language-java">if (this.hostStep.getPreviousStep().hasNext())
    return this.hostStep.getPreviousStep().next();
@@ -295,7 +272,7 @@ return traverser.split(this.map(traverser), this);
 <p>这个 hostStep 就是上面的 mapStep。这里有 getPreviousStep 然后 next。</p>
 
 <p>然后又进入到了 processNextStart:142, GraphStep (org.apache.tinkerpop.gremlin.process.traversal.step.map)，
-这里的 iteratorSupplier 变量其实是在 GraphStep 的子类中赋值的，所以 get 方法得到的就是：</p>
+这里的 iteratorSupplier 变量其实是在 GraphStep 或者他的子类中赋值的，所以 get 方法得到的就是：</p>
 
 <pre><code class="language-java">public JanusGraphStep(final GraphStep&lt;S, E&gt; originalStep) {
     super(originalStep.getTraversal(), originalStep.getReturnClass(), originalStep.isStartStep(), originalStep.getIds());
@@ -330,17 +307,52 @@ return traverser.split(this.map(traverser), this);
 }
 </code></pre>
 
-<p>首先是 buildGraphCentricQuery</p>
+<p>从这段代码，结合前面我们分析过的 GraphStep ，我们看出和图相关的 GraphStep 主要就是有一个 iteratorSupplier。因为这个step 就是为了从图拿数据。</p>
 
-<p>然后我们可以进行其他的查询操作，例如 propertyMap 操作，会新建一个 PropertyMapStep ，它的 map 方法就是自动查询。我们差 values ，会调用 JanusGraphPropertiesStep。</p>
+<p>我们再看看别的 Step。</p>
 
-<h2 id="二-strategies">二、strategies</h2>
+<h2 id="简单-step-查看">简单 Step 查看</h2>
 
-<p>我们知道 tinkerpop 是一个独立的项目，里面是不带任何和 janus 相关的内容，如何会有 JanusGraphStep 呢，
-其实在很多地方（例如 fill:175, Traversal (org.apache.tinkerpop.gremlin.process.traversal)）会调用 this.asAdmin().applyStrategies();
-会循环调用 traversalStrategy.apply(traversal)。在 apply 方法中得到了所有的 GraphStep。然后new JanusGraphStep ，并且替换掉原有的 step。</p>
+<p>其实我们查看 Step 主要就是了解 processNextStart 的行为，接下来先看几个简单的。</p>
 
-<h2 id="三-addstep">三、addStep</h2>
+<p>简单的 step 一般只处理一个逻辑，类似 spark 中的 map flatMap filter 等方法。</p>
+
+<h3 id="mapstep">MapStep</h3>
+
+<p>MapStep 是抽象类，表示这个Step有很多实现，需要自己继承。processNextStart 方法就是调用 starts 的next 返回一个Traverser，然后调用 map(返回一个Traverser);</p>
+
+<pre><code>protected Traverser.Admin&lt;E&gt; processNextStart() {
+    final Traverser.Admin&lt;S&gt; traverser = this.starts.next();
+    return traverser.split(this.map(traverser), this);
+}
+</code></pre>
+
+<p>MapStep 有很多的实现类，例如：PropertyKeyStep LabelStep PropertyValueStep PathStep MathStep EdgeOtherVertexStep 等，他们的 map 方法实现很简单。</p>
+
+<h3 id="filterstep">FilterStep</h3>
+
+<p>和 MapStep 类似，它的子类有 WhereStep HasStep NotStep CoinStep IsStep 等。</p>
+
+<h3 id="flatmapstep">FlatMapStep</h3>
+
+<p>和 MapStep 类似，它的子类有 EdgeVertexStep VertexStep PropertiesStep 等。</p>
+
+<h3 id="aggregatestep">AggregateStep</h3>
+
+<p>听名字是聚合的意思，应该是多个结果合并。内部有个 TraverserSet<S> barrier 代表所有待合并的 Traverser。</p>
+
+<h3 id="groupstep">GroupStep</h3>
+
+<p>我们可以写一段代码测试一下：g.V().group().by(T.label).next()</p>
+
+<ol>
+<li>this.asAdmin().addStep(new GroupStep&lt;&gt;(this.asAdmin()));</li>
+<li>this.asAdmin().getEndStep()).modulateBy(token);</li>
+<li>1. new TokenTraversal(token)</li>
+<li>2. GroupStep.modulateBy(final Traversal.Admin&lt;?, ?&gt; kvTraversal)</li>
+<li>1. this.seed = this.reducingBiOperator.apply(this.seed, this.projectTraverser(this.starts.next()));</li>
+<li>2. GroupStep.doFinalReduction((Map<K, Object>) object, this.valueTraversal);</li>
+</ol>
 
     </div>
 
@@ -419,9 +431,9 @@ return traverser.split(this.map(traverser), this);
   <script type="text/javascript">
   const gitment = new Gitment({
     id: '2018-07-27 00:00:00 \x2b0000 UTC',
-    title: 'tinkerpop查看',
+    title: 'tinkerpop 的 step',
     link: decodeURI(location.href),
-    desc: '一、简单调试 api地址： http:\/\/tinkerpop.apache.org\/javadocs\/current\/full\/ 第一步： JanusGraph graph = JanusGraphFactory.open(\x26quot;janusgraph-dist\/src\/assembly\/cfilter\/conf\/janusgraph-berkeleyje-es.properties\x26quot;); GraphTraversalSource g = graph.traversal(); g.V().has(\x26quot;name\x26quot;, \x26quot;saturn\x26quot;).path(); List\x26lt;Path\x26gt; paths = path.toList(); 我们在 StandardJanusGraph 的 edgeQuery 方法打上断点。得到整个调用栈： org.janusgraph.graphdb.database.StandardJanusGraph.edgeQuery(StandardJanusGraph.java:436) org.janusgraph.graphdb.database.StandardJanusGraph$1.retrieveSchemaRelations(StandardJanusGraph.java:390) org.janusgraph.graphdb.database.cache.StandardSchemaCache.getSchemaRelations(StandardSchemaCache.java:169) org.janusgraph.graphdb.types.vertices.JanusGraphSchemaVertex.getDefinition(JanusGraphSchemaVertex.java:80) org.janusgraph.graphdb.types.vertices.PropertyKeyVertex.dataType(PropertyKeyVertex.java:31) org.janusgraph.graphdb.query.QueryUtil.constraints2QNF(QueryUtil.java:178) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQueryWithoutProfile(GraphCentricQueryBuilder.java:239) org.janusgraph.graphdb.query.graph.GraphCentricQueryBuilder.constructQuery(GraphCentricQueryBuilder.java:226) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.buildGraphCentricQuery(JanusGraphStep.java:149) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$null$0(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$94.13001549.accept(Unknown Source:-1) java.util.LinkedHashMap$LinkedEntrySet.forEach(LinkedHashMap.java:671) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep.lambda$new$2(JanusGraphStep.java:90) org.janusgraph.graphdb.tinkerpop.optimize.JanusGraphStep$$Lambda$81.1296612741.get(Unknown Source:-1) org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142) org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)',
+    desc: '一、简单调试 api地址： http:\/\/tinkerpop.apache.org\/javadocs\/current\/full\/ 第一步： JanusGraph graph = JanusGraphFactory.open(\x26quot;janusgraph-dist\/src\/assembly\/cfilter\/conf\/janusgraph-berkeleyje-es.properties\x26quot;); GraphTraversalSource g = graph.traversal(); g.V().has(\x26quot;name\x26quot;, \x26quot;saturn\x26quot;).path(); List\x26lt;Path\x26gt; paths = path.toList(); 一步一步看整个调用过程： 进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal) fill 方法的代码： final Step\x26lt;?, E\x26gt; endStep = this.asAdmin().getEndStep(); while (true) { final Traverser\x26lt;E\x26gt; traverser = endStep.next();',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

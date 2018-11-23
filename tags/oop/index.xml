@@ -1,0 +1,903 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Oop on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/tags/oop/</link>
+    <description>Recent content in Oop on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Fri, 23 Nov 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/tags/oop/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>重构笔记11-使用IDEA重构</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B011-%E4%BD%BF%E7%94%A8idea%E9%87%8D%E6%9E%84/</link>
+      <pubDate>Fri, 23 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B011-%E4%BD%BF%E7%94%A8idea%E9%87%8D%E6%9E%84/</guid>
+      
+        <description>&lt;p&gt;当你学会了重构，需要使用一些工具，更加快速。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记9-处理概括关系</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B010-%E5%A4%A7%E5%9E%8B%E9%87%8D%E6%9E%84/</link>
+      <pubDate>Fri, 23 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B010-%E5%A4%A7%E5%9E%8B%E9%87%8D%E6%9E%84/</guid>
+      
+        <description>
+
+&lt;p&gt;前面的步骤写着写着就觉得很无趣，只见树木不见森林，但是至少要大概知道有这种方法，合适需要使用这种方法，然后可以来查阅怎么使用，用多了自然会了。
+但是这些步骤还会太简单，真正在重构的时候，实际上是没这么简单的，相互之间依赖太深。&lt;/p&gt;
+
+&lt;h2 id=&#34;tease-apart-inheritance-梳理并分解继承体系&#34;&gt;Tease Apart Inheritance（梳理并分解继承体系）&lt;/h2&gt;
+
+&lt;p&gt;某个继承体系同时承担两项责任。
+建立两个继承体系，并通过委托关系让其中一个可以调用另一个。&lt;/p&gt;
+
+&lt;p&gt;这个不好说清楚，记忆中 JanusGraph 源码可能有这种继承体系。JanusGraph 继承类 来自 Tinkerpop 的 图元素体系。Tinkerpop 自己也有一套体系，例如 vertex 和 edge 都继承自 element。&lt;/p&gt;
+
+&lt;p&gt;首先要发现问题：如果继承体系中的某一特定层级上的所有类，其子类名称都以相同的形容词开始，那么这个体系很可能就是承担着两项不同的责任。&lt;/p&gt;
+
+&lt;p&gt;例如有个 Deal 类表示交易，有 ActiveDeal 和PassiveDeal 两个子类。有人突然想基于它做一个表格展示，于是写了个 TabularActiveDeal 和 TabularPassiveDeal 两个子类。
+这就出现了继承体系不纯，承担两项责任，一开始没啥，后来发现很难添加新的Deal。&lt;/p&gt;
+
+&lt;p&gt;首先我们应该新建 Tabular 相关接口 PresentationStyle，并且引用一下 Deal 对象。然后开始 Move Filed 和 Move Method。&lt;/p&gt;
+
+&lt;h2 id=&#34;convert-procedural-design-to-objects-将过程化设计转化为对象设计&#34;&gt;Convert Procedural Design to Objects （将过程化设计转化为对象设计）&lt;/h2&gt;
+
+&lt;p&gt;你手上有一些传统过程化风格的代码。
+将数据记录变成对象，将大块的行为分成小块，并将行为移入相关对象之中。&lt;/p&gt;
+
+&lt;p&gt;这是面向对象的思维转换：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;class Order
+    实体类属性
+
+class OrderLine
+   实体类属性
+   
+class Calculator
+    computePrice(Order):
+    computeTaxes(Order)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;转化为&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;class Order
+	computePrice():
+    computeTaxes()
+
+class OrderLine
+	computePrice():
+    computeTaxes()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;separate-domain-from-presentation-将领域和表述-显示分离&#34;&gt;Separate Domain from Presentation （将领域和表述/显示分离）&lt;/h2&gt;
+
+&lt;p&gt;这个描述有 GUI 操作，暂且跳过&lt;/p&gt;
+
+&lt;h2 id=&#34;extract-hierarchy-提炼继承体系&#34;&gt;Extract Hierarchy（提炼继承体系）&lt;/h2&gt;
+
+&lt;p&gt;你有某个类做了太多工作，其中一部分工作是以大量条件表达式完成的。
+建立继承体系，以一个子类表示一种特殊情况。这里需要用到工厂模式。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>UML类图画法</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/uml/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/uml/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;uml类图思考&#34;&gt;UML类图思考&lt;/h2&gt;
+
+&lt;p&gt;建模是很复杂的，UML 类图是很好的工具，必须首先掌握。&lt;/p&gt;
+
+&lt;p&gt;首先我们自己思考一下，如果自己设计UML语言，应该如何设计。类与类之间的关系如何安排，例如学校管理。&lt;/p&gt;
+
+&lt;p&gt;首先就是抽象与实现的关系，需要有各种人，所以人是一个抽象，具体的教师、职工、学生都是实现。&lt;/p&gt;
+
+&lt;p&gt;另外是包含关系，例如班级包含了学生，学生和老师组成了班级。&lt;/p&gt;
+
+&lt;p&gt;还有一种是年级和班级的关系，班级组合为年级，和上一种关系不一样的是，但是班级不能脱离年级单独存在。&lt;/p&gt;
+
+&lt;p&gt;最后就是关联关系，这种关系就是多个类之间为了完成一件事必须存在某种联系，例如选课需要学生和课程，上课需要学生和老师，组织一次活动需要组织者和参与者。&lt;/p&gt;
+
+&lt;h2 id=&#34;uml-类图表示&#34;&gt;UML 类图表示&lt;/h2&gt;
+
+&lt;p&gt;我们自己总结了，但是实际上别人已经总结好了，更完善专业，我们进行学习。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-泛化-generalization&#34;&gt;1. 泛化（Generalization）&lt;/h3&gt;
+
+&lt;p&gt;泛化是一种继承关系，空心箭头的实线表示,箭头指向父类 &amp;lt;|——————————————————————&lt;/p&gt;
+
+&lt;h3 id=&#34;2-实现-realization&#34;&gt;2. 实现（Realization）&lt;/h3&gt;
+
+&lt;p&gt;类似泛化，但是是实现接口,用带空心箭头的虚线表示,箭头指向接口  &amp;lt;|&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&lt;/p&gt;
+
+&lt;h3 id=&#34;3-一般关联&#34;&gt;3.  一般关联&lt;/h3&gt;
+
+&lt;p&gt;任何类都能因为某个方法，产生关系。带普通箭头的实心线&lt;/p&gt;
+
+&lt;h3 id=&#34;4-聚合-aggregation&#34;&gt;4. 聚合（Aggregation）&lt;/h3&gt;
+
+&lt;p&gt;整体与部分的联系。空心菱形的实线。&lt;/p&gt;
+
+&lt;h3 id=&#34;5-组合-composition&#34;&gt;5. 组合（Composition）&lt;/h3&gt;
+
+&lt;p&gt;整体与部分的关系，是比聚合关系还要强的关系。实心菱形的实线表示，菱形指向整体。&lt;/p&gt;
+
+&lt;h3 id=&#34;6-依赖-dependency&#34;&gt;6. 依赖（Dependency）&lt;/h3&gt;
+
+&lt;p&gt;这个上面没说，实际上很多都是这个关系。要避免双向依赖，一般来说，不应该存在双向依赖。带箭头的虚线表示，箭头指向被依赖元素。&lt;/p&gt;
+
+&lt;p&gt;强弱顺序： 泛化 = 实现 &amp;gt; 组合 &amp;gt; 聚合 &amp;gt; 关联 &amp;gt; 依赖&lt;/p&gt;
+
+&lt;h2 id=&#34;实例&#34;&gt;实例&lt;/h2&gt;
+
+&lt;p&gt;UML类图也不是一学就会的，需要有一个慢慢熟练的过程。所谓学无止境，其实这才是理解面向对象的开始呢。
+实例网上比较多。例如： &lt;a href=&#34;https://blog.csdn.net/monkey_d_meng/article/details/6005764&#34;&gt;https://blog.csdn.net/monkey_d_meng/article/details/6005764&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记1-简单实例重构</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B01-%E7%AE%80%E5%8D%95%E5%AE%9E%E4%BE%8B%E9%87%8D%E6%9E%84/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B01-%E7%AE%80%E5%8D%95%E5%AE%9E%E4%BE%8B%E9%87%8D%E6%9E%84/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;重构-第一个案例&#34;&gt;重构，第一个案例&lt;/h1&gt;
+
+&lt;p&gt;第一个案例，太简单也不好，太复杂也不好。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-1-起点&#34;&gt;1.1 起点&lt;/h2&gt;
+
+&lt;p&gt;“影片出租店用的程序”，计算程序租了哪些影片，租期多长，可以计算费用积分。影片分为几类，积分根据影片是否为新片而不同。&lt;/p&gt;
+
+&lt;p&gt;UML 图很简单。首先定义三个实体类，影片、租赁、顾客，各自的方法。再加一个 生成详单的方法。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public String statement(){
+        double totalAmount = 0;
+        int frequentRenterPoints = 0;
+        Enumeration rentals = _rentals.elements();
+        String result = &amp;quot;Rental Record for &amp;quot; + getName()+ &amp;quot;\n&amp;quot;;
+        while (rentals.hasMoreElements()){
+            double thisAmount = 0;
+            Rental each = (Rental)rentals.nextElement();
+            //determine amounts for each line
+            switch (each.getMovie().getPriceCode()){
+                case Movie.REGULAR:
+                    thisAmount += 2;
+                    if (each.getDaysRented()&amp;gt; 2)
+                        thisAmount += (each.getDaysRented()- 2)* 1.5;
+                    break;
+                case Movie.NEW_RELEASE:
+                    thisAmount += each.getDaysRented()* 3;
+                    break;
+                case Movie.CHILDRENS:
+                    thisAmount += 1.5;
+                    if (each.getDaysRented()&amp;gt; 3)
+                        thisAmount += (each.getDaysRented()- 3)* 1.5;
+                    break;
+            }
+            // add frequent renter points
+            frequentRenterPoints ++;
+            // add bonus for a two day new release rental
+            if ((each.getMovie().getPriceCode()== Movie.NEW_RELEASE)&amp;amp;&amp;amp;
+                each.getDaysRented()&amp;gt; 1)frequentRenterPoints ++;
+            //show figures for this rental
+            result += &amp;quot;\t&amp;quot; + each.getMovie().getTitle()+ &amp;quot;\t&amp;quot; +
+                String.valueOf(thisAmount)+ &amp;quot;\n&amp;quot;;
+            totalAmount += thisAmount;
+        }
+            //add footer lines
+        result += &amp;quot;Amount owed is &amp;quot; + String.valueOf(totalAmount)+ &amp;quot;\n&amp;quot;;
+        result += &amp;quot;You earned &amp;quot; + String.valueOf(frequentRenterPoints)+
+            &amp;quot; frequent renter points&amp;quot;;
+        return result;
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;相比之下这个方法很简单，也很清晰，算是个好代码吗？&lt;/p&gt;
+
+&lt;h2 id=&#34;重构&#34;&gt;重构&lt;/h2&gt;
+
+&lt;p&gt;其实我们应该通过自己的思考获得知识，而不是通过学习。学习到的只是表面属于你，思考的知识才是真的属于你。所以我只是大概看了一下书，然后自己重新推导一下，遇到不会的了，再回去看书。&lt;/p&gt;
+
+&lt;h3 id=&#34;switch-if-语句处理&#34;&gt;switch if 语句处理&lt;/h3&gt;
+
+&lt;p&gt;首先我觉得 switch 语句现需要进行更改。我希望吧 switch 变成多态的方式实现，不只是switch，一些if else 也可以通过多态方式实现。&lt;/p&gt;
+
+&lt;p&gt;我们看出这段代码主要是 根据 Rental each 计算 thisAmount。而且都是直接加，所以可以不用将 thisAmount 作为参数只需要将 each 作为参数，根据 each 计算 thisAmount 的逻辑和电影种类有关系。
+因为 switch 的判断条件是 movie相关，所以实现方式就是定义三个 Movie 的子类。每个子类都有一个计算 thisAmount 增量的方法，方法参数是Rental each。逻辑就是复制这里的三段逻辑。&lt;/p&gt;
+
+&lt;p&gt;这样的话引进一个问题，现在 Movie 变成了抽象类，我们就需要修改之前 new Movie 的代码，改的方法可以使用工厂模式，但是还是需要判断 PriceCode，根据不同的值 new 不同对象。
+然后这个 switch 语句就可以换成 each.getMovie().getPrice(each) 了。&lt;/p&gt;
+
+&lt;p&gt;这样是有可能问题的，第一个问题是我们新建了三种 Movie ，实际上这只是它的 pricecode，不能因为 pricecode变了movie 就变了，另外，movie 一旦new了类型不能变，但是电影的类型是可能变的。
+所以我们需要借助 状态模式/策略模式，不是new 三个 Movie ，二是new 三个 PriceCode。
+实现方式比上面的操作可能更简单一点，因为都不需要修改  Movie 的构造方法。直接修改 Movie 构造方法，将 PriceCode 赋值变成 new 三个不同的 对象。然后对应的 getprice 调用 PriceCode 的方法即可。&lt;/p&gt;
+
+&lt;p&gt;另外有一点就是抽象出来的方法，为什么将 Rental each 作为参数传入而不是 pricecode，因为 pricecode 是可以变得东西。我们需要在 pricecode 计算费用。&lt;/p&gt;
+
+&lt;p&gt;同理 frequentRenterPoints 计算和 thisAmount 一样，和 Movie 种类有关，所以也可以吧 后面的 if 语句放入 pricecode 中。&lt;/p&gt;
+
+&lt;p&gt;这就是我的处理方法，用 多态/state/strategy 替换 switch。&lt;/p&gt;
+
+&lt;h3 id=&#34;模板分解&#34;&gt;模板分解&lt;/h3&gt;
+
+&lt;p&gt;我们发现其实 thisAmount 和 frequentRenterPoints 是我们计算的主要逻辑，返回结果基于他们拼凑。所以他们两个的逻辑可以放到两个单独的方法，顺便可以改一下变量名。&lt;/p&gt;
+
+&lt;p&gt;这样带来一个副作用，因为计算是需要循环遍历，本身只需要循环一次，现在需要循环三次了。&lt;/p&gt;
+
+&lt;p&gt;当我们移动以后，可以发现提炼出来的某些方法完全不应该属于这个类，可以放到另一个类中。然后我们可能发现某些局部变量变得多余，可以移除。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记2-原则、测试</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B02-%E5%8E%9F%E5%88%99%E6%B5%8B%E8%AF%95/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B02-%E5%8E%9F%E5%88%99%E6%B5%8B%E8%AF%95/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;原则&#34;&gt;原则&lt;/h2&gt;
+
+&lt;p&gt;重构原则，这属于定义性内容，这里不多写。&lt;/p&gt;
+
+&lt;h2 id=&#34;测试&#34;&gt;测试&lt;/h2&gt;
+
+&lt;p&gt;文中的 JUnit 比较老，现在的 JUnit 技术很新很复杂很强大，后续会专门抽出一节内容介绍并且实践JUnit。&lt;/p&gt;
+
+&lt;h2 id=&#34;代码坏味道&#34;&gt;代码坏味道&lt;/h2&gt;
+
+&lt;p&gt;这个不用说了，文中给了很多原则，在我们开发中，基本上就是所有人写的代码，都是臭的，特别是自己的。
+所有的代码，都需要重构。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记3-重新组织函数</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B03-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E5%87%BD%E6%95%B0/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B03-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E5%87%BD%E6%95%B0/</guid>
+      
+        <description>
+
+&lt;p&gt;其实重新组织函数的方法，我们在没有学过重构的情况下，也是经常使用的。只不过我们没有统一规范，每次使用都要分析使用情况，都比较费劲。&lt;/p&gt;
+
+&lt;p&gt;例如有时候我们从大函数提炼一个小函数，我们并没有关心提炼的原则和什么时候适合提炼。只是胡乱吧方法提出来，让逻辑和以前一样就行，这样效率低，而且易出错。这次正好可以总结一下。&lt;/p&gt;
+
+&lt;h2 id=&#34;提炼函数-extract-method&#34;&gt;提炼函数 (Extract Method)&lt;/h2&gt;
+
+&lt;p&gt;提炼函数是我们经常用到的重构手法。从一个大函数提炼小段代码。我们主要会遇到这样的问题。&lt;/p&gt;
+
+&lt;h3 id=&#34;函数命名&#34;&gt;函数命名&lt;/h3&gt;
+
+&lt;p&gt;这个是很需要注意的，命名应该是函数做了什么而不是怎么做。&lt;/p&gt;
+
+&lt;h3 id=&#34;引用了变量&#34;&gt;引用了变量&lt;/h3&gt;
+
+&lt;p&gt;函数内部引用变量时候，我们需要分情况：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;如果没有引用变量，或者引用了全局变量，这很好办，直接提炼。&lt;/li&gt;
+&lt;li&gt;如果引用的变量只是使用没有发生重新赋值。把变量作为函数参数传入。&lt;/li&gt;
+&lt;li&gt;如果局部变量再赋值，只在提炼的代码段被使用，那么可以直接在目标函数进行修改。如果源函数还使用了这个变量，那就应该作为返回值。如果返回值不止一个，如果是 scala 好办，但是如果java，尽量吧两个值的操作放在两个方法中。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;引用了源函数参数&#34;&gt;引用了源函数参数&lt;/h3&gt;
+
+&lt;ul&gt;
+&lt;li&gt;大部分情况和 引用了变量 一样操作。&lt;/li&gt;
+&lt;li&gt;如果局部变量再赋值，而且源函数的参数被赋值，应该马上使用Remove Assignments to Parameters&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;内联函数&#34;&gt;内联函数&lt;/h2&gt;
+
+&lt;p&gt;内联我没太懂啥意思。翻译的人也没有解释。这里感觉就是A函数 调用了B函数，A B 就是内联函数。&lt;/p&gt;
+
+&lt;p&gt;内联函数处理，主要就是判断函数是不是不具备多态性，逻辑也是比较固定，而且代码简单，而且和函数名一样清楚明了，就直接吧函数调用换成代码。&lt;/p&gt;
+
+&lt;h2 id=&#34;内联临时变量&#34;&gt;内联临时变量&lt;/h2&gt;
+
+&lt;p&gt;如果临时变量只被调用一次，完全没必要。如果是某个临时变量某个函数的返回值，而且妨碍了其他重构手法，就应该想办法去掉。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-temp-with-query-以查询取代临时变量&#34;&gt;Replace Temp with Query（以查询取代临时变量）&lt;/h2&gt;
+
+&lt;p&gt;某个临时变量是一堆判断后的逻辑。这时候完全可以吧判断逻辑放到一个方法中。这样做的原因是临时变量会妨碍后续重构。&lt;/p&gt;
+
+&lt;p&gt;临时变量如果被多次赋值，怎么处理呢？我们通过 Split Temporary Variable 将它分解为多个变量。否则，临时变量申明为 final，确保只被赋值一次。然后后续赋值提炼到独立函数。
+提炼的函数必须没有副作用，如果他修改了对象内容，也就是有副作用，需要进行 Separate Query From Modifler 。&lt;/p&gt;
+
+&lt;p&gt;这样重构你可能担心函数多次调用又性能问题，大部分情况是不会有的。性能问题主要发生在 IO、查数据库 等上面。&lt;/p&gt;
+
+&lt;p&gt;举个例子：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;double getPrice(){
+	int basePrice = _quantity * _itemPrice;
+	double discountFactor;
+	if (basePrice &amp;gt; 1000)discountFactor = 0.95;
+	else discountFactor = 0.98;
+	return basePrice * discountFactor;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;第一步，吧 basePrice 申明为final，然后编写 basePrice 方法， 使用 Inline Temp 吧 basePrice 的引用点改成 basePrice() 方法。&lt;/p&gt;
+
+&lt;p&gt;第二步，类似的吧 discountFactor 提炼出来，最后的结果是&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;double getPrice(){
+	return basePrice()* discountFactor();
+}
+private double discountFactor(){
+	if (basePrice()&amp;gt; 1000)return 0.95;
+	else return 0.98;
+}
+private double basePrice(){
+	return _quantity * _itemPrice;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;introduce-explaining-variable-引入解释性变量&#34;&gt;Introduce Explaining Variable（引入解释性变量）&lt;/h2&gt;
+
+&lt;p&gt;这个貌似和上一个 是反过来的步骤，对于比较长的表达式，其中一部分的结果可以用易于解释的变量表达。
+做法：申明final变量，赋值表达式。替换。
+这个用得比较少，毕竟局部变量没法重用。&lt;/p&gt;
+
+&lt;h2 id=&#34;split-temporary-variable-分解临时变量&#34;&gt;Split Temporary Variable（分解临时变量）&lt;/h2&gt;
+
+&lt;p&gt;这个就是上面说的，如果被多次赋值，没法用 final 表示，怎么办。
+循环遍历和收集变量是必须滴，其他的如果多次赋值，就承担了过多的意义，应该换另一个变量表示。&lt;/p&gt;
+
+&lt;h2 id=&#34;remove-assignments-to-parameters-移除对参数的赋值&#34;&gt;Remove Assignments to Parameters（移除对参数的赋值）&lt;/h2&gt;
+
+&lt;p&gt;如果你对参数进行赋值，至少在 java 中是没有意义的。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-method-whth-method-object-以函数对象取代函数&#34;&gt;Replace Method whth Method Object (以函数对象取代函数)&lt;/h2&gt;
+
+&lt;p&gt;局部变量测存在使得函数提取很难，但是用函数对象替换以后就方便多了。因为局部变量都变成了全局变量。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;Class Account
+	int gamma (int inputVal,int quantity,int yearToDate){
+	int importantValue1 = (inputVal * quantity)+ delta();
+	int importantValue2 = (inputVal * yearToDate)+ 100;
+	if ((yearToDate - importantValue1)&amp;gt; 100)
+	importantValue2 -= 20;
+
+	int importantValue3 = importantValue2 * 7;
+	// and so on.
+	return importantValue3 - 2 * importantValue1;
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里有很多局部变量，提取比较麻烦。怎么弄呢：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;class Gamma...
+	private final Account _account;
+	private int inputVal;
+	private int quantity;
+	private int yearToDate;
+	private int importantValue1;
+	private int importantValue2;
+	private int importantValue3;
+	
+Gamma (Account source,int inputValArg,int quantityArg,int yearToDateArg){
+	_account = source;
+	inputVal = inputValArg;
+	quantity = quantityArg;
+	yearToDate = yearToDateArg;
+}
+
+int compute (){
+	importantValue1 = (inputVal * quantity)+ _account.delta();
+	importantValue2 = (inputVal * yearToDate)+ 100;
+	if ((yearToDate - importantValue1)&amp;gt; 100)
+	importantValue2 -= 20;
+	int importantValue3 = importantValue2 * 7;
+	// and so on.
+	return importantValue3 - 2 * importantValue1;
+}
+
+
+int gamma (int inputVal,int quantity,int yearToDate){
+	return new Gamma(this,inputVal,quantity,yearToDate).compute();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这样一来，gamma 相关的都放在 Gamma 类，而 Gamma 的 compute 方法都没有局部变量了。这样就可以随意重构。&lt;/p&gt;
+
+&lt;h3 id=&#34;substitute-algorithm-替换算法&#34;&gt;Substitute Algorithm （替换算法）&lt;/h3&gt;
+
+&lt;p&gt;这个不必多说，考验人的水平，需要你了解函数，并且能够思考出简单的算法。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记4-一次重构尝试</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B04-%E4%B8%80%E6%AC%A1%E9%87%8D%E6%9E%84%E5%B0%9D%E8%AF%95/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B04-%E4%B8%80%E6%AC%A1%E9%87%8D%E6%9E%84%E5%B0%9D%E8%AF%95/</guid>
+      
+        <description>
+
+&lt;p&gt;搞了这么久，我觉得有必要对我的项目重构一下。已经学了那么多，再加上我写的代码那么烂，重构肯定是很容易上手。&lt;/p&gt;
+
+&lt;p&gt;本文没什么干货，纯属自己的一点记录。&lt;/p&gt;
+
+&lt;h2 id=&#34;项目介绍&#34;&gt;项目介绍&lt;/h2&gt;
+
+&lt;p&gt;其实项目代码有点乱，这是一个写入数据到 cassandra 的项目（实际上是写入到JanusGraph）。&lt;/p&gt;
+
+&lt;p&gt;我们有两套集群，数据写到 cassandra 要知道写到哪个集群。这是需要配置的，然后我们的导入数据分为全量导入和增量导入，这也是需要配置。&lt;/p&gt;
+
+&lt;p&gt;上面两个配置确定后，其他导数据相关配置直接放在 cassandra 中存储，比如导入到哪个 keyspace，这也是为了方便管理。&lt;/p&gt;
+
+&lt;p&gt;然后是导数据的代码，先不重构，但是导数据的时候可能有个建schema 操作，也需要查询 cassandra配置。&lt;/p&gt;
+
+&lt;h2 id=&#34;简单重构&#34;&gt;简单重构&lt;/h2&gt;
+
+&lt;p&gt;之前的代码将这两部分直接放在一个类中。首先我要做的就是讲这部分代码拆分，首先拆分两个类分别放这两中配置，第一个是 JobConfig，第二个是 ImportConfig。
+定义 JobConfig 接口，里面添加获取对应配置的方法。然后实现一个默认的 JobConfig 类，返回默认值。然后再定义一个配置文件类，ConfigFileJobConfig，根据配置文件发返回，顺便代理一下默认的 JobConfig。
+然后是 ImportConfig ，里面有一个JobConfig 的对象。然后就可以吧方法都搬过来，引用也搬过来，替换掉即可。&lt;/p&gt;
+
+&lt;h2 id=&#34;重构遇到的问题&#34;&gt;重构遇到的问题&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;首先我的项目是多模块项目，我将重构后的类放在另一个模块中，导致出现了依赖问题。这个是书中没写的。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;然后还有引用的替换问题，我的这个类的作用太多。导致很多方法相互调用，很难处理。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;再就是静态和非静态变量处理的问题。以前的配置都是通过静态变量的方式，现在换成两个配置以后，很多地方都是直接new，这样导致出现了非单例模式。之前的配置不知道静态还是非静态了。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;最后是自己心急，总是一下子跳很大一步，最后发现不行，又回退。忙活了一整天，最后发现又退回来了，以后重构应该一步一步来。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;单元测试需要跟上。没跟上居然发生了一个 StackOverFlow。&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记5-在对象之间搬移特性</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B05-%E5%9C%A8%E5%AF%B9%E8%B1%A1%E4%B9%8B%E9%97%B4%E6%90%AC%E7%A7%BB%E7%89%B9%E6%80%A7/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B05-%E5%9C%A8%E5%AF%B9%E8%B1%A1%E4%B9%8B%E9%97%B4%E6%90%AC%E7%A7%BB%E7%89%B9%E6%80%A7/</guid>
+      
+        <description>
+
+&lt;p&gt;上一次重构尝试好失败，不过学习还是要继续的，而且上次没学习的情况下搬移代码，易出错。这次我们学的是在对象之间搬移。学好了再尝试一下。&lt;/p&gt;
+
+&lt;p&gt;这一部分主要是关于将一部分代码搬进去，搬出去。提取新得类，吸收小的类。&lt;/p&gt;
+
+&lt;h2 id=&#34;搬移函数-move-method&#34;&gt;搬移函数（Move Method）&lt;/h2&gt;
+
+&lt;p&gt;有个函数与另一个类交互更多，最好搬移。另外我们后面很多其他的重构手法也会用到 Move Method。&lt;/p&gt;
+
+&lt;p&gt;其实操作不算复杂，首先需要检查源类的字段函数，如果只被打算搬移的函数用到，就一起搬移。如果被用到了，可以考虑一起搬移。
+如果子类父类有相关引用，可能没法搬移。&lt;/p&gt;
+
+&lt;p&gt;这个举例子可以举个之前的例子，通过 多态替代 switch 语句，其实刚新建几个多态类的时候，就需要先将 switch 语句移出，然后将函数搬移到新的类。&lt;/p&gt;
+
+&lt;h2 id=&#34;搬移字段-move-field&#34;&gt;搬移字段（move Field）&lt;/h2&gt;
+
+&lt;p&gt;整个操作步骤相对复杂一点，移动字段到另一个类，需要保证能访问另一个类，然后分别修改引用的函数。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;在源类封装源字段。&lt;/li&gt;
+&lt;li&gt;在新类添加新字段。&lt;/li&gt;
+&lt;li&gt;决定如何在原类添加到另一个类的引用对象。&lt;/li&gt;
+&lt;li&gt;删除原字段并将引用替换。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;提炼类-extract-class&#34;&gt;提炼类 （extract class）&lt;/h2&gt;
+
+&lt;p&gt;这个我刚刚做的一个重构就有相应操作，我提炼了几个配置，并且移动字段方法。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;建类，添加字段&lt;/li&gt;
+&lt;li&gt;添加旧类访问新类的关系。 注意，尽量不要添加新类到旧类的关系，除非真的需要。&lt;/li&gt;
+&lt;li&gt;使用 move field 、movie method。&lt;/li&gt;
+&lt;li&gt;决定是否公开类。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;类-内联化-inline-class&#34;&gt;类 内联化 （Inline Class）&lt;/h2&gt;
+
+&lt;p&gt;这个和 extract class 相反。&lt;/p&gt;
+
+&lt;h2 id=&#34;隐藏委托关系-hide-delegate&#34;&gt;隐藏委托关系 （hide delegate）&lt;/h2&gt;
+
+&lt;p&gt;就是通过中间类的方式，去掉太多类之间的联系。举的例子太简单了。&lt;/p&gt;
+
+&lt;h2 id=&#34;移除中间人-remove-middle-man&#34;&gt;移除中间人（Remove Middle Man）&lt;/h2&gt;
+
+&lt;p&gt;和 hide delegate 相反&lt;/p&gt;
+
+&lt;h2 id=&#34;引入外加函数-introduce-foreign-method&#34;&gt;引入外加函数（Introduce Foreign Method）&lt;/h2&gt;
+
+&lt;p&gt;这个我主要是我们需要使用一个类的未实现功能，但是没法修改，只能在另一个类添加一个静态方法，第一个参数就是那个类。
+方便以后可以移动到对应的类。&lt;/p&gt;
+
+&lt;h2 id=&#34;引入本地扩展-introduce-local-extension&#34;&gt;引入本地扩展 （Introduce Local Extension）&lt;/h2&gt;
+
+&lt;p&gt;引入本地类，让他继承或者包装源类。&lt;/p&gt;
+
+&lt;p&gt;这个就类似 代理模式了。&lt;/p&gt;
+
+&lt;h2 id=&#34;总结&#34;&gt;总结&lt;/h2&gt;
+
+&lt;p&gt;其实前两个用的最多，需要很熟悉。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记6-重新组织数据</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B06-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E6%95%B0%E6%8D%AE/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B06-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E6%95%B0%E6%8D%AE/</guid>
+      
+        <description>
+
+&lt;p&gt;这一次重新组织数据，我还没看之前，感觉并不是主动进行重构，二是为了后续重构提供便利。&lt;/p&gt;
+
+&lt;h2 id=&#34;自封装字段-self-encapsulate-field&#34;&gt;自封装字段（Self Encapsulate Field）&lt;/h2&gt;
+
+&lt;p&gt;其实很多人觉得这个有点多余，scala 语言专门提供了字段访问的方式，隐藏了get set方法。
+如果直接访问字段，可能会让耦合关系变得笨拙。当你遇到问题的时候，例如子类可能需要覆盖get函数等，发现通过访问字段方式可能更合适。&lt;/p&gt;
+
+&lt;h2 id=&#34;以对象取代数据-replace-data-value-with-object&#34;&gt;以对象取代数据 （Replace Data Value with Object）&lt;/h2&gt;
+
+&lt;p&gt;对象取代数据，似乎与我们大数据处理是相反的。不过这样可能会存在性能问题，但是大部分情况不用担心。&lt;/p&gt;
+
+&lt;h2 id=&#34;change-value-to-reference-将值对象改为引用对象&#34;&gt;Change Value to Reference（将值对象改为引用对象）&lt;/h2&gt;
+
+&lt;p&gt;这个提到的问题有点类似单例模式，我要保证每个访问点返回同一个对象：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;class Order...
+public Order(String customerName){
+	_customer = new Customer(customerName);
+}
+public void setCustomer(String customerName){
+	_customer = new Customer(customerName);
+}
+public String getCustomerName(){
+	return _customer.getName();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个每次 setCustomer 其实都会new 新的。这里可以结合工厂模式，保证每次都是一样的。例如准备一个 HashMap。&lt;/p&gt;
+
+&lt;h2 id=&#34;change-reference-to-value-将引用对象改为值对象&#34;&gt;Change Reference to Value（将引用对象改为值对象）&lt;/h2&gt;
+
+&lt;p&gt;如果你的饮用对象很小，而且不可变。例如只需要一个 userid，就没必要new 一个 user。这里的不可变不是对象不可变，而是不能对他进行修改。也就是没有 setting method&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-array-with-object-以对象取代数组&#34;&gt;Replace Array with Object（以对象取代数组）&lt;/h2&gt;
+
+&lt;p&gt;这个应该属于比较古老的代码，现在我没有遇到过。&lt;/p&gt;
+
+&lt;h2 id=&#34;duplicate-observed-data-复制-被监视数据&#34;&gt;Duplicate Observed Data（复制“被监视数据”）&lt;/h2&gt;
+
+&lt;p&gt;这个属于 GUI 的东西，后续再看。&lt;/p&gt;
+
+&lt;h2 id=&#34;8-7-change-unidirectional-association-to-bidirectional-将单向关联改为双向关联&#34;&gt;8.7 Change Unidirectional Association to Bidirectional （将单向关联改为双向关联）&lt;/h2&gt;
+
+&lt;p&gt;这种手法不太推荐，操作有一定难度。
+如果你有自己实现过红黑树、B树的代码，应该有所体验。如果子节点不保存到父节点的指针，那么很多代码操作就会比较复杂。这时候会用双向指针。&lt;/p&gt;
+
+&lt;p&gt;参考 HashMap的源码，父节点有到两个子节点的指针，子节点也有到父节点的指针。&lt;/p&gt;
+
+&lt;p&gt;1.如果两者都是引用对象，而其间的关联是“一对多”关系，那么就由“拥有单一引用”的那一方承担“控制者”角色。以本例而言，如果一个客户可拥有多份定单，那么就由Order类（定单）来控制关联关系。
+2.如果某个对象是组成另一对象的部件，那么由后者负责控制关联关系。
+3.如果两者都是引用对象s，而其间的关联是“多对多”关系，那么随便其中哪个对象来控制关联关系，都无所谓。&lt;/p&gt;
+
+&lt;h2 id=&#34;双向改为单向&#34;&gt;双向改为单向&lt;/h2&gt;
+
+&lt;p&gt;这和上一步反过来，这个步骤是很麻烦的。&lt;/p&gt;
+
+&lt;h2 id=&#34;字面常量取代魔法数&#34;&gt;字面常量取代魔法数&lt;/h2&gt;
+
+&lt;p&gt;这个实际上就是我们所说的常量提取。但是问题是提取出来的常量放在那里？专门定义类，还是放在出现最多的类里。&lt;/p&gt;
+
+&lt;h2 id=&#34;封装字段&#34;&gt;封装字段。&lt;/h2&gt;
+
+&lt;p&gt;类似 自封装字段。&lt;/p&gt;
+
+&lt;h2 id=&#34;封装集合&#34;&gt;封装集合&lt;/h2&gt;
+
+&lt;p&gt;目的是操作集合字段和其他字段不能和一般字段一样，因为集合可以添加删除字段。&lt;/p&gt;
+
+&lt;h2 id=&#34;以数据类取代记录&#34;&gt;以数据类取代记录&lt;/h2&gt;
+
+&lt;p&gt;类似 将值对象改为引用对象&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-type-code-with-class-以类取代类型码&#34;&gt;Replace Type Code with Class（以类取代类型码）&lt;/h2&gt;
+
+&lt;p&gt;类取代类型码可以方便编译器检查错误。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-type-code-with-subclasses-以子类取代类型码&#34;&gt;Replace Type Code with Subclasses（以子类取代类型码）&lt;/h2&gt;
+
+&lt;p&gt;如果类型码有对应的判断条件，然后有不同的操作类型，这时候通过子类取代，然后用多态的方式取代判断。&lt;/p&gt;
+
+&lt;h2 id=&#34;8-15-replace-type-code-with-state-strategy-以state-strategy取代类型码&#34;&gt;8.15 Replace Type Code with State/Strategy （以State/Strategy取代类型码）&lt;/h2&gt;
+
+&lt;p&gt;Replace Type Code with Subclasses（以子类取代类型码）很强大，但是以下两种情况你不能那么做：(1)类型码值在对象创建之后发生了改变；(2)由于某些原因，类型码宿主类已经有了子类。如果你恰好面临这两种情况之一，
+就需要使用Replace Type Code with State/Strategy (227)。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-subclass-with-fields-以字段取代子类&#34;&gt;Replace Subclass with Fields（以字段取代子类）&lt;/h2&gt;
+
+&lt;p&gt;这个和上面的操作是相反的，如果类过于简单，只有某个常量数据，就可以取代掉。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记7-简化条件表达式</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B07-%E7%AE%80%E5%8C%96%E6%9D%A1%E4%BB%B6%E8%A1%A8%E8%BE%BE%E5%BC%8F/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B07-%E7%AE%80%E5%8C%96%E6%9D%A1%E4%BB%B6%E8%A1%A8%E8%BE%BE%E5%BC%8F/</guid>
+      
+        <description>
+
+&lt;p&gt;简化条件表达式一方面是简化代码，另外也是提高可读性。&lt;/p&gt;
+
+&lt;h2 id=&#34;9-1-decompose-conditional-分解条件表达式&#34;&gt;9.1 Decompose Conditional（分解条件表达式）&lt;/h2&gt;
+
+&lt;h2 id=&#34;consolidate-conditional-expression-合并条件表达式&#34;&gt;Consolidate Conditional Expression（合并条件表达式）&lt;/h2&gt;
+
+&lt;h2 id=&#34;consolidate-duplicate-conditional-fragments-合并重复的条件片段&#34;&gt;Consolidate Duplicate Conditional Fragments （合并重复的条件片段）&lt;/h2&gt;
+
+&lt;h2 id=&#34;remove-control-flag-移除控制标记&#34;&gt;Remove Control Flag（移除控制标记）&lt;/h2&gt;
+
+&lt;p&gt;这个应该不容易，要看逻辑。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-nested-conditional-with-guard-clauses-以卫语句取代嵌套条件表达式&#34;&gt;Replace Nested Conditional with Guard Clauses （以卫语句取代嵌套条件表达式）&lt;/h2&gt;
+
+&lt;h2 id=&#34;replace-conditional-with-polymorphism-以多态取代条件表达式&#34;&gt;Replace Conditional with Polymorphism （以多态取代条件表达式）&lt;/h2&gt;
+
+&lt;p&gt;类似上一节，以 多态取代 switch。&lt;/p&gt;
+
+&lt;h2 id=&#34;introduce-null-object-引入null对象&#34;&gt;Introduce Null Object（引入Null对象）&lt;/h2&gt;
+
+&lt;p&gt;这个新版的 java 已经有了相应的对象。&lt;/p&gt;
+
+&lt;h2 id=&#34;introduce-assertion-引入断言&#34;&gt;Introduce Assertion（引入断言）&lt;/h2&gt;
+
+&lt;p&gt;已经会用了。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记8-简化函数调用</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B08-%E7%AE%80%E5%8C%96%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B08-%E7%AE%80%E5%8C%96%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8/</guid>
+      
+        <description>
+
+&lt;p&gt;个人感觉简化函数调用不属于重构，二是开发就应该注意的事情。&lt;/p&gt;
+
+&lt;h2 id=&#34;函数改名&#34;&gt;函数改名&lt;/h2&gt;
+
+&lt;p&gt;函数改名，应该遵循一些原则。例如函数名字应该指明做了什么而不是怎么做。&lt;/p&gt;
+
+&lt;h2 id=&#34;add-parameter-添加参数&#34;&gt;Add Parameter（添加参数）&lt;/h2&gt;
+
+&lt;h2 id=&#34;remove-parameter-移除参数&#34;&gt;Remove Parameter（移除参数）&lt;/h2&gt;
+
+&lt;h2 id=&#34;separate-query-from-modifier-将查询函数和修改函数分离&#34;&gt;Separate Query from Modifier （将查询函数和修改函数分离）&lt;/h2&gt;
+
+&lt;h2 id=&#34;parameterize-method-令函数携带参数&#34;&gt;Parameterize Method（令函数携带参数）&lt;/h2&gt;
+
+&lt;p&gt;其实就是提炼函数，我再写代码中遇到很多，都懒得提炼，现在看来，需要提炼一下了。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-parameter-with-explicit-methods-以明确函数取代参数&#34;&gt;Replace Parameter with Explicit Methods （以明确函数取代参数）&lt;/h2&gt;
+
+&lt;p&gt;和上一步相反，你有一个函数，其中完全取决于参数值而采取不同行为。这时候就提取出不同的函数。&lt;/p&gt;
+
+&lt;h2 id=&#34;preserve-whole-object-保持对象完整&#34;&gt;Preserve Whole Object（保持对象完整）&lt;/h2&gt;
+
+&lt;p&gt;如果你的函数参数是某个对象的多个值，还不如把函数参数改为对象。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-parameter-with-methods-以函数取代参数&#34;&gt;Replace Parameter with Methods（以函数取代参数）&lt;/h2&gt;
+
+&lt;p&gt;对象调用某个函数，并将所得结果作为参数，传递给另一个函数。
+而接受该参数的函数本身也能够调用前一个函数。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;int basePrice = _quantity * _itemPrice;
+discountLevel = getDiscountLevel();
+double finalPrice = discountedPrice (basePrice,discountLevel);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这里 discountedPrice() 方法需要两个参数，而 第二个参数 discountLevel 也是调用 getDiscountLevel() 计算得到的。还不如在 discountedPrice() 方法中调用 getDiscountLevel()。&lt;/p&gt;
+
+&lt;h2 id=&#34;introduce-parameter-object-引入参数对象&#34;&gt;Introduce Parameter Object（引入参数对象）&lt;/h2&gt;
+
+&lt;p&gt;某些参数总是经常一起出现，就将他们作为参数对象传入。&lt;/p&gt;
+
+&lt;h2 id=&#34;remove-setting-method-移除设值函数&#34;&gt;Remove Setting Method（移除设值函数）&lt;/h2&gt;
+
+&lt;p&gt;类中的某个字段应该在对象创建时被设值，然后就不再改变。
+去掉该字段的所有设值函数。&lt;/p&gt;
+
+&lt;h2 id=&#34;hide-method-隐藏函数&#34;&gt;Hide Method（隐藏函数）&lt;/h2&gt;
+
+&lt;p&gt;重构的时候要注意有些函数的可见度。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-constructor-with-factory-method-以工厂函数取代构造函数&#34;&gt;Replace Constructor with Factory Method （以工厂函数取代构造函数）&lt;/h2&gt;
+
+&lt;p&gt;这个经常需要用在某些类似单例模式的类。另外就是前面所说的，有关类型码的操作。这个必须熟悉，因为经常用到：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;class Employee {
+	private int _type;
+	static final int ENGINEER = 0;
+	static final int SALESMAN = 1;
+	static final int MANAGER = 2;
+	Employee(int type){
+	_type = type;
+
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这种代码改为&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;class Employee {
+	private int _type;
+	static final int ENGINEER = 0;
+	static final int SALESMAN = 1;
+	static final int MANAGER = 2;
+	private Employee(int type){
+	_type = type;
+	
+	static Employee create(int type){
+		return new Employee(type);
+	}
+}
+
+static Employee create(int type){
+	switch (type){
+		case ENGINEER:
+			return new Engineer();
+		case SALESMAN:
+			return new Salesman();
+		case MANAGER:
+			return new Manager();
+	default:
+		throw new IllegalArgumentException(&amp;quot;Incorrect type code value&amp;quot;);
+	}
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这个 switch 是可以接受的，但是如果要移除，只能通过反射。&lt;/p&gt;
+
+&lt;h2 id=&#34;encapsulate-downcast-封装向下转型&#34;&gt;Encapsulate Downcast（封装向下转型）&lt;/h2&gt;
+
+&lt;p&gt;其实这个再java有了 泛型就用的不多了，但是还是要注意。在调用端不应该强制转型。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-error-code-with-exception-以异常取代错误码&#34;&gt;Replace Error Code with Exception （以异常取代错误码）&lt;/h2&gt;
+
+&lt;p&gt;这个是开发应该注意的事情。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-exception-with-test-以测试取代异常&#34;&gt;Replace Exception with Test（以测试取代异常）&lt;/h2&gt;
+
+&lt;p&gt;实际上就是指异常不能作为常用情况的判断，只能作为很少发生情况下的判断。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记9-处理概括关系</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B09-%E5%A4%84%E7%90%86%E6%A6%82%E6%8B%AC%E5%85%B3%E7%B3%BB/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B09-%E5%A4%84%E7%90%86%E6%A6%82%E6%8B%AC%E5%85%B3%E7%B3%BB/</guid>
+      
+        <description>
+
+&lt;p&gt;处理概括关系是重构重点，这些东西开发的时候可能没注意到&lt;/p&gt;
+
+&lt;h2 id=&#34;pull-up-field-字段上移&#34;&gt;Pull Up Field（字段上移）&lt;/h2&gt;
+
+&lt;p&gt;类似提取超类。&lt;/p&gt;
+
+&lt;h2 id=&#34;pull-up-method-函数上移&#34;&gt;Pull Up Method（函数上移）&lt;/h2&gt;
+
+&lt;p&gt;类似提取超类。&lt;/p&gt;
+
+&lt;h2 id=&#34;pull-up-constructor-body-构造函数本体上移&#34;&gt;Pull Up Constructor Body（构造函数本体上移）&lt;/h2&gt;
+
+&lt;h2 id=&#34;push-down-method-函数下移&#34;&gt;Push Down Method（函数下移）&lt;/h2&gt;
+
+&lt;p&gt;函数某个部分只和子类有关。&lt;/p&gt;
+
+&lt;h2 id=&#34;push-down-field-字段下移&#34;&gt;Push Down Field（字段下移）&lt;/h2&gt;
+
+&lt;p&gt;类似上面&lt;/p&gt;
+
+&lt;h2 id=&#34;extract-subclass-提炼子类&#34;&gt;Extract Subclass（提炼子类）&lt;/h2&gt;
+
+&lt;h1 id=&#34;extract-superclass-提炼超类&#34;&gt;Extract Superclass（提炼超类）&lt;/h1&gt;
+
+&lt;h2 id=&#34;extract-interface-提炼接口&#34;&gt;Extract Interface（提炼接口）&lt;/h2&gt;
+
+&lt;h2 id=&#34;collapse-hierarchy-折叠继承体系&#34;&gt;Collapse Hierarchy（折叠继承体系）&lt;/h2&gt;
+
+&lt;p&gt;如果子类和父类差别不大。&lt;/p&gt;
+
+&lt;p&gt;上面这几个比较依赖开发经验，重要的是能够发现相关问题。能够判断什么情况用哪一种。&lt;/p&gt;
+
+&lt;h2 id=&#34;form-template-method-塑造模板函数&#34;&gt;Form Template Method（塑造模板函数）&lt;/h2&gt;
+
+&lt;p&gt;这个属于设计模式的范畴。模板模式&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-inheritance-with-delegation-以委托取代继承&#34;&gt;Replace Inheritance with Delegation （以委托取代继承）&lt;/h2&gt;
+
+&lt;p&gt;类似适配器、代理模式。&lt;/p&gt;
+
+&lt;h2 id=&#34;replace-delegation-with-inheritance-以继承取代委托&#34;&gt;Replace Delegation with Inheritance （以继承取代委托）&lt;/h2&gt;
+
+&lt;p&gt;和上面的步骤相反。&lt;/p&gt;
+
+&lt;p&gt;最重要的是如果作出判断，何时用委托，何时不用。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>面向对象经验</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/</guid>
+      
+        <description>&lt;p&gt;用面向对象方法开发软件，通常需要建立3种形式的模型它们分别是：描述系统数据结构的对象模型、描述系统控制结构的动态模型和描述系统功能的功能模型。&lt;/p&gt;
+
+&lt;p&gt;面向对象的软件工程主要包括以下部分：&lt;/p&gt;
+
+&lt;p&gt;1) 面向对象分析（object oriented analysis，OOA）;&lt;/p&gt;
+
+&lt;p&gt;2) 面向对象设计（object oriented design，OOD）;&lt;/p&gt;
+
+&lt;p&gt;3) 面向对象编程（object oriented programming，OOP）;&lt;/p&gt;
+
+&lt;p&gt;4) 面向对象测试（object oriented test，OOT）;&lt;/p&gt;
+
+&lt;p&gt;5) 面向对象维护（object oriented soft maintenance,OOSM）;&lt;/p&gt;
+
+&lt;p&gt;源码分析统计扫描所有代码并且展示类之间的关系。市场上有很多设备与工具。比如：Architexa， AgileJ， UModel， Poseidon等。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

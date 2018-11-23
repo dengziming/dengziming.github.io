@@ -6,17 +6,72 @@
     <description>Recent content in 知识图谱 on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Tue, 30 Oct 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 13 Nov 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>tinkerpop源码解析2-简单例子debug</title>
-      <link>https://dengziming.github.io/post/tinkerpop/first/</link>
+      <title>LPA</title>
+      <link>https://dengziming.github.io/post/algorithm/lpa/</link>
+      <pubDate>Tue, 13 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/algorithm/lpa/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;简介&#34;&gt;简介&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://neo4j.com/docs/graph-algorithms/current/algorithms/label-propagation/&#34;&gt;neo4j LPA文档&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://arxiv.org/pdf/0709.2938.pdf&#34;&gt;&amp;ldquo;Near linear time algorithm to detect community structures in large-scale networks&amp;rdquo;&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;图算法&#34;&gt;图算法&lt;/h1&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>图算法相关资料</title>
+      <link>https://dengziming.github.io/post/algorithm/%E5%9B%BE%E7%AE%97%E6%B3%95%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99/</link>
+      <pubDate>Tue, 13 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/algorithm/%E5%9B%BE%E7%AE%97%E6%B3%95%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;图数据库&#34;&gt;图数据库&lt;/h1&gt;
+
+&lt;h5 id=&#34;参考资料&#34;&gt;参考资料 :&lt;/h5&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.tigergraph.com/admin/admin-guide/installation-and-configuration/installation-and-configuration&#34;&gt;TigerGraph安装指南-官方-En(推荐)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.tigergraph.com/ui/graphstudio&#34;&gt;GraphStudio使用文档-En(推荐)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://zhuanlan.zhihu.com/p/38016914&#34;&gt;图数据库TigerGraph开发者版本入门-zhihu&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://mp.weixin.qq.com/s/BJJrOAr7SgSfqGe_OEQ4Xw&#34;&gt;TigerGraph基准测试报告-简略版&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://zhuanlan.zhihu.com/p/44318332&#34;&gt;区分图数据库的11个指标-zhihu&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://zhuanlan.zhihu.com/p/38173763&#34;&gt;Tigergraph-Gsql入门-zhihu&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.tigergraph.com/intro/knowledge-base-and-faqs&#34;&gt;TigerGraphの知识库和FAQ&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://zhuanlan.zhihu.com/p/38195608&#34;&gt;图数据库实战入门 —— 一个简单的电影推荐系统实现-zhihu&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.tigergraph.com/dev/gsql-ref/ddl-and-loading&#34;&gt;gsql官方文档之定义Schema&amp;amp;加载数据(一)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.tigergraph.com/dev/gsql-ref/querying&#34;&gt;gsql官方文档之查询(二)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.tigergraph.com/dev/gsql-examples&#34;&gt;gsql官方实例demo(三)&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;图算法&#34;&gt;图算法&lt;/h1&gt;
+
+&lt;p&gt;1.&lt;a href=&#34;https://neo4j.com/docs/graph-algorithms/3.4/&#34;&gt;neo4j图计算算法库文档&lt;/a&gt;
+2.&lt;a href=&#34;https://doc.tigergraph.com/graph_algorithm_library/&#34;&gt;tigergraph图计算算法库文档&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>tinkerpop源码解析1-简单例子debug</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%901-%E7%AE%80%E5%8D%95%E4%BE%8B%E5%AD%90debug/</link>
       <pubDate>Tue, 30 Oct 2018 00:00:00 +0000</pubDate>
       
-      <guid>https://dengziming.github.io/post/tinkerpop/first/</guid>
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%901-%E7%AE%80%E5%8D%95%E4%BE%8B%E5%AD%90debug/</guid>
       
         <description>
 
@@ -95,7 +150,175 @@
 &lt;p&gt;这时候我们取看一下几个特殊的类： Traversal&lt;S,E&gt; Traversal.Admin&lt;S, E&gt; 。 他们两个都是接口，而且 Admin 是继承自 Traversal。
 Traversal 代表遍历，主要方法包括 next， asNext，iterator toList 等，可以看成一个迭代器，而 Admin 的主要方法和他没有什么关系。&lt;/p&gt;
 
-&lt;p&gt;GraphTraversal&lt;S, E&gt; extends Traversal&lt;S, E&gt; , 新增加了很多和 gremlin 相关的方法。&lt;/p&gt;
+&lt;p&gt;GraphTraversal&lt;S, E&gt; extends Traversal&lt;S, E&gt; , 新增加了很多和 gremlin 相关的方法。这属于 tinkerpop 的内容&lt;/p&gt;
+
+&lt;p&gt;然后是 addVertex&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public Vertex addVertex(final Object... keyValues) {
+    ElementHelper.legalPropertyKeyValueArray(keyValues);
+    Object idValue = vertexIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
+    final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
+
+    if (null != idValue) {
+        if (this.vertices.containsKey(idValue))
+            throw Exceptions.vertexWithIdAlreadyExists(idValue);
+    } else {
+        idValue = vertexIdManager.getNextId(this);
+    }
+
+    final Vertex vertex = new TinkerVertex(idValue, label, this);
+    this.vertices.put(vertex.id(), vertex);
+
+    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
+    return vertex;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们可以看出源码十分简单，而且 property 等方法就更简单了，所以 TinkerGraph 可以用来进行后续的分析。这样有关图操作部分就不会有理解难度。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>tinkerpop源码解析3-策略植入</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%903-%E7%AD%96%E7%95%A5%E6%A4%8D%E5%85%A5/</link>
+      <pubDate>Tue, 30 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%903-%E7%AD%96%E7%95%A5%E6%A4%8D%E5%85%A5/</guid>
+      
+        <description>
+
+&lt;p&gt;前面我们大概看了tinkerpop 的代码怎么一步步变成 Traversal 和 Step，然后怎么调用和执行。我们忽略了 strategy 的相关操作。&lt;/p&gt;
+
+&lt;h2 id=&#34;官方介绍&#34;&gt;官方介绍&lt;/h2&gt;
+
+&lt;p&gt;在查看源码之前我们尽量对她进行了解熟悉。TraversalStrategy 分析 Traversal，如果 Traversal 符合其标准尺度，则可以相应地进行改变。
+strategies 在编译期执行，是 Gremlin traversal machine 编译器的基础，分为五种类型：
+1. 可以直接嵌入 traversal 逻辑的 application-level 的功能（decoration）；
+2. 能够更高效通过 TinkerPop3 语法表达 traversal （optimization）；
+3. 能够更高效在 graph 层面表达traversal（provider optimization）；
+4. 在执行 traversal 之前 一些必须的最终适配、清理、分析 (finalization)；
+5. 对于当前的程序或者存储系统来说，一些不合法的操作(verification)。&lt;/p&gt;
+
+&lt;p&gt;以 IdentityRemovalStrategy 为例：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public final class IdentityRemovalStrategy extends AbstractTraversalStrategy&amp;lt;TraversalStrategy.OptimizationStrategy&amp;gt; implements TraversalStrategy.OptimizationStrategy {
+
+    private static final IdentityRemovalStrategy INSTANCE = new IdentityRemovalStrategy();
+
+    private IdentityRemovalStrategy() {
+    }
+
+    @Override
+    public void apply(Traversal.Admin&amp;lt;?, ?&amp;gt; traversal) {
+        if (traversal.getSteps().size() &amp;lt;= 1)
+            return;
+
+        for (IdentityStep&amp;lt;?&amp;gt; identityStep : TraversalHelper.getStepsOfClass(IdentityStep.class, traversal)) {
+            if (identityStep.getLabels().isEmpty() || !(identityStep.getPreviousStep() instanceof EmptyStep)) {
+                TraversalHelper.copyLabels(identityStep, identityStep.getPreviousStep(), false);
+                traversal.removeStep(identityStep);
+            }
+        }
+    }
+
+    public static IdentityRemovalStrategy instance() {
+        return INSTANCE;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出继承自 AbstractTraversalStrategy， 和 TraversalStrategy.OptimizationStrategy，并有一个 apply(Traversal.Admin&amp;lt;?, ?&amp;gt; traversal)  方法。
+这里是直接在 traversal 中找到 identityStep 并移除。&lt;/p&gt;
+
+&lt;h2 id=&#34;applystrategies&#34;&gt;applyStrategies&lt;/h2&gt;
+
+&lt;p&gt;strategies 初始化的时候就放入graph 中，我们这里看看如何嵌入到查询语句。&lt;/p&gt;
+
+&lt;p&gt;在我们调用 traversal.next() 之前，有个步骤就是 applyStrategies。在执行 traversal 之前大概是这样的：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this = {DefaultGraphTraversal@1359} &amp;quot;[GraphStep(vertex,[1]), VertexStep(OUT,[knows],edge), EdgeVertexStep(IN), PropertiesStep([name],value)]&amp;quot;
+ lastTraverser = {EmptyTraverser@1384} 
+ finalEndStep = {EmptyStep@1385} 
+ stepPosition = {StepPosition@1362} &amp;quot;4.0.0()&amp;quot;
+ graph = {TinkerGraph@1386} &amp;quot;tinkergraph[vertices:6 edges:6]&amp;quot;
+ steps = {ArrayList@1387}  size = 4
+ unmodifiableSteps = {Collections$UnmodifiableRandomAccessList@1388}  size = 4
+ parent = {EmptyStep@1385} 
+ sideEffects = {DefaultTraversalSideEffects@1389} &amp;quot;sideEffects[size:0]&amp;quot;
+ strategies = {DefaultTraversalStrategies@1361} &amp;quot;strategies[ConnectiveStrategy, IncidentToAdjacentStrategy, MatchPredicateStrategy, FilterRankingStrategy, InlineFilterStrategy, AdjacentToIncidentStrategy, RepeatUnrollStrategy, PathRetractionStrategy, CountStrategy, LazyBarrierStrategy, TinkerGraphCountStrategy, TinkerGraphStepStrategy, ProfileStrategy, StandardVerificationStrategy]&amp;quot;
+ generator = null
+ requirements = null
+ locked = false
+ bytecode = {Bytecode@1390} &amp;quot;[[], [V(1), outE(knows), inV(), values(name)]]&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出是 DefaultGraphTraversal 的实体类，lastTraverser finalEndStep parent sideEffects 都是刚初始化，steps unmodifiableSteps 是4个。
+然后我们执行完这个方法再来看看：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;this = {DefaultGraphTraversal@1359} &amp;quot;[TinkerGraphStep(vertex,[1]), VertexStep(OUT,[knows],vertex), PropertiesStep([name],value)]&amp;quot;
+ lastTraverser = {EmptyTraverser@1384} 
+ finalEndStep = {PropertiesStep@1432} &amp;quot;PropertiesStep([name],value)&amp;quot;
+ stepPosition = {StepPosition@1362} &amp;quot;6.0.0()&amp;quot;
+ graph = {TinkerGraph@1386} &amp;quot;tinkergraph[vertices:6 edges:6]&amp;quot;
+ steps = {ArrayList@1387}  size = 3
+ unmodifiableSteps = {Collections$UnmodifiableRandomAccessList@1388}  size = 3
+ parent = {EmptyStep@1385} 
+ sideEffects = {DefaultTraversalSideEffects@1389} &amp;quot;sideEffects[size:0]&amp;quot;
+ strategies = {DefaultTraversalStrategies@1361} &amp;quot;strategies[ConnectiveStrategy, IncidentToAdjacentStrategy, MatchPredicateStrategy, FilterRankingStrategy, InlineFilterStrategy, AdjacentToIncidentStrategy, RepeatUnrollStrategy, PathRetractionStrategy, CountStrategy, LazyBarrierStrategy, TinkerGraphCountStrategy, TinkerGraphStepStrategy, ProfileStrategy, StandardVerificationStrategy]&amp;quot;
+ generator = null
+ requirements = {Collections$UnmodifiableSet@1431}  size = 1
+ locked = true
+ bytecode = {Bytecode@1390} &amp;quot;[[], [V(1), outE(knows), inV(), values(name)]]&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;finalEndStep 变了，stepPosition 变了，steps unmodifiableSteps 都少了一步，requirements 多了一个。然后我们还是具体看看方法执行步骤：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public void applyStrategies() throws IllegalStateException {
+    if (this.locked) throw Traversal.Exceptions.traversalIsLocked(); // 判断是否执行过。
+    TraversalHelper.reIdSteps(this.stepPosition, this);
+    this.strategies.applyStrategies(this); // 这一步循环调用 strategy 的 apply 方法。
+    {
+        for (final TraversalStrategy&amp;lt;?&amp;gt; traversalStrategy : this.traversalStrategies) {
+            traversalStrategy.apply(traversal);
+        }
+    }
+    boolean hasGraph = null != this.graph;
+    
+    // 判断 TraversalParent 的所有 globalChild 也要进行 applyStrategies
+    for (int i = 0, j = this.steps.size(); i &amp;lt; j; i++) { // &amp;quot;foreach&amp;quot; can lead to ConcurrentModificationExceptions
+        final Step step = this.steps.get(i);
+        if (step instanceof TraversalParent) {
+            for (final Traversal.Admin&amp;lt;?, ?&amp;gt; globalChild : ((TraversalParent) step).getGlobalChildren()) {
+                globalChild.setStrategies(this.strategies);
+                globalChild.setSideEffects(this.sideEffects);
+                if (hasGraph) globalChild.setGraph(this.graph);
+                globalChild.applyStrategies();
+            }
+            for (final Traversal.Admin&amp;lt;?, ?&amp;gt; localChild : ((TraversalParent) step).getLocalChildren()) {
+                localChild.setStrategies(this.strategies);
+                localChild.setSideEffects(this.sideEffects);
+                if (hasGraph) localChild.setGraph(this.graph);
+                localChild.applyStrategies();
+            }
+        }
+    }
+    // 得到 finalEndStep 
+    this.finalEndStep = this.getEndStep();
+    // finalize requirements
+    if (this.getParent() instanceof EmptyStep) {
+        this.requirements = null;
+        this.getTraverserRequirements();
+    }
+    this.locked = true;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;整段代码并不复杂，复杂的是每个 traversalStrategy 具体都做了什么。&lt;/p&gt;
+
+&lt;p&gt;我们知道 tinkerpop 是一个独立的项目，里面是不带任何和 janus 相关的内容，如何会有 JanusGraphStep 呢，
+其实在很多地方（例如 fill:175, Traversal (org.apache.tinkerpop.gremlin.process.traversal)）会调用 this.asAdmin().applyStrategies();
+会循环调用 traversalStrategy.apply(traversal)。在 apply 方法中得到了所有的 GraphStep。然后 new JanusGraphStep ，并且替换掉原有的 step。&lt;/p&gt;
 </description>
       
     </item>
