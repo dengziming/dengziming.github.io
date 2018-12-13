@@ -6,10 +6,331 @@
     <description>Recent content in Tinkerpop on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Tue, 30 Oct 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 22 Nov 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/tinkerpop/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>tinkerpop源码解析2-查询流程debug</title>
+      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8Bdebug/</link>
+      <pubDate>Thu, 22 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8Bdebug/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;一-关键类&#34;&gt;一、关键类&lt;/h2&gt;
+
+&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;graphtraversalsource&#34;&gt;GraphTraversalSource&lt;/h3&gt;
+
+&lt;p&gt;构造方法：
+GraphTraversalSource(Graph graph)
+GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)&lt;/p&gt;
+
+&lt;p&gt;graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算。但是不同的数据库怎么切换逻辑呢？&lt;/p&gt;
+
+&lt;h3 id=&#34;graphtraversal&#34;&gt;GraphTraversal&lt;/h3&gt;
+
+&lt;p&gt;代表了遍历，在graph中的一条路径。&lt;/p&gt;
+
+&lt;h3 id=&#34;traverser&#34;&gt;Traverser&lt;/h3&gt;
+
+&lt;p&gt;代表 GraphTraversal 中的对象遍历过程的当前状态&lt;/p&gt;
+
+&lt;h2 id=&#34;二-简单调试&#34;&gt;二、简单调试&lt;/h2&gt;
+
+&lt;p&gt;我们使用自带的一个库进行调试：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;TinkerGraph graph = TinkerFactory.createModern();
+
+GraphTraversalSource g = graph.traversal();
+Object next = g.V(1).outE(&amp;quot;knows&amp;quot;).inV().values(&amp;quot;name&amp;quot;).next();
+
+System.out.println(next.toString());
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后我们的断点设置在 TinkerGraph 的增删改查方法上。&lt;/p&gt;
+
+&lt;p&gt;第一次是 &lt;code&gt;org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph.addVertex(TinkerGraph.java:161)&lt;/code&gt;，这个方法的内容比较简单，得到 id label ，新建 TinkerVertex。&lt;/p&gt;
+
+&lt;p&gt;然后是&lt;code&gt;TinkerGraph.vertices&lt;/code&gt;,完整调用信息：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph.vertices(TinkerGraph.java:245)
+org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep.vertices(TinkerGraphStep.java:85)
+org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep.lambda$new$0(TinkerGraphStep.java:59)
+org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep$$Lambda$23.846254484.get(Unknown Source:-1)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.FlatMapStep.processNextStart(FlatMapStep.java:48)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
+org.apache.tinkerpop.gremlin.process.traversal.step.map.FlatMapStep.processNextStart(FlatMapStep.java:48)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
+org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
+org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal.next(DefaultTraversal.java:200)
+我们的代码：Object next = g.V(1).outE(&amp;quot;knows&amp;quot;).inV().values(&amp;quot;name&amp;quot;).next();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;一共出现了 TinkerGraphStep，GraphStep，AbstractStep，FlatMapStep 四类 Step，最后一个 TinkerGraphStep 是怎么出现的？按理说都是tinkerpop 的实现，其实是  TinkerGraphStepStrategy 的缘故。&lt;/p&gt;
+
+&lt;p&gt;接下来我们吧 &lt;code&gt;Object next = g.V(1).outE(&amp;quot;knows&amp;quot;).inV().values(&amp;quot;name&amp;quot;).next();&lt;/code&gt; 拆开分析：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;GraphTraversal&amp;lt;Vertex, Vertex&amp;gt; v = g.V(1);
+GraphTraversal&amp;lt;Vertex, Edge&amp;gt; knows = v.outE(&amp;quot;knows&amp;quot;);
+GraphTraversal&amp;lt;Vertex, Vertex&amp;gt; inV = knows.inV();
+GraphTraversal&amp;lt;Vertex, Object&amp;gt; name = inV.values(&amp;quot;name&amp;quot;);
+Object next = name.next();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;每一步我们都断点，然后查看当前 GraphTraversal 的属性，状态等。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;注册  traversalStrategies ：&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code&gt;traversalStrategies = {ArrayList@1426}  size = 14
+ 0 = {ConnectiveStrategy@1428} &amp;quot;ConnectiveStrategy&amp;quot;
+ 1 = {IncidentToAdjacentStrategy@1429} &amp;quot;IncidentToAdjacentStrategy&amp;quot;
+ 2 = {MatchPredicateStrategy@1430} &amp;quot;MatchPredicateStrategy&amp;quot;
+ 3 = {FilterRankingStrategy@1431} &amp;quot;FilterRankingStrategy&amp;quot;
+ 4 = {InlineFilterStrategy@1432} &amp;quot;InlineFilterStrategy&amp;quot;
+ 5 = {AdjacentToIncidentStrategy@1433} &amp;quot;AdjacentToIncidentStrategy&amp;quot;
+ 6 = {RepeatUnrollStrategy@1434} &amp;quot;RepeatUnrollStrategy&amp;quot;
+ 7 = {PathRetractionStrategy@1435} &amp;quot;PathRetractionStrategy&amp;quot;
+ 8 = {CountStrategy@1436} &amp;quot;CountStrategy&amp;quot;
+ 9 = {LazyBarrierStrategy@1437} &amp;quot;LazyBarrierStrategy&amp;quot;
+ 10 = {TinkerGraphCountStrategy@1438} &amp;quot;TinkerGraphCountStrategy&amp;quot;
+ 11 = {TinkerGraphStepStrategy@1439} &amp;quot;TinkerGraphStepStrategy&amp;quot;
+ 12 = {ProfileStrategy@1440} &amp;quot;ProfileStrategy&amp;quot;
+ 13 = {StandardVerificationStrategy@1441} &amp;quot;StandardVerificationStrategy&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;g.V(id)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public GraphTraversal&amp;lt;Vertex, Vertex&amp;gt; V(final Object... vertexIds) {
+    final GraphTraversalSource clone = this.clone(); // 克隆 对象
+    clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds); // 记录
+    final GraphTraversal.Admin&amp;lt;Vertex, Vertex&amp;gt; traversal = new DefaultGraphTraversal&amp;lt;&amp;gt;(clone);
+    {// 这里逻辑很简单，直接赋值
+        this.graph = graph;
+        this.strategies = traversalStrategies;
+        this.bytecode = bytecode;
+    }
+    return traversal.addStep(new GraphStep&amp;lt;&amp;gt;(traversal, Vertex.class, true, vertexIds));
+    {
+    // 1. new GraphStep&amp;lt;&amp;gt;(traversal, Vertex.class, true, vertexIds)
+        {
+        super(traversal);// AbstractStep
+        // 这一步要注意，这里的 iteratorSupplier 使用了 getGraph。如果graph 是 JanusGraph，那么就会查询 JanusGraph 的相关方法。
+        this.iteratorSupplier = () -&amp;gt; (Iterator&amp;lt;E&amp;gt;) (Vertex.class.isAssignableFrom(this.returnClass) ?
+             this.getTraversal().getGraph().get().vertices(this.ids) :
+             this.getTraversal().getGraph().get().edges(this.ids));
+        }
+    
+    // 2. traversal.addStep
+    {
+    return (GraphTraversal.Admin&amp;lt;S, E2&amp;gt;) Traversal.Admin.super.addStep((Step) step);
+    {
+        public &amp;lt;S2, E2&amp;gt; Traversal.Admin&amp;lt;S2, E2&amp;gt; addStep(final int index, final Step&amp;lt;?, ?&amp;gt; step) throws IllegalStateException {
+        	if (this.locked) throw Exceptions.traversalIsLocked();
+        	step.setId(this.stepPosition.nextXId());
+        	this.steps.add(index, step); // 添加到集合
+        	final Step previousStep = this.steps.size() &amp;gt; 0 &amp;amp;&amp;amp; index != 0 ? steps.get(index - 1) : null;
+        	final Step nextStep = this.steps.size() &amp;gt; index + 1 ? steps.get(index + 1) : null;
+        	// 设置前后依赖
+        	step.setPreviousStep(null != previousStep ? previousStep : EmptyStep.instance());
+        	step.setNextStep(null != nextStep ? nextStep : EmptyStep.instance());
+        	if (null != previousStep) previousStep.setNextStep(step);
+        	if (null != nextStep) nextStep.setPreviousStep(step);
+        	step.setTraversal(this);
+        	return (Traversal.Admin&amp;lt;S2, E2&amp;gt;) this;
+    	}
+    }
+    }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;v.outE(&amp;ldquo;knows&amp;rdquo;);&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public default GraphTraversal&amp;lt;S, Edge&amp;gt; outE(final String... edgeLabels) {
+    this.asAdmin().getBytecode().addStep(Symbols.outE, edgeLabels); // 记录
+    return this.asAdmin().addStep(new VertexStep&amp;lt;&amp;gt;(this.asAdmin(), Edge.class, Direction.OUT, edgeLabels));
+    {
+    // 1. new VertexStep&amp;lt;&amp;gt;(this.asAdmin(), Edge.class, Direction.OUT, edgeLabels)
+        {
+        super(traversal);// FlatMapStep -&amp;gt; AbstractStep
+        this.direction = direction;
+        this.edgeLabels = edgeLabels;
+        this.returnClass = returnClass;
+        }
+    // 2. addStep
+    // 和上面一样
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;knows.inV()&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public default GraphTraversal&amp;lt;S, Vertex&amp;gt; inV() {
+    this.asAdmin().getBytecode().addStep(Symbols.inV); 
+    return this.asAdmin().addStep(new EdgeVertexStep(this.asAdmin(), Direction.IN));
+    {
+    // 1. new EdgeVertexStep(this.asAdmin(), Direction.IN)
+    {
+        public EdgeVertexStep(final Traversal.Admin traversal, final Direction direction) {
+        super(traversal);
+        this.direction = direction;
+        }
+    }
+    // 2. 和上面一样
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;inV.values(&amp;ldquo;name&amp;rdquo;);&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public default &amp;lt;E2&amp;gt; GraphTraversal&amp;lt;S, E2&amp;gt; values(final String... propertyKeys) {
+    this.asAdmin().getBytecode().addStep(Symbols.values, propertyKeys);
+    return this.asAdmin().addStep(new PropertiesStep&amp;lt;&amp;gt;(this.asAdmin(), PropertyType.VALUE, propertyKeys));
+    {
+    // 1. new PropertiesStep&amp;lt;&amp;gt;(this.asAdmin(), PropertyType.VALUE, propertyKeys)
+    {
+        public PropertiesStep(final Traversal.Admin traversal, final PropertyType propertyType, final String... propertyKeys) {
+        super(traversal);
+        this.returnType = propertyType;
+        this.propertyKeys = propertyKeys;
+    	}
+    }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ol&gt;
+&lt;li&gt;name.next();&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;next 方法类似spark中的 action，&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+public E next() {
+    try {
+        if (!this.locked) this.applyStrategies();
+        if (this.lastTraverser.bulk() == 0L) // 这个判断的意义是什么。
+            this.lastTraverser = this.finalEndStep.next();
+        this.lastTraverser.setBulk(this.lastTraverser.bulk() - 1L);
+        return this.lastTraverser.get();
+    } catch (final FastNoSuchElementException e) {
+        throw this.parent instanceof EmptyStep ? new NoSuchElementException() : e;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以看出这里调用了 this.finalEndStep.next()，有点像spark，将逻辑转到 Step 中。&lt;/p&gt;
+
+&lt;p&gt;这个 next 方法触发了查询等操作，所以逻辑会比其他的复杂，我们可以看看几个关键步骤：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+this.applyStrategies();
+this.lastTraverser = this.finalEndStep.next();
+this.lastTraverser.setBulk(this.lastTraverser.bulk() - 1L);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;涉及到几个属性：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private Traverser.Admin&amp;lt;E&amp;gt; lastTraverser = EmptyTraverser.instance();
+private Step&amp;lt;?, E&amp;gt; finalEndStep = EmptyStep.instance();  
+protected List&amp;lt;Step&amp;gt; steps = new ArrayList&amp;lt;&amp;gt;(); 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;在 applyStrategies 方法中有 &lt;code&gt;this.finalEndStep = this.getEndStep();&lt;/code&gt; 我们可以知道一个 Traversal 有很多steps，前后都有依赖关系，有一个 finalEndStep。
+然后是 &lt;code&gt;this.lastTraverser = this.finalEndStep.next();&lt;/code&gt; 可以看出 step 的 next 方法很重要，返回一个 Traverser ,Traverser 能干嘛我们现在还不知道。
+但是我们现在看出 Traverser 有 bulk 属性，如果 bulk &amp;gt;0 证明当前已经执行过了，每次调用 hasNext 或者 next 的时候就直接返回数据，否则需要查询。
+而查询的逻辑很明显就在 &lt;code&gt;this.lastTraverser = this.finalEndStep.next();&lt;/code&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;AbstractStep.next()&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Step 继承自Iterator，Step.next() 返回一个 Traverser，中间涉及了查询的操作。next 实现 在 AbstractStep 中，还有两个类实现了重写。重写也会调用父类。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public Traverser.Admin&amp;lt;E&amp;gt; next() {
+    if (null != this.nextEnd) { // nextEnd 应该是缓存，如果不为空直接返回，否则查询。
+        try {
+            return this.prepareTraversalForNextStep(this.nextEnd);
+        } finally {
+            this.nextEnd = null;
+        }
+    } else {
+        while (true) {
+            if (Thread.interrupted()) throw new TraversalInterruptedException();
+            final Traverser.Admin&amp;lt;E&amp;gt; traverser = this.processNextStart();
+            if (null != traverser.get() &amp;amp;&amp;amp; 0 != traverser.bulk())
+                return this.prepareTraversalForNextStep(traverser);
+        }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;然后调用 processNextStart()，这就是真正的逻辑发生的地方。processNextStart 在 AbstractStep 中是一个抽象方法，需要底层不同的实现。就拿我们这里的几个例子来说：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;0 = {GraphStep@1408} &amp;quot;GraphStep(vertex,[1])&amp;quot;    GraphStep 是最原始的step，它的next 方法是从数据库拿数据。所以 会保存一个 iterator，还有个 iteratorSupplier。
+1 = {VertexStep@1409} &amp;quot;VertexStep(OUT,[knows],edge)&amp;quot; 继承自 FlatMapStep，内部保存了一个 ExpandableStepIterator starts 实现 processNextStart 方法，
+2 = {EdgeVertexStep@1410} &amp;quot;EdgeVertexStep(IN)&amp;quot;   和 VertexStep 一样，只是实现了自己的 flatMap 方法。
+3 = {PropertiesStep@1411} &amp;quot;PropertiesStep([name],value)&amp;quot; 同上。
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;看到这里我们稍微清楚了一点，还是有很多问题， FlatMapStep 的 processNextStart 逻辑是在干啥我们并没有理清楚。&lt;/p&gt;
+
+&lt;p&gt;AbstractStep 有一个 &lt;code&gt;protected ExpandableStepIterator&amp;lt;S&amp;gt; starts = new ExpandableStepIterator&amp;lt;&amp;gt;(this);&lt;/code&gt; 它的 next 方法如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public Traverser.Admin&amp;lt;S&amp;gt; next() {
+    if (!this.traverserSet.isEmpty())
+        return this.traverserSet.remove();
+    /////////////
+    if (this.hostStep.getPreviousStep().hasNext())
+        return this.hostStep.getPreviousStep().next();
+    /////////////
+    return this.traverserSet.remove();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;我们可以看出，其实并没有什么逻辑，就是 &lt;code&gt;return this.hostStep.getPreviousStep().next()&lt;/code&gt;，而前面会加一个 traverserSet 判断，而且 traverserSet 是空的，需要显式调用
+add 方法才能添加，所以 ExpandableStepIterator 实际上就是对 Step 的一个拓展代理，让 Step 拥有更多功能。&lt;/p&gt;
+
+&lt;p&gt;然后我们回到 FlatMapStep 的 processNextStart 方法，我们可以看出，实际上逻辑就是 flatMap( getPreviousStep().next() ) ，也就是先调用父Step的next方法，然后执行一个 flatMap。
+具体的flatMap 方法逻辑由子类实现。&lt;/p&gt;
+
+&lt;h3 id=&#34;debug简单总结&#34;&gt;debug简单总结&lt;/h3&gt;
+
+&lt;p&gt;通过这次debug我们大概知道了整个程序运行的逻辑。&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;g 是一个 GraphTraversalSource 类型对象，g 作为一个 遍历源每次初始会 new DefaultGraphTraversal&amp;lt;&amp;gt;(GraphTraversalSource)；&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;首先我们的代码，g.V().outE().inV().values() 每次调用都会添加一个 Step。
+例如 g.V() 添加 GraphStep，outE() inV() values() 分别 VertexStep EdgeVertexStep PropertiesStep，他们都继承自 FlatMapStep。step之间有依赖关系。&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;当调用 Traversal 的 next 等action 方法，会触发查询。实际上会调用 finalEndStep 的next 方法。实际上会调用 AbstractStep 的 processNextStart。
+不同的 processNextStart 会有不同的实现，例如 GraphStep 就是查库，FlatMapStep 就是调用上一个 Step 的 next 然后执行 flatMap 方法。类似 spark 的实现方式。&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>tinkerpop源码解析1-简单例子debug</title>
@@ -435,327 +756,6 @@ return traverser.split(this.map(traverser), this);
 &lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;待翻译。&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>tinkerpop源码解析2-查询流程debug</title>
-      <link>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8Bdebug/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/tinkerpop/tinkerpop%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8Bdebug/</guid>
-      
-        <description>
-
-&lt;h2 id=&#34;一-关键类&#34;&gt;一、关键类&lt;/h2&gt;
-
-&lt;p&gt;api地址： &lt;a href=&#34;http://tinkerpop.apache.org/javadocs/current/full/&#34;&gt;http://tinkerpop.apache.org/javadocs/current/full/&lt;/a&gt;&lt;/p&gt;
-
-&lt;h3 id=&#34;graphtraversalsource&#34;&gt;GraphTraversalSource&lt;/h3&gt;
-
-&lt;p&gt;构造方法：
-GraphTraversalSource(Graph graph)
-GraphTraversalSource(Graph graph, TraversalStrategies traversalStrategies)&lt;/p&gt;
-
-&lt;p&gt;graph.traversal() 方法返回一个 GraphTraversalSource ，我们挺好奇怎么转化为计算逻辑的，可能类似spark一样，记录操作，然后计算。但是不同的数据库怎么切换逻辑呢？&lt;/p&gt;
-
-&lt;h3 id=&#34;graphtraversal&#34;&gt;GraphTraversal&lt;/h3&gt;
-
-&lt;p&gt;代表了遍历，在graph中的一条路径。&lt;/p&gt;
-
-&lt;h3 id=&#34;traverser&#34;&gt;Traverser&lt;/h3&gt;
-
-&lt;p&gt;代表 GraphTraversal 中的对象遍历过程的当前状态&lt;/p&gt;
-
-&lt;h2 id=&#34;二-简单调试&#34;&gt;二、简单调试&lt;/h2&gt;
-
-&lt;p&gt;我们使用自带的一个库进行调试：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;TinkerGraph graph = TinkerFactory.createModern();
-
-GraphTraversalSource g = graph.traversal();
-Object next = g.V(1).outE(&amp;quot;knows&amp;quot;).inV().values(&amp;quot;name&amp;quot;).next();
-
-System.out.println(next.toString());
-
-
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后我们的断点设置在 TinkerGraph 的增删改查方法上。&lt;/p&gt;
-
-&lt;p&gt;第一次是 &lt;code&gt;org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph.addVertex(TinkerGraph.java:161)&lt;/code&gt;，这个方法的内容比较简单，得到 id label ，新建 TinkerVertex。&lt;/p&gt;
-
-&lt;p&gt;然后是&lt;code&gt;TinkerGraph.vertices&lt;/code&gt;,完整调用信息：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph.vertices(TinkerGraph.java:245)
-org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep.vertices(TinkerGraphStep.java:85)
-org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep.lambda$new$0(TinkerGraphStep.java:59)
-org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.step.sideEffect.TinkerGraphStep$$Lambda$23.846254484.get(Unknown Source:-1)
-org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep.processNextStart(GraphStep.java:142)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
-org.apache.tinkerpop.gremlin.process.traversal.step.map.FlatMapStep.processNextStart(FlatMapStep.java:48)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.hasNext(AbstractStep.java:143)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.ExpandableStepIterator.next(ExpandableStepIterator.java:50)
-org.apache.tinkerpop.gremlin.process.traversal.step.map.FlatMapStep.processNextStart(FlatMapStep.java:48)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:128)
-org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep.next(AbstractStep.java:38)
-org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal.next(DefaultTraversal.java:200)
-我们的代码：Object next = g.V(1).outE(&amp;quot;knows&amp;quot;).inV().values(&amp;quot;name&amp;quot;).next();
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;一共出现了 TinkerGraphStep，GraphStep，AbstractStep，FlatMapStep 四类 Step，最后一个 TinkerGraphStep 是怎么出现的？按理说都是tinkerpop 的实现，其实是  TinkerGraphStepStrategy 的缘故。&lt;/p&gt;
-
-&lt;p&gt;接下来我们吧 &lt;code&gt;Object next = g.V(1).outE(&amp;quot;knows&amp;quot;).inV().values(&amp;quot;name&amp;quot;).next();&lt;/code&gt; 拆开分析：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;GraphTraversal&amp;lt;Vertex, Vertex&amp;gt; v = g.V(1);
-GraphTraversal&amp;lt;Vertex, Edge&amp;gt; knows = v.outE(&amp;quot;knows&amp;quot;);
-GraphTraversal&amp;lt;Vertex, Vertex&amp;gt; inV = knows.inV();
-GraphTraversal&amp;lt;Vertex, Object&amp;gt; name = inV.values(&amp;quot;name&amp;quot;);
-Object next = name.next();
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;每一步我们都断点，然后查看当前 GraphTraversal 的属性，状态等。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;注册  traversalStrategies ：&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;pre&gt;&lt;code&gt;traversalStrategies = {ArrayList@1426}  size = 14
- 0 = {ConnectiveStrategy@1428} &amp;quot;ConnectiveStrategy&amp;quot;
- 1 = {IncidentToAdjacentStrategy@1429} &amp;quot;IncidentToAdjacentStrategy&amp;quot;
- 2 = {MatchPredicateStrategy@1430} &amp;quot;MatchPredicateStrategy&amp;quot;
- 3 = {FilterRankingStrategy@1431} &amp;quot;FilterRankingStrategy&amp;quot;
- 4 = {InlineFilterStrategy@1432} &amp;quot;InlineFilterStrategy&amp;quot;
- 5 = {AdjacentToIncidentStrategy@1433} &amp;quot;AdjacentToIncidentStrategy&amp;quot;
- 6 = {RepeatUnrollStrategy@1434} &amp;quot;RepeatUnrollStrategy&amp;quot;
- 7 = {PathRetractionStrategy@1435} &amp;quot;PathRetractionStrategy&amp;quot;
- 8 = {CountStrategy@1436} &amp;quot;CountStrategy&amp;quot;
- 9 = {LazyBarrierStrategy@1437} &amp;quot;LazyBarrierStrategy&amp;quot;
- 10 = {TinkerGraphCountStrategy@1438} &amp;quot;TinkerGraphCountStrategy&amp;quot;
- 11 = {TinkerGraphStepStrategy@1439} &amp;quot;TinkerGraphStepStrategy&amp;quot;
- 12 = {ProfileStrategy@1440} &amp;quot;ProfileStrategy&amp;quot;
- 13 = {StandardVerificationStrategy@1441} &amp;quot;StandardVerificationStrategy&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ol&gt;
-&lt;li&gt;g.V(id)&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public GraphTraversal&amp;lt;Vertex, Vertex&amp;gt; V(final Object... vertexIds) {
-    final GraphTraversalSource clone = this.clone(); // 克隆 对象
-    clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds); // 记录
-    final GraphTraversal.Admin&amp;lt;Vertex, Vertex&amp;gt; traversal = new DefaultGraphTraversal&amp;lt;&amp;gt;(clone);
-    {// 这里逻辑很简单，直接赋值
-        this.graph = graph;
-        this.strategies = traversalStrategies;
-        this.bytecode = bytecode;
-    }
-    return traversal.addStep(new GraphStep&amp;lt;&amp;gt;(traversal, Vertex.class, true, vertexIds));
-    {
-    // 1. new GraphStep&amp;lt;&amp;gt;(traversal, Vertex.class, true, vertexIds)
-        {
-        super(traversal);// AbstractStep
-        // 这一步要注意，这里的 iteratorSupplier 使用了 getGraph。如果graph 是 JanusGraph，那么就会查询 JanusGraph 的相关方法。
-        this.iteratorSupplier = () -&amp;gt; (Iterator&amp;lt;E&amp;gt;) (Vertex.class.isAssignableFrom(this.returnClass) ?
-             this.getTraversal().getGraph().get().vertices(this.ids) :
-             this.getTraversal().getGraph().get().edges(this.ids));
-        }
-    
-    // 2. traversal.addStep
-    {
-    return (GraphTraversal.Admin&amp;lt;S, E2&amp;gt;) Traversal.Admin.super.addStep((Step) step);
-    {
-        public &amp;lt;S2, E2&amp;gt; Traversal.Admin&amp;lt;S2, E2&amp;gt; addStep(final int index, final Step&amp;lt;?, ?&amp;gt; step) throws IllegalStateException {
-        	if (this.locked) throw Exceptions.traversalIsLocked();
-        	step.setId(this.stepPosition.nextXId());
-        	this.steps.add(index, step); // 添加到集合
-        	final Step previousStep = this.steps.size() &amp;gt; 0 &amp;amp;&amp;amp; index != 0 ? steps.get(index - 1) : null;
-        	final Step nextStep = this.steps.size() &amp;gt; index + 1 ? steps.get(index + 1) : null;
-        	// 设置前后依赖
-        	step.setPreviousStep(null != previousStep ? previousStep : EmptyStep.instance());
-        	step.setNextStep(null != nextStep ? nextStep : EmptyStep.instance());
-        	if (null != previousStep) previousStep.setNextStep(step);
-        	if (null != nextStep) nextStep.setPreviousStep(step);
-        	step.setTraversal(this);
-        	return (Traversal.Admin&amp;lt;S2, E2&amp;gt;) this;
-    	}
-    }
-    }
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ol&gt;
-&lt;li&gt;v.outE(&amp;ldquo;knows&amp;rdquo;);&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public default GraphTraversal&amp;lt;S, Edge&amp;gt; outE(final String... edgeLabels) {
-    this.asAdmin().getBytecode().addStep(Symbols.outE, edgeLabels); // 记录
-    return this.asAdmin().addStep(new VertexStep&amp;lt;&amp;gt;(this.asAdmin(), Edge.class, Direction.OUT, edgeLabels));
-    {
-    // 1. new VertexStep&amp;lt;&amp;gt;(this.asAdmin(), Edge.class, Direction.OUT, edgeLabels)
-        {
-        super(traversal);// FlatMapStep -&amp;gt; AbstractStep
-        this.direction = direction;
-        this.edgeLabels = edgeLabels;
-        this.returnClass = returnClass;
-        }
-    // 2. addStep
-    // 和上面一样
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ol&gt;
-&lt;li&gt;knows.inV()&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public default GraphTraversal&amp;lt;S, Vertex&amp;gt; inV() {
-    this.asAdmin().getBytecode().addStep(Symbols.inV); 
-    return this.asAdmin().addStep(new EdgeVertexStep(this.asAdmin(), Direction.IN));
-    {
-    // 1. new EdgeVertexStep(this.asAdmin(), Direction.IN)
-    {
-        public EdgeVertexStep(final Traversal.Admin traversal, final Direction direction) {
-        super(traversal);
-        this.direction = direction;
-        }
-    }
-    // 2. 和上面一样
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ol&gt;
-&lt;li&gt;inV.values(&amp;ldquo;name&amp;rdquo;);&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public default &amp;lt;E2&amp;gt; GraphTraversal&amp;lt;S, E2&amp;gt; values(final String... propertyKeys) {
-    this.asAdmin().getBytecode().addStep(Symbols.values, propertyKeys);
-    return this.asAdmin().addStep(new PropertiesStep&amp;lt;&amp;gt;(this.asAdmin(), PropertyType.VALUE, propertyKeys));
-    {
-    // 1. new PropertiesStep&amp;lt;&amp;gt;(this.asAdmin(), PropertyType.VALUE, propertyKeys)
-    {
-        public PropertiesStep(final Traversal.Admin traversal, final PropertyType propertyType, final String... propertyKeys) {
-        super(traversal);
-        this.returnType = propertyType;
-        this.propertyKeys = propertyKeys;
-    	}
-    }
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;ol&gt;
-&lt;li&gt;name.next();&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;next 方法类似spark中的 action，&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
-public E next() {
-    try {
-        if (!this.locked) this.applyStrategies();
-        if (this.lastTraverser.bulk() == 0L) // 这个判断的意义是什么。
-            this.lastTraverser = this.finalEndStep.next();
-        this.lastTraverser.setBulk(this.lastTraverser.bulk() - 1L);
-        return this.lastTraverser.get();
-    } catch (final FastNoSuchElementException e) {
-        throw this.parent instanceof EmptyStep ? new NoSuchElementException() : e;
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;可以看出这里调用了 this.finalEndStep.next()，有点像spark，将逻辑转到 Step 中。&lt;/p&gt;
-
-&lt;p&gt;这个 next 方法触发了查询等操作，所以逻辑会比其他的复杂，我们可以看看几个关键步骤：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
-this.applyStrategies();
-this.lastTraverser = this.finalEndStep.next();
-this.lastTraverser.setBulk(this.lastTraverser.bulk() - 1L);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;涉及到几个属性：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;private Traverser.Admin&amp;lt;E&amp;gt; lastTraverser = EmptyTraverser.instance();
-private Step&amp;lt;?, E&amp;gt; finalEndStep = EmptyStep.instance();  
-protected List&amp;lt;Step&amp;gt; steps = new ArrayList&amp;lt;&amp;gt;(); 
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;在 applyStrategies 方法中有 &lt;code&gt;this.finalEndStep = this.getEndStep();&lt;/code&gt; 我们可以知道一个 Traversal 有很多steps，前后都有依赖关系，有一个 finalEndStep。
-然后是 &lt;code&gt;this.lastTraverser = this.finalEndStep.next();&lt;/code&gt; 可以看出 step 的 next 方法很重要，返回一个 Traverser ,Traverser 能干嘛我们现在还不知道。
-但是我们现在看出 Traverser 有 bulk 属性，如果 bulk &amp;gt;0 证明当前已经执行过了，每次调用 hasNext 或者 next 的时候就直接返回数据，否则需要查询。
-而查询的逻辑很明显就在 &lt;code&gt;this.lastTraverser = this.finalEndStep.next();&lt;/code&gt;&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;AbstractStep.next()&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;Step 继承自Iterator，Step.next() 返回一个 Traverser，中间涉及了查询的操作。next 实现 在 AbstractStep 中，还有两个类实现了重写。重写也会调用父类。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public Traverser.Admin&amp;lt;E&amp;gt; next() {
-    if (null != this.nextEnd) { // nextEnd 应该是缓存，如果不为空直接返回，否则查询。
-        try {
-            return this.prepareTraversalForNextStep(this.nextEnd);
-        } finally {
-            this.nextEnd = null;
-        }
-    } else {
-        while (true) {
-            if (Thread.interrupted()) throw new TraversalInterruptedException();
-            final Traverser.Admin&amp;lt;E&amp;gt; traverser = this.processNextStart();
-            if (null != traverser.get() &amp;amp;&amp;amp; 0 != traverser.bulk())
-                return this.prepareTraversalForNextStep(traverser);
-        }
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后调用 processNextStart()，这就是真正的逻辑发生的地方。processNextStart 在 AbstractStep 中是一个抽象方法，需要底层不同的实现。就拿我们这里的几个例子来说：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;0 = {GraphStep@1408} &amp;quot;GraphStep(vertex,[1])&amp;quot;    GraphStep 是最原始的step，它的next 方法是从数据库拿数据。所以 会保存一个 iterator，还有个 iteratorSupplier。
-1 = {VertexStep@1409} &amp;quot;VertexStep(OUT,[knows],edge)&amp;quot; 继承自 FlatMapStep，内部保存了一个 ExpandableStepIterator starts 实现 processNextStart 方法，
-2 = {EdgeVertexStep@1410} &amp;quot;EdgeVertexStep(IN)&amp;quot;   和 VertexStep 一样，只是实现了自己的 flatMap 方法。
-3 = {PropertiesStep@1411} &amp;quot;PropertiesStep([name],value)&amp;quot; 同上。
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;看到这里我们稍微清楚了一点，还是有很多问题， FlatMapStep 的 processNextStart 逻辑是在干啥我们并没有理清楚。&lt;/p&gt;
-
-&lt;p&gt;AbstractStep 有一个 &lt;code&gt;protected ExpandableStepIterator&amp;lt;S&amp;gt; starts = new ExpandableStepIterator&amp;lt;&amp;gt;(this);&lt;/code&gt; 它的 next 方法如下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public Traverser.Admin&amp;lt;S&amp;gt; next() {
-    if (!this.traverserSet.isEmpty())
-        return this.traverserSet.remove();
-    /////////////
-    if (this.hostStep.getPreviousStep().hasNext())
-        return this.hostStep.getPreviousStep().next();
-    /////////////
-    return this.traverserSet.remove();
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;我们可以看出，其实并没有什么逻辑，就是 &lt;code&gt;return this.hostStep.getPreviousStep().next()&lt;/code&gt;，而前面会加一个 traverserSet 判断，而且 traverserSet 是空的，需要显式调用
-add 方法才能添加，所以 ExpandableStepIterator 实际上就是对 Step 的一个拓展代理，让 Step 拥有更多功能。&lt;/p&gt;
-
-&lt;p&gt;然后我们回到 FlatMapStep 的 processNextStart 方法，我们可以看出，实际上逻辑就是 flatMap( getPreviousStep().next() ) ，也就是先调用父Step的next方法，然后执行一个 flatMap。
-具体的flatMap 方法逻辑由子类实现。&lt;/p&gt;
-
-&lt;h3 id=&#34;debug简单总结&#34;&gt;debug简单总结&lt;/h3&gt;
-
-&lt;p&gt;通过这次debug我们大概知道了整个程序运行的逻辑。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;g 是一个 GraphTraversalSource 类型对象，g 作为一个 遍历源每次初始会 new DefaultGraphTraversal&amp;lt;&amp;gt;(GraphTraversalSource)；&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;首先我们的代码，g.V().outE().inV().values() 每次调用都会添加一个 Step。
-例如 g.V() 添加 GraphStep，outE() inV() values() 分别 VertexStep EdgeVertexStep PropertiesStep，他们都继承自 FlatMapStep。step之间有依赖关系。&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;当调用 Traversal 的 next 等action 方法，会触发查询。实际上会调用 finalEndStep 的next 方法。实际上会调用 AbstractStep 的 processNextStart。
-不同的 processNextStart 会有不同的实现，例如 GraphStep 就是查库，FlatMapStep 就是调用上一个 Step 的 next 然后执行 flatMap 方法。类似 spark 的实现方式。&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
 </description>
       
     </item>

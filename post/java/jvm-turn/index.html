@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title> - 数据分析师之旅</title>
+  <title>JVM调优 - 数据分析师之旅</title>
   <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
 
 <meta name="renderer" content="webkit" />
@@ -19,9 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="-verbose:gc&amp;mdash; date: 2018-10-24 title: &amp;ldquo;JVM调优&amp;rdquo; author: &amp;ldquo;邓子明&amp;rdquo; tags: - java - janusgraph categories: - java
-comment: true problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。
-fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation. Parallel GC with 23 thread(s) Heap Configuration: MinHeapFreeRatio = 0 MaxHeapFreeRatio = 100 MaxHeapSize = 32210157568 (30718." />
+  <meta name="description" content="problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。 fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation." />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -51,15 +49,15 @@ fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process I
 
 
 
-<meta property="og:title" content="" />
-<meta property="og:description" content="-verbose:gc&mdash; date: 2018-10-24 title: &ldquo;JVM调优&rdquo; author: &ldquo;邓子明&rdquo; tags: - java - janusgraph categories: - java
-comment: true problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。
-fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation. Parallel GC with 23 thread(s) Heap Configuration: MinHeapFreeRatio = 0 MaxHeapFreeRatio = 100 MaxHeapSize = 32210157568 (30718." />
+<meta property="og:title" content="JVM调优" />
+<meta property="og:description" content="problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。 fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/java/jvm-turn/" />
 
 
 
+<meta property="article:published_time" content="2018-10-24T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-10-24T00:00:00&#43;00:00"/>
 
 
 
@@ -71,24 +69,18 @@ fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process I
 
 
 
+<meta itemprop="name" content="JVM调优">
+<meta itemprop="description" content="problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。 fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation.">
 
 
-<meta itemprop="name" content="">
-<meta itemprop="description" content="-verbose:gc&mdash; date: 2018-10-24 title: &ldquo;JVM调优&rdquo; author: &ldquo;邓子明&rdquo; tags: - java - janusgraph categories: - java
-comment: true problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。
-fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation. Parallel GC with 23 thread(s) Heap Configuration: MinHeapFreeRatio = 0 MaxHeapFreeRatio = 100 MaxHeapSize = 32210157568 (30718.">
-
-
-
-<meta itemprop="wordCount" content="245">
+<meta itemprop="dateModified" content="2018-10-24T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="327">
 
 
 
-<meta itemprop="keywords" content="" />
-<meta name="twitter:card" content="summary"/><meta name="twitter:title" content=""/>
-<meta name="twitter:description" content="-verbose:gc&mdash; date: 2018-10-24 title: &ldquo;JVM调优&rdquo; author: &ldquo;邓子明&rdquo; tags: - java - janusgraph categories: - java
-comment: true problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。
-fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation. Parallel GC with 23 thread(s) Heap Configuration: MinHeapFreeRatio = 0 MaxHeapFreeRatio = 100 MaxHeapSize = 32210157568 (30718."/>
+<meta itemprop="keywords" content="java,janusgraph," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="JVM调优"/>
+<meta name="twitter:description" content="problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:&#43;PrintGCDetails 并不能看出啥信息。 fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation."/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -178,13 +170,17 @@ fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process I
           <article class="post bg-white">
     
     <header class="post-header">
-      <h1 class="post-title"></h1>
+      <h1 class="post-title">JVM调优</h1>
 
       <div class="post-meta">
-        <span class="post-time"> 0001-01-01 </span>
-        
-        <span class="more-meta"> 245 words </span>
-        <span class="more-meta"> 2 min read </span>
+        <span class="post-time"> 2018-10-24 </span>
+        <div class="post-category">
+            
+              <a href="/categories/java/"> java </a>
+            
+          </div>
+        <span class="more-meta"> 327 words </span>
+        <span class="more-meta"> 1 min read </span>
       </div>
     </header>
 
@@ -198,7 +194,6 @@ fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process I
 <ul>
 <li>
 <ul>
-<li><a href="#comment-true">comment: true</a></li>
 <li><a href="#problem">problem</a></li>
 <li><a href="#fix">fix</a>
 <ul>
@@ -214,18 +209,6 @@ fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process I
     
     <div class="post-content">
       
-
-<p>-verbose:gc&mdash;
-date: 2018-10-24
-title: &ldquo;JVM调优&rdquo;
-author: &ldquo;邓子明&rdquo;
-tags:
-    - java
-    - janusgraph
-categories:
-    - java</p>
-
-<h2 id="comment-true">comment: true</h2>
 
 <h2 id="problem">problem</h2>
 
@@ -325,7 +308,7 @@ Caused by: sun.jvm.hotspot.oops.UnknownOopException
   </p>
   <p class="copyright-item">
     <span class="item-title">LastMod</span>
-    <span class="item-content">0001-01-01</span>
+    <span class="item-content">2018-10-24</span>
   </p>
   
   <p class="copyright-item">
@@ -355,19 +338,25 @@ Caused by: sun.jvm.hotspot.oops.UnknownOopException
 </div>
 
     <footer class="post-footer">
-      
+      <div class="post-tags">
+          
+          <a href="/tags/java/">java</a>
+          
+          <a href="/tags/janusgraph/">janusgraph</a>
+          
+        </div>
 
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/">
+          <a class="prev" href="/post/titan/janus%E6%B5%8B%E8%AF%95%E8%B0%83%E8%AF%95/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">面向对象经验</span>
+            <span class="prev-text nav-default">janus官方实例调试解析</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE%E4%B9%8Bid%E6%98%A0%E5%B0%84/">
-            <span class="next-text nav-default"></span>
+          <a class="next" href="/post/algorithm/first/">
+            <span class="next-text nav-default">树</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>
           </a>
@@ -384,10 +373,10 @@ Caused by: sun.jvm.hotspot.oops.UnknownOopException
     <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
   <script type="text/javascript">
   const gitment = new Gitment({
-    id: '0001-01-01 00:00:00 \x2b0000 UTC',
-    title: '',
+    id: '2018-10-24 00:00:00 \x2b0000 UTC',
+    title: 'JVM调优',
     link: decodeURI(location.href),
-    desc: '-verbose:gc\x26mdash; date: 2018-10-24 title: \x26ldquo;JVM调优\x26rdquo; author: \x26ldquo;邓子明\x26rdquo; tags: - java - janusgraph categories: - java\ncomment: true problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:\x2bPrintGCDetails 并不能看出啥信息。\nfix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation. Parallel GC with 23 thread(s) Heap Configuration: MinHeapFreeRatio = 0 MaxHeapFreeRatio = 100 MaxHeapSize = 32210157568 (30718.',
+    desc: 'problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:\x2bPrintGCDetails 并不能看出啥信息。 fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation.',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

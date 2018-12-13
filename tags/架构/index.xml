@@ -6,10 +6,80 @@
     <description>Recent content in 架构 on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sun, 22 Apr 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 22 Dec 2018 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/%E6%9E%B6%E6%9E%84/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>es架构-3</title>
+      <link>https://dengziming.github.io/post/data-insentive-architecture/design-data-insentive-architecture/</link>
+      <pubDate>Sat, 22 Dec 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/data-insentive-architecture/design-data-insentive-architecture/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;一-前言&#34;&gt;一、前言&lt;/h1&gt;
+
+&lt;p&gt;ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud，real-time，高并发架构将会逐渐成为基础。&lt;/p&gt;
+
+&lt;p&gt;主要内容：
+（一）基础&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;“reliability, scalability, and maintainability”&lt;/li&gt;
+&lt;li&gt;数据模型&lt;/li&gt;
+&lt;li&gt;存储引擎&lt;/li&gt;
+&lt;li&gt;数据结构&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;（二）分布式&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;replication&lt;/li&gt;
+&lt;li&gt;partitioning/sharding&lt;/li&gt;
+&lt;li&gt;transaction&lt;/li&gt;
+&lt;li&gt;distributed system&lt;/li&gt;
+&lt;li&gt;consistency and consensus&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;（三）交互&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;batch process&lt;/li&gt;
+&lt;li&gt;realtime&lt;/li&gt;
+&lt;li&gt;put everything together&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;（四）案例及资料&lt;/p&gt;
+
+&lt;h1 id=&#34;一-数据系统的基础&#34;&gt;一、数据系统的基础&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-reliable-scalable-和-maintainable-的含义&#34;&gt;1. Reliable,Scalable 和 Maintainable 的含义&lt;/h2&gt;
+
+&lt;p&gt;数据系统分为 data-intensive 和 compute-intensive，一般的大数据应用会采用的技术：
+1. 存储，方便后续的查询 &amp;ndash; databases
+2. 缓存，加速访问 &amp;ndash; caches&lt;/p&gt;
+
+&lt;p&gt;es设计架构，良心参考资料：
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
+&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;lsm b+tree 资料
+&lt;a href=&#34;https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f&#34;&gt;https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f&lt;/a&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;案例&#34;&gt;案例&lt;/h1&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26&#34;&gt;https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/&#34;&gt;http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://engineering.videoblocks.com/web-architecture-101-a3224e126947&#34;&gt;https://engineering.videoblocks.com/web-architecture-101-a3224e126947&lt;/a&gt;&lt;/p&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>es架构-1</title>

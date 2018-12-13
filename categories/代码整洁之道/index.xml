@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>代码整洁之道 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/categories/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93/</link>
+    <description>Recent content in 代码整洁之道 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Sat, 24 Nov 2018 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/categories/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>headfirst 设计模式</title>
+      <link>https://dengziming.github.io/post/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/headfirst-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</link>
+      <pubDate>Sat, 24 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/headfirst-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</guid>
+      
+        <description>
+
+&lt;p&gt;设计模式很抽象，其实以前我也尝试学过，只不过只学了一些表面，没有吃透，所以再学一下。能把抽象讲具体的人，都很厉害。&lt;/p&gt;
+
+&lt;p&gt;这个网址有资料： &lt;a href=&#34;https://refactoring.guru/design-patterns&#34;&gt;https://refactoring.guru/design-patterns&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;策略模式&#34;&gt;策略模式&lt;/h2&gt;
+
+&lt;p&gt;封装算法&lt;/p&gt;
+
+&lt;h2 id=&#34;观察者模式&#34;&gt;观察者模式&lt;/h2&gt;
+
+&lt;p&gt;java 自带了库&lt;/p&gt;
+
+&lt;h2 id=&#34;装饰模式&#34;&gt;装饰模式&lt;/h2&gt;
+
+&lt;p&gt;装饰器和原类实现同一个接口&lt;/p&gt;
+
+&lt;h2 id=&#34;工厂&#34;&gt;工厂&lt;/h2&gt;
+
+&lt;p&gt;Objectville&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;
+// 第一个版本
+Pizza orderPizza(){
+	Pizza pizza = new Pizza();
+	pizza.prepare();
+	pizza.bake();
+	return pizza;
+}
+
+// 第二个版本
+
+Pizza orderPizza(String type){
+
+	Pizza pizza ;
+	if (type = &amp;quot;cheese&amp;quot;){
+		pizza = new CheesePizza();
+	}else if(){
+	    pizza= new ....
+	}
+	
+	pizza.prepare();
+	pizza.bake();
+	return pizza;
+}
+
+// version 3
+
+class PizzaStore {
+
+	SimplePizzaFactory factory;
+	// constructor
+	
+	Pizza orderPizza(String type){
+	
+		Pizza pizza = factory.createPizza(type)
+		
+		pizza.prepare();
+		pizza.bake();
+		return pizza;
+	}
+
+}
+
+class SimplePizzaFactory {
+
+	Pizza createPizza(String type){
+		Pizza pizza ;
+		if (type = &amp;quot;cheese&amp;quot;){
+			pizza = new CheesePizza();
+		}else if(){
+		    pizza= new ....
+		}
+		return pizza;
+	}
+}
+
+
+// version 4 
+
+class PizzaStore {
+	SimplePizzaFactory factory;
+	// constructor
+	
+	Pizza orderPizza(String type){
+	
+		Pizza pizza = factory.createPizza(type)
+		
+		pizza.prepare();
+		pizza.bake();
+		return pizza;
+	}
+}
+
+abstrat class PizzaFactory {
+    Pizza createPizza(String type);
+}
+
+class NYPizzaFactory extends PizzaFactory{
+	Pizza createPizza(String type){
+	    Pizza pizza ;
+		if (type = &amp;quot;cheese&amp;quot;){
+			pizza = new NYCheesePizza();
+		}else if(){
+		    pizza= new ....
+		}
+		return pizza;
+	}
+}
+
+class ChicagoPizzaFactory extends PizzaFactory{
+
+	Pizza createPizza(String type){
+	    Pizza pizza ;
+		if (type = &amp;quot;cheese&amp;quot;){
+			pizza = new ChicagoCheesePizza();
+		}else if(){
+		    pizza= new ....
+		}
+		return pizza;
+	}
+}
+
+// version 5
+
+abstract class PizzaStore {
+	
+	
+	Pizza orderPizza(String type){
+	
+		Pizza pizza = createPizza(type)
+		
+		pizza.prepare();
+		pizza.bake();
+		return pizza;
+	}
+	
+	abstract Pizza createPizza(type);
+}
+
+class NYPizzaStore extends PizzaStore{
+	Pizza createPizza(type){
+	    if (type = &amp;quot;cheese&amp;quot;){
+			pizza = new NYCheesePizza();
+		}else if(){
+		    pizza= new ....
+		}
+	}
+}
+
+class ChicagoPizzaStore extends PizzaStore{
+	Pizza createPizza(type){
+		if (type = &amp;quot;cheese&amp;quot;){
+			pizza = new ChicagoCheesePizza();
+		}else if(){
+		    pizza= new ....
+		}
+	}
+}
+
+// version 6
+
+class ComPizzaStore{
+	Pizza createPizza(string style, String type){
+	    if (style = &amp;quot;NY&amp;quot;){
+	        if (type = &amp;quot;cheese&amp;quot;){
+	            // 
+	        }
+	    }
+	    if (style = &amp;quot;NY&amp;quot;){
+	    	if (type = &amp;quot;&amp;quot;){
+	    	    //
+	    	}
+	    }
+	}
+}
+
+// version 7  add ingredients
+
+interface PizzaIngredientFactory {
+	createSoil();
+	createClam();
+}
+
+class NYPizzaIngredientFactory extends PizzaIngredientFactory{}
+...
+class ChicagoPizzaIngredientFactory extends PizzaIngredientFactory{}
+...
+
+abstract class Pizza {
+    string soil;
+    string clam;
+    
+    void prepare();
+    void bake();
+}
+
+class CheesePizza extends Pizza{
+    PizzaIngredientFactory ingerdientFactory;
+    
+    // constructor
+    
+    void prepare(){
+    	soil = ingerdientFactory.createSoil();
+    	clam = ingerdientFactory.createClam();
+    }
+}
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;单例&#34;&gt;单例&lt;/h2&gt;
+
+&lt;p&gt;这个熟悉了&lt;/p&gt;
+
+&lt;h2 id=&#34;命令模式&#34;&gt;命令模式&lt;/h2&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>代码整洁之道0-阅读提示</title>
+      <link>https://dengziming.github.io/post/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%930-%E9%98%85%E8%AF%BB%E6%8F%90%E7%A4%BA/</link>
+      <pubDate>Sat, 24 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%930-%E9%98%85%E8%AF%BB%E6%8F%90%E7%A4%BA/</guid>
+      
+        <description>&lt;p&gt;马丁(Robert C. Martin). “代码整洁之道.” 初看可能感觉没啥提高，都是经验的东西，然后囫囵吞枣翻页，突然有的地方很深奥，又要放慢速度。&lt;/p&gt;
+
+&lt;p&gt;我的感觉是先看 第17章 味道与启发，这里提了一些不好的注释，然后就是前几章，都是一些经验的东西，没有技术上的内容。主要是记心里。&lt;/p&gt;
+
+&lt;p&gt;然后越往后越是需要一些思考，这里还顺便介绍了早起的 JUnit 实现。并发编程的一些原则等。需要一定的投入。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

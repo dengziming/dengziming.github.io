@@ -166,15 +166,99 @@
     
       <article class="post bg-white">
   <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">如何在github.io搭建Hugo博客</a></h1>
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/">neo4j源码分析2-启动源码跟踪</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
       <div class="post-category">
           
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
           
         </div>
-      <span class="more-meta"> 406 words </span>
+      <span class="more-meta"> 4423 words </span>
+      <span class="more-meta"> 9 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      1.第一遍调试 第一遍就是打断点，然后查看调用栈，忽略过多的线程。 找到 CommunityEntryPoint，打一个断点，调试,不断F5进入，
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%90%AF%E5%8A%A8%E6%BA%90%E7%A0%81%E8%B7%9F%E8%B8%AA/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/">neo4j源码分析3-LifeCycle查看</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 4626 words </span>
+      <span class="more-meta"> 10 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、复习 上一篇我们说到，接下来我们就是一个一个分析 Lifecycle 的init和start方法，首先是 GraphDatabaseFacadeFactory.initFacade PlatformModule platform = createPlatform( storeDir, config, dependencies, graphDatabaseFacade ); EditionModule edition = editionFactory.apply( platform ); final DataSourceModule dataSource = createDataSource( platform, edition, queryEngine::get ); platform.life.start(); 这
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-datasourcemanager%E6%9F%A5%E7%9C%8B/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/">neo4j源码分析4-读文件</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 2447 words </span>
+      <span class="more-meta"> 5 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、复习 上一篇我们已经大概看了 RecordStorageEngine ，他只是 NeoStoreDataSource 的 13个梦中的一个而已，我们还要醒来继续做剩下的12个梦。 然而我们可以先看看如何读数据，写数据的。
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%904-%E8%AF%BB%E6%96%87%E4%BB%B6/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/">tinkerpop查看</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/tinkerpop/"> tinkerpop </a>
+          
+        </div>
+      <span class="more-meta"> 16 words </span>
       <span class="more-meta"> 1 min read </span>
     </div>
   </header>
@@ -182,10 +266,38 @@
   <div class="post-content">
     
     <div class="post-summary">
-      一、过滤器模式 过滤器模式（Filter Pattern）或标准模式（Criteria Pattern）允许开发人员使用不同的标准来过滤一组对象，
+      一、关键类 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 待翻译。
     </div>
     <div class="read-more">
-      <a href="/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="read-more-link">Read more</a>
+      <a href="/post/tinkerpop/tinkerpop%E7%AE%97%E5%AD%90/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/java/first/">如何在github.io搭建Hugo博客</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/github/"> github </a>
+          
+        </div>
+      <span class="more-meta"> 0 words </span>
+      <span class="more-meta"> 0 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      
+    </div>
+    <div class="read-more">
+      <a href="/post/java/first/" class="read-more-link">Read more</a>
     </div>
     
   </div>
@@ -418,6 +530,34 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+          
+        </div>
+      <span class="more-meta"> 406 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、过滤器模式 过滤器模式（Filter Pattern）或标准模式（Criteria Pattern）允许开发人员使用不同的标准来过滤一组对象，
+    </div>
+    <div class="read-more">
+      <a href="/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/">资料地址</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
@@ -438,86 +578,6 @@
     </div>
     <div class="read-more">
       <a href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/">面向对象经验</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
-          
-        </div>
-      <span class="more-meta"> 307 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      用面向对象方法开发软件，通常需要建立3种形式的模型它们分别是：描述系统数据结构的对象模型、描述系统控制结构的动态模型和描述系统功能的功能模型
-    </div>
-    <div class="read-more">
-      <a href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/oop/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/java/jvm-turn/"></a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 0001-01-01 </span>
-      
-      <span class="more-meta"> 245 words </span>
-      <span class="more-meta"> 2 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      -verbose:gc&mdash; date: 2018-10-24 title: &ldquo;JVM调优&rdquo; author: &ldquo;邓子明&rdquo; tags: - java - janusgraph categories: - java
-comment: true problem janusgraph 导数据工具，数据量大的时候，一直卡主。调参意义不大。 通过 -XX:-UseGCOverheadLimit -verbose:gc -XX:+PrintGCDetails 并不能看出啥信息。
-fix jmap [yangzhiyong@d28-235 graph_kg]$ jmap -heap 15294 Attaching to process ID 15294, please wait... Debugger attached successfully. Server compiler detected. JVM version is 25.74-b02 using thread-local object allocation. Parallel GC with 23 thread(s) Heap Configuration: MinHeapFreeRatio = 0 MaxHeapFreeRatio = 100 MaxHeapSize = 32210157568 (30718.
-    </div>
-    <div class="read-more">
-      <a href="/post/java/jvm-turn/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE%E4%B9%8Bid%E6%98%A0%E5%B0%84/"></a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 0001-01-01 </span>
-      
-      <span class="more-meta"> 2200 words </span>
-      <span class="more-meta"> 11 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      EncodingIdMapper put 方法：
-long eId = encode( inputId ); dataCache.set( nodeId, eId ); groupCache.set( nodeId, group.id() ); candidateHighestSetIndex.offer( nodeId );  dataCache.set( nodeId, eId );
-DynamicLongArray.set(long index, long value ) at( index ).set( index, value ); 1. at {DynamicNumberArray&lt;N extends NumberArray&lt;N&gt;&gt; @Override public N at( long index ) { if ( index &gt;= length() ) { synchronizedAddChunk( index ); // 扩容 new OffHeapLongArray( length, defaultValue, base ); } int chunkIndex = chunkIndex( index ); return chunks[chunkIndex]; } } at 方法先看情况给 chunks 扩容，实际上就是新建一个 OffHeapLongArray ，放到 chunks 数租，然后返回一个。实际上就是返回当前的顶点应该所在的 LongArray。 2.
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE%E4%B9%8Bid%E6%98%A0%E5%B0%84/" class="read-more-link">Read more</a>
     </div>
     
   </div>
@@ -566,6 +626,10 @@ DynamicLongArray.set(long index, long value ) at( index ).set( index, value ); 1
     
     <li  class="active" >
       <a href="/page/5/">5</a>
+    </li>
+    
+    <li >
+      <a href="/page/6/">6</a>
     </li>
     
   </nav>

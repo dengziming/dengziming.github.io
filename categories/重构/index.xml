@@ -12,19 +12,7 @@
     
     
     <item>
-      <title>重构笔记11-使用IDEA重构</title>
-      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B011-%E4%BD%BF%E7%94%A8idea%E9%87%8D%E6%9E%84/</link>
-      <pubDate>Fri, 23 Nov 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B011-%E4%BD%BF%E7%94%A8idea%E9%87%8D%E6%9E%84/</guid>
-      
-        <description>&lt;p&gt;当你学会了重构，需要使用一些工具，更加快速。&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>重构笔记9-处理概括关系</title>
+      <title>重构笔记10-大型重构</title>
       <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B010-%E5%A4%A7%E5%9E%8B%E9%87%8D%E6%9E%84/</link>
       <pubDate>Fri, 23 Nov 2018 00:00:00 +0000</pubDate>
       
@@ -86,6 +74,18 @@ class OrderLine
 
 &lt;p&gt;你有某个类做了太多工作，其中一部分工作是以大量条件表达式完成的。
 建立继承体系，以一个子类表示一种特殊情况。这里需要用到工厂模式。&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>重构笔记11-使用IDEA重构</title>
+      <link>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B011-%E4%BD%BF%E7%94%A8idea%E9%87%8D%E6%9E%84/</link>
+      <pubDate>Fri, 23 Nov 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B011-%E4%BD%BF%E7%94%A8idea%E9%87%8D%E6%9E%84/</guid>
+      
+        <description>&lt;p&gt;当你学会了重构，需要使用一些工具，更加快速。&lt;/p&gt;
 </description>
       
     </item>
