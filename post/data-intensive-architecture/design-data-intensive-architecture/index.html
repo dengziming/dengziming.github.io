@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>design-data-intensive-architecture - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/data-intensive-architecture/design-data-intensive-architecture/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="design-data-intensive-architecture" />
+<meta property="og:description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/data-intensive-architecture/design-data-intensive-architecture/" />
+
+
+
+<meta property="article:published_time" content="2018-12-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-12-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="design-data-intensive-architecture">
+<meta itemprop="description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud">
+
+
+<meta itemprop="dateModified" content="2018-12-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="1230">
+
+
+
+<meta itemprop="keywords" content="架构,大数据," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="design-data-intensive-architecture"/>
+<meta name="twitter:description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">design-data-intensive-architecture</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-12-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
+            
+          </div>
+        <span class="more-meta"> 1230 words </span>
+        <span class="more-meta"> 3 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li><a href="#第一部分-前言">第一部分、前言</a></li>
+<li><a href="#第二部分-数据系统的基础">第二部分、数据系统的基础</a>
+<ul>
+<li><a href="#一-reliable-scalable-和-maintainable-的含义">一、Reliable,Scalable 和 Maintainable 的含义</a>
+<ul>
+<li><a href="#1-reliable">1. Reliable</a></li>
+<li><a href="#2-scalable">2. Scalable</a></li>
+<li><a href="#3-maintainable">3. Maintainable</a></li>
+</ul></li>
+<li><a href="#二-数据模型和查询语言">二、数据模型和查询语言</a>
+<ul>
+<li><a href="#1-关系型与文档型">1.关系型与文档型</a></li>
+<li><a href="#2-nosql">2.NoSQL</a></li>
+<li><a href="#3-object-relational-mismatch">3. Object-Relational Mismatch</a></li>
+<li><a href="#4-many-to-one-and-many-to-many-relationships">4. Many-to-One and Many-to-Many Relationships</a></li>
+<li><a href="#5-query-languages-for-data">5. Query Languages for Data</a></li>
+<li><a href="#6-graph-like-data-models">6.Graph-Like Data Models</a></li>
+</ul></li>
+<li><a href="#三-storage-and-retrieval">三、Storage and Retrieval</a>
+<ul>
+<li><a href="#1-hash-indexes">1. Hash Indexes</a></li>
+<li><a href="#2-sstables-and-lsm-trees">2. SSTables and LSM-Trees</a></li>
+<li><a href="#3-b-trees">3. B-Trees</a></li>
+<li><a href="#4-multi-column-indexes">4. Multi-column indexes</a></li>
+<li><a href="#5-full-text-search-and-fuzzy-indexes">5. Full-text search and fuzzy indexes</a></li>
+<li><a href="#6-keeping-everything-in-memory">6.Keeping everything in memory</a></li>
+<li><a href="#7-olap-vs-oltp">7. OLAP vs OLTP</a></li>
+<li><a href="#8-数据仓库">8. 数据仓库</a></li>
+<li><a href="#9-stars-and-snowflakes-schemas-for-analytics">9. Stars and Snowflakes: Schemas for Analytics</a></li>
+<li><a href="#10-column-oriented-storage">10. Column-Oriented Storage</a></li>
+<li><a href="#11-column-compression">11. Column Compression</a></li>
+<li><a href="#12-sort-order-in-column-storage">12. Sort Order in Column Storage</a></li>
+<li><a href="#13-writing-to-column-oriented-storage">13. Writing to Column-Oriented Storage</a></li>
+<li><a href="#14-aggregation-data-cubes-and-materialized-views">14. Aggregation: Data Cubes and Materialized Views</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#第五部分-案例">第五部分、案例</a></li>
+<li><a href="#第六部分-资料">第六部分、资料</a></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h1 id="第一部分-前言">第一部分、前言</h1>
+
+<p>ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud，real-time，高并发架构将会逐渐成为基础。</p>
+
+<p>主要内容：
+（一）基础</p>
+
+<ol>
+<li>“reliability, scalability, and maintainability”</li>
+<li>数据模型</li>
+<li>存储引擎</li>
+<li>数据结构</li>
+</ol>
+
+<p>（二）分布式</p>
+
+<ol>
+<li>replication</li>
+<li>partitioning/sharding</li>
+<li>transaction</li>
+<li>distributed system</li>
+<li>consistency and consensus</li>
+</ol>
+
+<p>（三）交互</p>
+
+<ol>
+<li>batch process</li>
+<li>realtime</li>
+<li>put everything together</li>
+</ol>
+
+<p>（四）案例及资料</p>
+
+<h1 id="第二部分-数据系统的基础">第二部分、数据系统的基础</h1>
+
+<h2 id="一-reliable-scalable-和-maintainable-的含义">一、Reliable,Scalable 和 Maintainable 的含义</h2>
+
+<p>数据系统分为 data-intensive 和 compute-intensive，一般的大数据应用会采用的技术：
+1. 存储，方便后续的查询 &ndash; databases
+2. 缓存，加速访问 &ndash; caches
+3. 允许用户通过关键字搜索、按照过滤  &ndash; indexes
+4. 给另一个进程发送消息，异步处理  &ndash; streaming process
+5. 周期性处理全量数据  &ndash; batch process</p>
+
+<p>这一切都是需要数据系统，我们并不会从头开始搭建存储、计算系统，因为有很多现成的技术可以应用。数据库、消息队列功能都很相似，但是实现完全不同，导致不同的性能，所以我们用处不同，我们为什么要将他们结合到一起呢？</p>
+
+<p>其实许多工具功能比较重复，redis 其实也可以当消息队列，kafka 也可以做数据持久化。这些工具的界限越来越模糊。第二是我们得系统一般比较复杂，一个工具完成不了，我们必须组件一个数据系统。组件的过程
+有很多需要考虑的事情，其中最重要的三点：
+Reliable： 系统必须一致能够提供服务，即便是发生了一些不可预知的错误
+Scalable： 系统升级、功能扩展、访问量增加，导致我们需要能够很方便扩展我们的系统
+Maintainable： 随着时间推移，可能有很多其他人接受项目，必须方便别人进行维护</p>
+
+<p>有关这三点的介绍，我们逐渐展开：</p>
+
+<h3 id="1-reliable">1. Reliable</h3>
+
+<h3 id="2-scalable">2. Scalable</h3>
+
+<h3 id="3-maintainable">3. Maintainable</h3>
+
+<h2 id="二-数据模型和查询语言">二、数据模型和查询语言</h2>
+
+<p>数据模型是最重要的一部分，</p>
+
+<h3 id="1-关系型与文档型">1.关系型与文档型</h3>
+
+<h3 id="2-nosql">2.NoSQL</h3>
+
+<h3 id="3-object-relational-mismatch">3. Object-Relational Mismatch</h3>
+
+<h3 id="4-many-to-one-and-many-to-many-relationships">4. Many-to-One and Many-to-Many Relationships</h3>
+
+<h3 id="5-query-languages-for-data">5. Query Languages for Data</h3>
+
+<h3 id="6-graph-like-data-models">6.Graph-Like Data Models</h3>
+
+<h2 id="三-storage-and-retrieval">三、Storage and Retrieval</h2>
+
+<h3 id="1-hash-indexes">1. Hash Indexes</h3>
+
+<h3 id="2-sstables-and-lsm-trees">2. SSTables and LSM-Trees</h3>
+
+<h3 id="3-b-trees">3. B-Trees</h3>
+
+<h3 id="4-multi-column-indexes">4. Multi-column indexes</h3>
+
+<h3 id="5-full-text-search-and-fuzzy-indexes">5. Full-text search and fuzzy indexes</h3>
+
+<h3 id="6-keeping-everything-in-memory">6.Keeping everything in memory</h3>
+
+<h3 id="7-olap-vs-oltp">7. OLAP vs OLTP</h3>
+
+<h3 id="8-数据仓库">8. 数据仓库</h3>
+
+<h3 id="9-stars-and-snowflakes-schemas-for-analytics">9. Stars and Snowflakes: Schemas for Analytics</h3>
+
+<h3 id="10-column-oriented-storage">10. Column-Oriented Storage</h3>
+
+<h3 id="11-column-compression">11. Column Compression</h3>
+
+<h3 id="12-sort-order-in-column-storage">12. Sort Order in Column Storage</h3>
+
+<h3 id="13-writing-to-column-oriented-storage">13. Writing to Column-Oriented Storage</h3>
+
+<p>前面写的有关列存储的优化在数据仓库中很重要，排序、位图索引、压缩都能加速查询，但是会让写数据更加麻烦。</p>
+
+<p>以 BTree 为理论的写方法，在这里完全没有用，如果你要在数据中插入一条数据，你需要重写所有的数据。</p>
+
+<p>但是还好的是，如果是 LSM-tree 的方式，首先写进内存排序，然后写磁盘。查询的时候，也是两部分结果进行合并，Vertica 数据仓库就是这么做的。</p>
+
+<h3 id="14-aggregation-data-cubes-and-materialized-views">14. Aggregation: Data Cubes and Materialized Views</h3>
+
+<p>并不是所有的数据仓库都是使用列存储，很多其他存储方式也会用到，但是列存储确实能够很大程度加快访问，所以越来越流行。</p>
+
+<p>另一种值得一提的数据仓库技术就是 materialized aggregates。前面所说的，查询经常会遇到一些聚合， 例如 count，sum，如果一个查询被很多查询共用，可以将结果缓存。
+其中一种方法就是 materialized view，类似查询视图，只不过这个视图的结果已经计算好保存起来了。如果数据改变了，你的 materialized view 也要改变。</p>
+
+<p>一种常见的案例就是 data cube 后者 OLAP cube，就是根据不同纬度就行聚合后的结果。</p>
+
+<h1 id="第五部分-案例">第五部分、案例</h1>
+
+<p><a href="https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26">https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26</a></p>
+
+<p><a href="http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/">http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/</a></p>
+
+<p><a href="https://engineering.videoblocks.com/web-architecture-101-a3224e126947">https://engineering.videoblocks.com/web-architecture-101-a3224e126947</a></p>
+
+<h1 id="第六部分-资料">第六部分、资料</h1>
+
+<p>es设计架构，良心参考资料：
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db</a>
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571</a>
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d</a></p>
+
+<p>lsm b+tree 资料
+<a href="https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f">https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f</a></p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-12-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/%E6%9E%B6%E6%9E%84/">架构</a>
+          
+          <a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/">大数据</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+        
+          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF/">
+            <span class="next-text nav-default">常见错误及经验</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-12-22 00:00:00 \x2b0000 UTC',
+    title: 'design-data-intensive-architecture',
+    link: decodeURI(location.href),
+    desc: '第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2018
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

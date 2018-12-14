@@ -384,7 +384,7 @@ public StaticArrayEntry writeRelation(InternalRelation relation,
                 valuePosition = out.getPosition(); // 得到 position
                 // 写出另一个顶点的id
                 VariableLong.writePositive(out, otherVertexId);
-            } else { // 可能有多个关系，例如一个Person可能有多个 儿子节点
+            } else { // 可能有多个关系，例如一个Person可能有多个儿子节点，再或者 SIMPLE。
                 
                 // 这时候从后往前写，这个方法后面讨论  TODO 
                 VariableLong.writePositiveBackward(out, otherVertexId);
@@ -410,6 +410,11 @@ MULTIPLICITY为MULTI时的存储结构： 从后往前写 otherVertexId 和 rela
 MULTIPLICITY非MULTI且此方向存在多条边时的存储结构：从后往前写 otherVertexId，relationId 和其余放在 value里面
 
 MULTIPLICITY非MULTI且此方向仅有一条边时的存储结构： 不记录relationId，otherVertexId 放在value 里面
+
+我一直在思考这么设计的原因，现在想想明白了，MULTIPLICITY 为 非MULTI 时候，也就是有限制，无论是什么限制，总之两个顶点之间只能有一条该类型的边。
+所以 MULTIPLICITY 为 非MULTI 的时候，将 relationId 放在 value 中。这样哪怕你重复新建这条边，只是value 变了，key并没有变，而key是存在 bigtable 的 column 中的， bigtable 有个特性就是可以直接覆盖。
+MULTIPLICITY 为 MULTI 的时候，relationId 放在 key 中，每次添加新的边，column 的值不一样，这样就不会覆盖原有的边。
+
 */
 
     } else { // 如果是属性关系，得到属性的 key 和 value
