@@ -390,6 +390,34 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/first/">janus 常用语句总结</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph/"> janusgraph </a>
+          
+        </div>
+      <span class="more-meta"> 26 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() 网络拓展
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/first/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%903-%E8%B0%83%E7%94%A8%E6%A0%88/">janusgraph源码分析3-调用栈</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
@@ -550,34 +578,6 @@
     </div>
     <div class="read-more">
       <a href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/">neo4j源码分析1-编译打包启动</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 1254 words </span>
-      <span class="more-meta"> 3 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      1.打包 1.打包community 进入community,neo4j-graphdb-api， 注释掉common的： &lt;plugin&gt; &lt;groupId&gt;org.revapi&lt;/groupId&gt; &lt;artifactId&gt;revapi-maven-plugin&lt;/artifactId&gt; &lt;/plugin&gt; 里面好像涉及到了
-    </div>
-    <div class="read-more">
-      <a href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/" class="read-more-link">Read more</a>
     </div>
     
   </div>

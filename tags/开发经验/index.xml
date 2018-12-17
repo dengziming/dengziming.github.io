@@ -31,6 +31,27 @@
     </item>
     
     <item>
+      <title>janus 常用语句总结</title>
+      <link>https://dengziming.github.io/post/titan/first/</link>
+      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/titan/first/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;查询一批顶点周围所有的节点&#34;&gt;查询一批顶点周围所有的节点。&lt;/h2&gt;
+
+&lt;p&gt;graph = JanusGraphFactory.open(&amp;lsquo;conf/online/online_u2u_20181129.properties&amp;rsquo;);
+g = graph.traversal();
+vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600]
+g.V(vertIds).aggregate(&amp;lsquo;a&amp;rsquo;).bothE().where(inV().where(bothE(&amp;lsquo;a&amp;rsquo;))).inV()&lt;/p&gt;
+
+&lt;h2 id=&#34;网络拓展&#34;&gt;网络拓展&lt;/h2&gt;
+</description>
+      
+    </item>
+    
+    <item>
       <title>设计模式</title>
       <link>https://dengziming.github.io/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/</link>
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
