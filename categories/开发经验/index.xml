@@ -6,10 +6,38 @@
     <description>Recent content in 开发经验 on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 06 Dec 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 22 Feb 2019 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>cassandra使用</title>
+      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/</link>
+      <pubDate>Fri, 22 Feb 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;常用命令&#34;&gt;常用命令&lt;/h2&gt;
+
+&lt;p&gt;查看压缩转态：&lt;/p&gt;
+
+&lt;p&gt;bin/nodetool compactionstats&lt;/p&gt;
+
+&lt;p&gt;bin/nodetool disableautocompaction 可以禁用 compact，bin/nodetool enableautocompaction 启用&lt;/p&gt;
+
+&lt;h2 id=&#34;参数配置&#34;&gt;参数配置&lt;/h2&gt;
+
+&lt;p&gt;使用时候注意参数设置&lt;/p&gt;
+
+&lt;p&gt;alter table titan_20190104.edgestore with compaction = {&amp;lsquo;class&amp;rsquo;: &amp;lsquo;org.apache.cassandra.db.compaction.LeveledCompactionStrategy&amp;rsquo;, &amp;lsquo;sstable_size_in_mb&amp;rsquo;: 512};
+alter table titan_20190104.edgestore with compression = {&amp;lsquo;chunk_length_in_kb&amp;rsquo;: &amp;lsquo;1024&amp;rsquo;, &amp;lsquo;class&amp;rsquo;: &amp;lsquo;org.apache.cassandra.io.compress.LZ4Compressor&amp;rsquo;};
+alter table titan_20190104.edgestore with gc_grace_seconds = 259200;&lt;/p&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>常见错误及经验</title>
@@ -273,9 +301,14 @@ phone:ID(PHONE),isblack,ismedia,iscuishou
 &lt;h3 id=&#34;2-常见异常&#34;&gt;2.常见异常&lt;/h3&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;cached in local repository &amp;hellip;
-这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;
+cached in local repository &amp;hellip;
+这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/li&gt;
+&lt;/ol&gt;
 
+&lt;p&gt;也有可能是打的包是 war 包不是jar包，复制一份，改名为 .jar 即可。&lt;/p&gt;
+
+&lt;ol&gt;
 &lt;li&gt;&lt;p&gt;can&amp;rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
 例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 &lt;code&gt;mvn clean install -DskipTests=true -rf :janusgraph-es&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 
@@ -576,35 +609,6 @@ percentile_rank&lt;/p&gt;
     }
   }
 &lt;/code&gt;&lt;/pre&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>性能分析常用命令</title>
-      <link>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</guid>
-      
-        <description>
-
-&lt;h2 id=&#34;集群管理&#34;&gt;集群管理&lt;/h2&gt;
-
-&lt;p&gt;dmegs 这个命令显示是由于资源超出被杀的
-cat /proc/32414/limits
-limits -a
-各种limit，查看打开文件数据，max open files&lt;/p&gt;
-
-&lt;h3 id=&#34;1-进程线程&#34;&gt;1. 进程线程&lt;/h3&gt;
-
-&lt;h3 id=&#34;2-内存&#34;&gt;2.内存&lt;/h3&gt;
-
-&lt;h3 id=&#34;3-磁盘io&#34;&gt;3.磁盘IO&lt;/h3&gt;
-
-&lt;h3 id=&#34;4-cpu&#34;&gt;4.cpu&lt;/h3&gt;
-
-&lt;h3 id=&#34;5-网络&#34;&gt;5.网络&lt;/h3&gt;
 </description>
       
     </item>

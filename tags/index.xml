@@ -6,10 +6,21 @@
     <description>Recent content in Tags on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 22 Mar 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 22 Feb 2019 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cassandra</title>
+      <link>https://dengziming.github.io/tags/cassandra/</link>
+      <pubDate>Fri, 22 Feb 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/tags/cassandra/</guid>
+      
+        <description></description>
+      
+    </item>
     
     <item>
       <title>Github</title>
@@ -212,7 +223,7 @@
     <item>
       <title>大数据</title>
       <link>https://dengziming.github.io/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/</link>
-      <pubDate>Sat, 22 Dec 2018 00:00:00 +0000</pubDate>
+      <pubDate>Mon, 31 Dec 2018 00:00:00 +0000</pubDate>
       
       <guid>https://dengziming.github.io/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/</guid>
       
@@ -311,7 +322,7 @@
     <item>
       <title>架构</title>
       <link>https://dengziming.github.io/tags/%E6%9E%B6%E6%9E%84/</link>
-      <pubDate>Sat, 22 Dec 2018 00:00:00 +0000</pubDate>
+      <pubDate>Mon, 31 Dec 2018 00:00:00 +0000</pubDate>
       
       <guid>https://dengziming.github.io/tags/%E6%9E%B6%E6%9E%84/</guid>
       
@@ -380,17 +391,6 @@
       <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
       
       <guid>https://dengziming.github.io/tags/%E8%B5%84%E6%96%99/</guid>
-      
-        <description></description>
-      
-    </item>
-    
-    <item>
-      <title>运维</title>
-      <link>https://dengziming.github.io/tags/%E8%BF%90%E7%BB%B4/</link>
-      <pubDate>Thu, 22 Mar 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/tags/%E8%BF%90%E7%BB%B4/</guid>
       
         <description></description>
       

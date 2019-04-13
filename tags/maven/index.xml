@@ -40,9 +40,14 @@
 &lt;h3 id=&#34;2-常见异常&#34;&gt;2.常见异常&lt;/h3&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;cached in local repository &amp;hellip;
-这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;
+cached in local repository &amp;hellip;
+这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。&lt;/li&gt;
+&lt;/ol&gt;
 
+&lt;p&gt;也有可能是打的包是 war 包不是jar包，复制一份，改名为 .jar 即可。&lt;/p&gt;
+
+&lt;ol&gt;
 &lt;li&gt;&lt;p&gt;can&amp;rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
 例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 &lt;code&gt;mvn clean install -DskipTests=true -rf :janusgraph-es&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 

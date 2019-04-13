@@ -166,6 +166,90 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E4%BC%81%E4%B8%9A%E7%89%88%E5%88%86%E6%9E%90/">neo4j企业版分析</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 331 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      阅读neo4j源码是为了改造，所以研究一下企业版的源码。OpenEnterpriseNeoServer 和 CommunityNeoServer 稍微对比一下。 CommunityNeoServer protected static final GraphFactory COMMUNITY_FACTORY = ( config, dependencies
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E4%BC%81%E4%B8%9A%E7%89%88%E5%88%86%E6%9E%90/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/">neo4j存储结构分析</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+          
+        </div>
+      <span class="more-meta"> 1853 words </span>
+      <span class="more-meta"> 4 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      1.本文内容转自： https://key-value-stories.blogspot.tw/2015/02/neo4j-architecture.html?view=magazine This post compiles some information about architecture of Neo4j, the leading graph database. Research is relevant for Neo4j 2.2 version. There are three main kinds of primitives in Neo4j: nodes, relationships and properties. Nodes are connected via relationships. Properties could be attached to both nodes and relationships. All primitives are identified by identifiers, unique among primitive kind. Node and relationship
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/">neo4j导数据</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-03-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+          
+        </div>
+      <span class="more-meta"> 320 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      1.修改配置 dbms.security.allow_csv_import_from_file_urls=true &ndash; load csv 命令 dbms.directories.import=import restart neo4j 2.导入数据方法1 load csv with headers from &ldquo;file:///path/to/file&rdquo; as row create (:Employee {employeeId:toInt(row.id),first_name:row,first_name,title:row.title }); 3. 导入数据方法2 dbms.directories.import=/var/lib/neo4j/import/ 注释： dbms.security.allow_csv_import_from_file_urls=true 将文件放入 ：/var/lib/neo4j/
+    </div>
+    <div class="read-more">
+      <a href="/post/neo4j/neo4j%E5%AF%BC%E6%95%B0%E6%8D%AE/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/neo4j/neo4j%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E7%BC%96%E8%AF%91%E6%89%93%E5%8C%85%E5%90%AF%E5%8A%A8/">neo4j源码分析1-编译打包启动</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
@@ -342,7 +426,7 @@
             <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
           
         </div>
-      <span class="more-meta"> 849 words </span>
+      <span class="more-meta"> 879 words </span>
       <span class="more-meta"> 2 min read </span>
     </div>
   </header>
@@ -446,34 +530,6 @@
     
       <article class="post bg-white">
   <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">性能分析常用命令</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
-          
-        </div>
-      <span class="more-meta"> 67 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      集群管理 dmegs 这个命令显示是由于资源超出被杀的 cat /proc/32414/limits limits -a 各种limit，查看打开文件数据，max open files 1. 进程线程 2.内存 3.磁盘IO 4.cpu 5.网络
-    </div>
-    <div class="read-more">
-      <a href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/%E6%95%B0%E6%8D%AE%E5%BA%93/%E6%95%B0%E6%8D%AE%E5%BA%93%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/">数据库底层原理</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-03-22 </span>
@@ -522,62 +578,6 @@
     </div>
     <div class="read-more">
       <a href="/post/java/%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
-          
-        </div>
-      <span class="more-meta"> 406 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      一、过滤器模式 过滤器模式（Filter Pattern）或标准模式（Criteria Pattern）允许开发人员使用不同的标准来过滤一组对象，
-    </div>
-    <div class="read-more">
-      <a href="/post/java/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/">资料地址</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-03-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
-          
-        </div>
-      <span class="more-meta"> 16 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      常用 kafka reset offset https://gist.github.com/marwei/cd40657c481f94ebe273ecc16601674b 数据库底层原理 http://coding-geek.com/how-databases-work/ hashMap http://coding-geek.com/how-databases-work/
-    </div>
-    <div class="read-more">
-      <a href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E8%B5%84%E6%96%99%E5%9C%B0%E5%9D%80/" class="read-more-link">Read more</a>
     </div>
     
   </div>
@@ -677,7 +677,7 @@
     &copy; 
     
       2016 - 
-    2018
+    2019
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

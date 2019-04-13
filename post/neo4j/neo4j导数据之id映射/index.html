@@ -80,7 +80,7 @@ DynamicLongArray.set(long index, long value ) at( index ).set( index, value ); 1
 
 
 
-<meta itemprop="wordCount" content="2200">
+<meta itemprop="wordCount" content="2203">
 
 
 
@@ -183,7 +183,7 @@ DynamicLongArray.set(long index, long value ) at( index ).set( index, value ); 1
       <div class="post-meta">
         <span class="post-time"> 0001-01-01 </span>
         
-        <span class="more-meta"> 2200 words </span>
+        <span class="more-meta"> 2203 words </span>
         <span class="more-meta"> 11 min read </span>
       </div>
     </header>
@@ -265,9 +265,11 @@ at 方法先看情况给 chunks 扩容，实际上就是新建一个 OffHeapLong
 
 </code></pre>
 
-<p>dataCache 的set逻辑比较清楚了，dataCache 是一个 DynamicLongArray ，里面有一个 chunks = OffHeapLongArray[] ,每个 OffHeapLongArray 长度是一百万，数据增多了就新建 OffHeapLongArray。
+<p>dataCache 的set逻辑比较清楚了，dataCache 是一个 DynamicLongArray ，里面有一个 chunks = OffHeapLongArray[] ,
+每个 OffHeapLongArray 长度是一百万，数据增多了就新建 OffHeapLongArray。
 然后通过 Unsafe 的方法赋值，因为 ne4j 的 id 是连续的，所以直接移动八位就是下一个数据的存储地址。然后 putLong 放进去。
-这里我们其实有一些疑问，现在其实是将顶点的值 value 放到了它的 id 对应的位置上，我们要查一个 id 对应的值只需要找到对应地址即可，我们需要查询一个 value 对应的 id 还是没法查，所以我们接下来要研究一下怎么查。</p>
+这里我们其实有一些疑问，现在其实是将顶点的值 value 放到了它的 id 对应的位置上，我们要查一个 id 对应的值只需要找到对应地址即可，
+我们需要查询一个 value 对应的 id 还是没法查，所以我们接下来要研究一下怎么查。</p>
 
 <p>看 get 方法，看名字就知道这是一个二分查找，二分查找有个前提是数据是排好序的，然后不断得到中间的值和现有的值对比。</p>
 
@@ -363,7 +365,8 @@ private long binarySearch( long x, Object inputId, long low, long high, int grou
 例如上面5个数据我要查找 3 ,首先 left=0,right=4, mid =2，而 data[index[2]]=2,小于3，所以 left=2+1,mid=3 ，data[index[3]]=3,查找到了对应的索引是 3,</p>
 
 <p>所以我们可以猜想这里也是这个道理 dataCahce 排序的时候并没有交换数据二是通过 trackerCache 交换了对应的索引。
-而要查找 dataCahce 的数据，首先在得到 mid ，这个 mid 实际上是数据按照大小的排名，然后从 trackerCache 得到排名为 mid 的索引，然后调用 dataCache 得到排名为 mid 的数据，和已有的数据进行比较。</p>
+而要查找 dataCahce 的数据，首先在得到 mid ，这个 mid 实际上是数据按照大小的排名，然后从 trackerCache 得到排名为 mid 的索引，
+然后调用 dataCache 得到排名为 mid 的数据，和已有的数据进行比较。</p>
 
 <p>我们看看 trackerCache 注释：</p>
 
@@ -755,6 +758,11 @@ private long[][] sortRadix() throws InterruptedException
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
+          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">
+            <span class="next-text nav-default"></span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
       </nav>
     </footer>
     
@@ -820,7 +828,7 @@ private long[][] sortRadix() throws InterruptedException
     &copy; 
     
       2016 - 
-    2018
+    2019
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&amp;lsquo;conf/online/online_u2u_20181129.properties&amp;rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&amp;lsquo;a&amp;rsquo;).bothE().where(inV().where(bothE(&amp;lsquo;a&amp;rsquo;))).inV() 网络拓展" />
+  <meta name="description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&amp;lsquo;conf/online/online_u2u_20181129.properties&amp;rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&amp;lsquo;a&amp;rsquo;).bothE().where(inV().where(bothE(&amp;lsquo;a&amp;rsquo;))).inV() graph = JanusGraphFactory.open(&amp;lsquo;conf/online/online_titan.properties&amp;rsquo;); g = graph.traversal(); 网络拓展" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -50,7 +50,7 @@
 
 
 <meta property="og:title" content="janus 常用语句总结" />
-<meta property="og:description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() 网络拓展" />
+<meta property="og:description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() graph = JanusGraphFactory.open(&lsquo;conf/online/online_titan.properties&rsquo;); g = graph.traversal(); 网络拓展" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://dengziming.github.io/post/titan/first/" />
 
@@ -70,17 +70,17 @@
 
 
 <meta itemprop="name" content="janus 常用语句总结">
-<meta itemprop="description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() 网络拓展">
+<meta itemprop="description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() graph = JanusGraphFactory.open(&lsquo;conf/online/online_titan.properties&rsquo;); g = graph.traversal(); 网络拓展">
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="26">
+<meta itemprop="wordCount" content="32">
 
 
 
 <meta itemprop="keywords" content="开发经验,janusgraph," />
 <meta name="twitter:card" content="summary"/><meta name="twitter:title" content="janus 常用语句总结"/>
-<meta name="twitter:description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() 网络拓展"/>
+<meta name="twitter:description" content="查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(&lsquo;conf/online/online_u2u_20181129.properties&rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV() graph = JanusGraphFactory.open(&lsquo;conf/online/online_titan.properties&rsquo;); g = graph.traversal(); 网络拓展"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -179,7 +179,7 @@
               <a href="/categories/janusgraph/"> janusgraph </a>
             
           </div>
-        <span class="more-meta"> 26 words </span>
+        <span class="more-meta"> 32 words </span>
         <span class="more-meta"> 1 min read </span>
       </div>
     </header>
@@ -212,6 +212,9 @@
 g = graph.traversal();
 vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600]
 g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a&rsquo;))).inV()</p>
+
+<p>graph = JanusGraphFactory.open(&lsquo;conf/online/online_titan.properties&rsquo;);
+g = graph.traversal();</p>
 
 <h2 id="网络拓展">网络拓展</h2>
 
@@ -294,7 +297,7 @@ g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a
     id: '2018-03-22 00:00:00 \x2b0000 UTC',
     title: 'janus 常用语句总结',
     link: decodeURI(location.href),
-    desc: '查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(\x26lsquo;conf\/online\/online_u2u_20181129.properties\x26rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(\x26lsquo;a\x26rsquo;).bothE().where(inV().where(bothE(\x26lsquo;a\x26rsquo;))).inV() 网络拓展',
+    desc: '查询一批顶点周围所有的节点。 graph = JanusGraphFactory.open(\x26lsquo;conf\/online\/online_u2u_20181129.properties\x26rsquo;); g = graph.traversal(); vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600] g.V(vertIds).aggregate(\x26lsquo;a\x26rsquo;).bothE().where(inV().where(bothE(\x26lsquo;a\x26rsquo;))).inV() graph = JanusGraphFactory.open(\x26lsquo;conf\/online\/online_titan.properties\x26rsquo;); g = graph.traversal(); 网络拓展',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {
@@ -343,7 +346,7 @@ g.V(vertIds).aggregate(&lsquo;a&rsquo;).bothE().where(inV().where(bothE(&lsquo;a
     &copy; 
     
       2016 - 
-    2018
+    2019
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

@@ -74,7 +74,7 @@
 
 
 <meta itemprop="dateModified" content="2018-03-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="849">
+<meta itemprop="wordCount" content="879">
 
 
 
@@ -179,7 +179,7 @@
               <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
             
           </div>
-        <span class="more-meta"> 849 words </span>
+        <span class="more-meta"> 879 words </span>
         <span class="more-meta"> 2 min read </span>
       </div>
     </header>
@@ -230,9 +230,14 @@
 <h3 id="2-常见异常">2.常见异常</h3>
 
 <ol>
-<li><p>cached in local repository &hellip;
-这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。</p></li>
+<li>
+cached in local repository &hellip;
+这个原因可能是上一次更新失败，会有一个update文件放在本地，去repository对应目录删除即可。</li>
+</ol>
 
+<p>也有可能是打的包是 war 包不是jar包，复制一份，改名为 .jar 即可。</p>
+
+<ol>
 <li><p>can&rsquo;t find jar in alimaven， 这个原因是仓库可能没这个jar，可是换一个仓库。
 例如换成开源中国的仓库，但是可能又有新的错误，最好是使用 -rf 从某一个重新开始打包 <code>mvn clean install -DskipTests=true -rf :janusgraph-es</code></p></li>
 
@@ -456,7 +461,7 @@ inspect a maven model for resolution</li>
     &copy; 
     
       2016 - 
-    2018
+    2019
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

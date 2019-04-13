@@ -46,6 +46,9 @@ g = graph.traversal();
 vertIds=[824746000,41257885816,41418600552,41436626944,41687556288,82284519496,287094591600]
 g.V(vertIds).aggregate(&amp;lsquo;a&amp;rsquo;).bothE().where(inV().where(bothE(&amp;lsquo;a&amp;rsquo;))).inV()&lt;/p&gt;
 
+&lt;p&gt;graph = JanusGraphFactory.open(&amp;lsquo;conf/online/online_titan.properties&amp;rsquo;);
+g = graph.traversal();&lt;/p&gt;
+
 &lt;h2 id=&#34;网络拓展&#34;&gt;网络拓展&lt;/h2&gt;
 </description>
       

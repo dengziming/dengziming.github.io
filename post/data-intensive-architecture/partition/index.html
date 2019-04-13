@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>design-data-intensive-architecture - 数据分析师之旅</title>
+  <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="邓子明" />
+  <meta name="description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud" />
+
+  <meta name="keywords" content="大数据, AI, 机器学习" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.26" />
+
+
+<link rel="canonical" href="https://dengziming.github.io/post/data-intensive-architecture/partition/" />
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" href="/favicon.ico" />
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+
+<link href="/dist/jane.min.css?v=2.7.0" rel="stylesheet">
+<link href="/lib/fancybox/jquery.fancybox-3.1.20.min.css" rel="stylesheet">
+
+
+
+
+<meta property="og:title" content="design-data-intensive-architecture" />
+<meta property="og:description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://dengziming.github.io/post/data-intensive-architecture/partition/" />
+
+
+
+<meta property="article:published_time" content="2018-12-22T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2018-12-22T00:00:00&#43;00:00"/>
+
+
+
+
+
+
+
+
+
+
+
+<meta itemprop="name" content="design-data-intensive-architecture">
+<meta itemprop="description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud">
+
+
+<meta itemprop="dateModified" content="2018-12-22T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="6478">
+
+
+
+<meta itemprop="keywords" content="架构,大数据," />
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="design-data-intensive-architecture"/>
+<meta name="twitter:description" content="第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dengziming</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">列表</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">标签</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">分类</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a><a href="https://gohugo.io">
+        <li class="mobile-menu-item">站外链接</li>
+      </a>
+  </ul>
+</nav>
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">Dengziming</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        
+        <a class="menu-item-link" href="/">Home</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/post/">列表</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/tags/">标签</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/categories/">分类</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="/about/">About</a>
+        
+      </li><li class="menu-item">
+        
+        <a class="menu-item-link" href="https://gohugo.io" target="_blank">
+          站外链接
+          <i class="iconfont icon-new-window"></i>
+        </a>
+        
+      </li>
+  </ul>
+</nav>
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">design-data-intensive-architecture</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2018-12-22 </span>
+        <div class="post-category">
+            
+              <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
+            
+          </div>
+        <span class="more-meta"> 6478 words </span>
+        <span class="more-meta"> 13 min read </span>
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+<ul>
+<li><a href="#第一部分-前言">第一部分、前言</a></li>
+<li><a href="#第二部分-数据系统的基础">第二部分、数据系统的基础</a>
+<ul>
+<li><a href="#一-reliable-scalable-和-maintainable-的含义">一、Reliable,Scalable 和 Maintainable 的含义</a>
+<ul>
+<li><a href="#1-reliable">1. Reliable</a></li>
+<li><a href="#2-scalable">2. Scalable</a></li>
+<li><a href="#3-maintainable">3. Maintainable</a></li>
+</ul></li>
+<li><a href="#二-数据模型和查询语言">二、数据模型和查询语言</a>
+<ul>
+<li><a href="#1-关系型与文档型">1.关系型与文档型</a></li>
+<li><a href="#2-nosql">2.NoSQL</a></li>
+<li><a href="#3-object-relational-mismatch">3. Object-Relational Mismatch</a></li>
+<li><a href="#4-many-to-one-and-many-to-many-relationships">4. Many-to-One and Many-to-Many Relationships</a></li>
+<li><a href="#5-query-languages-for-data">5. Query Languages for Data</a></li>
+<li><a href="#6-graph-like-data-models">6.Graph-Like Data Models</a></li>
+</ul></li>
+<li><a href="#三-storage-and-retrieval">三、Storage and Retrieval</a>
+<ul>
+<li><a href="#1-hash-indexes">1. Hash Indexes</a></li>
+<li><a href="#2-sstables-and-lsm-trees">2. SSTables and LSM-Trees</a></li>
+<li><a href="#3-b-trees">3. B-Trees</a></li>
+<li><a href="#4-multi-column-indexes">4. Multi-column indexes</a></li>
+<li><a href="#5-full-text-search-and-fuzzy-indexes">5. Full-text search and fuzzy indexes</a></li>
+<li><a href="#6-keeping-everything-in-memory">6.Keeping everything in memory</a></li>
+<li><a href="#7-olap-vs-oltp">7. OLAP vs OLTP</a></li>
+<li><a href="#8-数据仓库">8. 数据仓库</a></li>
+<li><a href="#9-stars-and-snowflakes-schemas-for-analytics">9. Stars and Snowflakes: Schemas for Analytics</a></li>
+<li><a href="#10-column-oriented-storage">10. Column-Oriented Storage</a></li>
+<li><a href="#11-column-compression">11. Column Compression</a></li>
+<li><a href="#12-sort-order-in-column-storage">12. Sort Order in Column Storage</a></li>
+<li><a href="#13-writing-to-column-oriented-storage">13. Writing to Column-Oriented Storage</a></li>
+<li><a href="#14-aggregation-data-cubes-and-materialized-views">14. Aggregation: Data Cubes and Materialized Views</a></li>
+</ul></li>
+<li><a href="#四-encoding-and-evolution">四、Encoding and Evolution</a>
+<ul>
+<li><a href="#1-formats-for-encoding-data">1. Formats for Encoding Data</a>
+<ul>
+<li><a href="#1-language-specific-formats">(1) Language-Specific Formats</a></li>
+<li><a href="#2-json-xml-and-binary-variants">(2) JSON, XML, and Binary Variants</a></li>
+<li><a href="#3-thrift-and-protocol-buffers">(3) Thrift and Protocol Buffers</a></li>
+<li><a href="#4-field-tags-and-schema-evolution">(4) Field tags and schema evolution</a></li>
+<li><a href="#5-datatypes-and-schema-evolution">(5) Datatypes and schema evolution</a></li>
+<li><a href="#6-avro">(6) avro</a></li>
+<li><a href="#7-dynamically-generated-schemas">(7) Dynamically generated schemas</a></li>
+<li><a href="#8-code-generation-and-dynamically-typed-languages">(8) Code generation and dynamically typed languages</a></li>
+<li><a href="#9-the-merits-of-schemas">(9) The Merits of Schemas</a></li>
+</ul></li>
+<li><a href="#二-modes-of-dataflow">二、 Modes of Dataflow</a>
+<ul>
+<li><a href="#1-dataflow-through-databases">1.Dataflow Through Databases</a></li>
+<li><a href="#2-dataflow-through-services-rest-and-rpc">2.Dataflow Through Services: REST and RPC</a></li>
+<li><a href="#3-message-passing-dataflow">3.  Message-Passing Dataflow</a></li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li><a href="#第二部分-分布式">第二部分、分布式</a>
+<ul>
+<li><a href="#一-replication">一、Replication</a>
+<ul>
+<li><a href="#1-leaders-and-followers">1. Leaders and Followers</a>
+<ul>
+<li><a href="#1-synchronous-versus-asynchronous-replication">(1) Synchronous Versus Asynchronous Replication</a></li>
+<li><a href="#2-setting-up-new-followers">(2) Setting Up New Followers</a></li>
+<li><a href="#3-handling-node-outages">(3) Handling Node Outages</a></li>
+<li><a href="#4-implementation-of-replication-logs">(4) Implementation of Replication Logs</a></li>
+<li><a href="#5-problems-with-replication-lag">(5) Problems with Replication Lag</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#二-partitioning">二、Partitioning</a></li>
+</ul></li>
+<li><a href="#第五部分-案例">第五部分、案例</a></li>
+<li><a href="#第六部分-资料">第六部分、资料</a></li>
+</ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      
+
+<h1 id="第一部分-前言">第一部分、前言</h1>
+
+<p>ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud，real-time，高并发架构将会逐渐成为基础。</p>
+
+<p>主要内容：
+（一）基础</p>
+
+<ol>
+<li>“reliability, scalability, and maintainability”</li>
+<li>数据模型</li>
+<li>存储引擎</li>
+<li>数据结构</li>
+</ol>
+
+<p>（二）分布式</p>
+
+<ol>
+<li>replication</li>
+<li>partitioning/sharding</li>
+<li>transaction</li>
+<li>distributed system</li>
+<li>consistency and consensus</li>
+</ol>
+
+<p>（三）交互</p>
+
+<ol>
+<li>batch process</li>
+<li>realtime</li>
+<li>put everything together</li>
+</ol>
+
+<p>（四）案例及资料</p>
+
+<h1 id="第二部分-数据系统的基础">第二部分、数据系统的基础</h1>
+
+<h2 id="一-reliable-scalable-和-maintainable-的含义">一、Reliable,Scalable 和 Maintainable 的含义</h2>
+
+<p>数据系统分为 data-intensive 和 compute-intensive，一般的大数据应用会采用的技术：
+1. 存储，方便后续的查询 &ndash; databases
+2. 缓存，加速访问 &ndash; caches
+3. 允许用户通过关键字搜索、按照过滤  &ndash; indexes
+4. 给另一个进程发送消息，异步处理  &ndash; streaming process
+5. 周期性处理全量数据  &ndash; batch process</p>
+
+<p>这一切都是需要数据系统，我们并不会从头开始搭建存储、计算系统，因为有很多现成的技术可以应用。数据库、消息队列功能都很相似，但是实现完全不同，导致不同的性能，所以我们用处不同，我们为什么要将他们结合到一起呢？</p>
+
+<p>其实许多工具功能比较重复，redis 其实也可以当消息队列，kafka 也可以做数据持久化。这些工具的界限越来越模糊。第二是我们得系统一般比较复杂，一个工具完成不了，我们必须组件一个数据系统。组件的过程
+有很多需要考虑的事情，其中最重要的三点：
+Reliable： 系统必须一致能够提供服务，即便是发生了一些不可预知的错误
+Scalable： 系统升级、功能扩展、访问量增加，导致我们需要能够很方便扩展我们的系统
+Maintainable： 随着时间推移，可能有很多其他人接受项目，必须方便别人进行维护</p>
+
+<p>有关这三点的介绍，我们逐渐展开：</p>
+
+<h3 id="1-reliable">1. Reliable</h3>
+
+<h3 id="2-scalable">2. Scalable</h3>
+
+<h3 id="3-maintainable">3. Maintainable</h3>
+
+<h2 id="二-数据模型和查询语言">二、数据模型和查询语言</h2>
+
+<p>数据模型是最重要的一部分，</p>
+
+<h3 id="1-关系型与文档型">1.关系型与文档型</h3>
+
+<h3 id="2-nosql">2.NoSQL</h3>
+
+<h3 id="3-object-relational-mismatch">3. Object-Relational Mismatch</h3>
+
+<h3 id="4-many-to-one-and-many-to-many-relationships">4. Many-to-One and Many-to-Many Relationships</h3>
+
+<h3 id="5-query-languages-for-data">5. Query Languages for Data</h3>
+
+<h3 id="6-graph-like-data-models">6.Graph-Like Data Models</h3>
+
+<h2 id="三-storage-and-retrieval">三、Storage and Retrieval</h2>
+
+<h3 id="1-hash-indexes">1. Hash Indexes</h3>
+
+<h3 id="2-sstables-and-lsm-trees">2. SSTables and LSM-Trees</h3>
+
+<h3 id="3-b-trees">3. B-Trees</h3>
+
+<h3 id="4-multi-column-indexes">4. Multi-column indexes</h3>
+
+<h3 id="5-full-text-search-and-fuzzy-indexes">5. Full-text search and fuzzy indexes</h3>
+
+<h3 id="6-keeping-everything-in-memory">6.Keeping everything in memory</h3>
+
+<h3 id="7-olap-vs-oltp">7. OLAP vs OLTP</h3>
+
+<h3 id="8-数据仓库">8. 数据仓库</h3>
+
+<h3 id="9-stars-and-snowflakes-schemas-for-analytics">9. Stars and Snowflakes: Schemas for Analytics</h3>
+
+<h3 id="10-column-oriented-storage">10. Column-Oriented Storage</h3>
+
+<h3 id="11-column-compression">11. Column Compression</h3>
+
+<h3 id="12-sort-order-in-column-storage">12. Sort Order in Column Storage</h3>
+
+<h3 id="13-writing-to-column-oriented-storage">13. Writing to Column-Oriented Storage</h3>
+
+<p>前面写的有关列存储的优化在数据仓库中很重要，排序、位图索引、压缩都能加速查询，但是会让写数据更加麻烦。</p>
+
+<p>以 BTree 为理论的写方法，在这里完全没有用，如果你要在数据中插入一条数据，你需要重写所有的数据。</p>
+
+<p>但是还好的是，如果是 LSM-tree 的方式，首先写进内存排序，然后写磁盘。查询的时候，也是两部分结果进行合并，Vertica 数据仓库就是这么做的。</p>
+
+<h3 id="14-aggregation-data-cubes-and-materialized-views">14. Aggregation: Data Cubes and Materialized Views</h3>
+
+<p>并不是所有的数据仓库都是使用列存储，很多其他存储方式也会用到，但是列存储确实能够很大程度加快访问，所以越来越流行。</p>
+
+<p>另一种值得一提的数据仓库技术就是 materialized aggregates。前面所说的，查询经常会遇到一些聚合， 例如 count，sum，如果一个查询被很多查询共用，可以将结果缓存。
+其中一种方法就是 materialized view，类似查询视图，只不过这个视图的结果已经计算好保存起来了。如果数据改变了，你的 materialized view 也要改变。</p>
+
+<p>一种常见的案例就是 data cube 后者 OLAP cube，就是根据不同纬度就行聚合后的结果。举个列子，如果表格有 日期、商品种类、销售额三列，我们可以计算销售额在 日期、商品种类 两个维度下的聚合只，得到一个二维表格。
+二维表格的两个维度分别为日期和商品种类，表格的值就是销售额，然后如果要计算每个维度下的 sum，只需要将对应维度所有值 sum 到一起。</p>
+
+<p>实际上，表格都不止两个维度，假如有五个维度，情况就很复杂了。但是原则不变，每个 cell 保存五个维度组合下的聚合值。</p>
+
+<p>通过 cube 可以加速某些查询，但是如果要计算订单额度大于 100 的比例，那就没法计算了，因为额度很难作为一个维度。所以一般只作为一个加快部分查询的工具。</p>
+
+<h2 id="四-encoding-and-evolution">四、Encoding and Evolution</h2>
+
+<p>服务总是要变的，服务变了，服务之间的代码也要变。服务端可以做滚动升级，也就是部分服务器先升级，保证没错的话，其他的继续升级。
+而客户端也就是用户端，代码变化必须做到向前向后兼容，也就是说，高版本要能够处理低版本的数据，这很简单；低版本的代码，必须能从高版本的架构读数据，这是比较难的。
+接下来我们将会看一些数据结构，JSON, XML, Protocol Buffers, Thrift, and Avro ，主要看他们在这些data storage and for communication系统中如何使用：
+in web services, Representational State Transfer (REST), and remote procedure calls (RPC), as well as message-passing systems such as actors and message queues</p>
+
+<h3 id="1-formats-for-encoding-data">1. Formats for Encoding Data</h3>
+
+<p>一般的应用都会处理两种数据。内存主要是通过对象、数组、树、hash表等，而需要保存、传输时候，需要进行序列化，由于指针引用序列化后是没用的，所以序列化后的结构和内存结构完全不用。
+从设计模式角度考虑，我们需要进行一个适配，两边都要适配的话，实际上就是做一个转换。内存到 byte sequence 的过程称为 encoding（或者 serialization、marshalling），反过来讲decoding（deserialization、parsing、unmarshalling）</p>
+
+<p>** 专业术语冲突
+serialization 在数据库的事务中也会用到，但是完全是另外一码子事情，后续会进行介绍。这里使用的时候我们以 encoding 为主，虽然平时 serialization 用的更多。</p>
+
+<p>这里我们将会以一条数据为例,对它进行编码：</p>
+
+<pre><code class="language-json">{
+    &quot;userName&quot;: &quot;Martin&quot;,
+    &quot;favoriteNumber&quot;: 1337,
+    &quot;interests&quot;: [&quot;daydreaming&quot;, &quot;hacking&quot;]
+}
+</code></pre>
+
+<h4 id="1-language-specific-formats">(1) Language-Specific Formats</h4>
+
+<p>java.io.Serializable 属于java 自带的序列化机制，很多编程语言都自带了。当然也有很多第三方的，比如 Kryo for Java。这些很方便，因为你只需要直接读然后调用java对应的方法即可。但是问题也很多。</p>
+
+<ol>
+<li>通用性问题，不多说。</li>
+<li>数据会有类型，例如java 序列化必须只能解析为特定的类。所以会定义很多类，这样可能导致一些人得到你的类信息，然后远程植入代码。</li>
+<li>版本问题。</li>
+<li>效率问题。</li>
+</ol>
+
+<h4 id="2-json-xml-and-binary-variants">(2) JSON, XML, and Binary Variants</h4>
+
+<p>JSON, XML 一般都很熟悉，优缺点都很明显，二进制的编码在某些内网的应用中很常见，还能节约空间。例如 MassagePack 就是二进制的 json。</p>
+
+<h4 id="3-thrift-and-protocol-buffers">(3) Thrift and Protocol Buffers</h4>
+
+<p>Thrift and Protocol Buffers 很多人都知道，作为两种序列化的框架，当然还提供了别的功能，例如 RPC 通信接口。都需要定义一个schema：</p>
+
+<p>Thrift 的定义格式：</p>
+
+<pre><code class="language-java">struct Person {
+  1: required string       userName,
+  2: optional i64          favoriteNumber,
+  3: optional list&lt;string&gt; interests
+}
+</code></pre>
+
+<p>pb 的定义格式：</p>
+
+<pre><code class="language-java">message Person {
+    required string user_name       = 1;
+    optional int64  favorite_number = 2;
+    repeated string interests       = 3;
+}
+</code></pre>
+
+<p>然后他们都有代码生成的工具，可以针对各种语言生成相应的代码，用来 encode 和 decode 数据。thrift 的格式有两种 BinaryProtocol and CompactProtocol。</p>
+
+<p>BinaryProtocol 表示上面的数据格式需要 59 bytes ：</p>
+
+<pre><code>0b 00 01 00 00 00 06 4d 61 72 74 69 6e     0b 是 type代表 String，紧接着 00 01 代表 field tag 为1，然后 00 00 00 06 代表长度为6，剩下的六bytes 代表数据。
+0a 00 02 00 00 00 00 00 00 05 39           和刚才一样， 0a 代表int64 ，
+0f 00 03 0b 00 00 00 02                    0f 代表list，00 03代表 field tag 为3，0b 代表 item type 为 string，00 00 00 02 代表长度为2，
+	00 00 00 0b 64 61 79 ....              长度和数据
+	00 00 00 07 68 ..... 				   长度和数据
+00											结束标志
+</code></pre>
+
+<p>CompactProtocol 和 BinaryProtocol 的结构类似，但是进行了一些压缩，需要 33 bytes</p>
+
+<pre><code>18 06 4d ....  							  18 是 00011000 field type and tag number 合在一起，0001 是 tag，
+										  1000 是 type 是string （为什么8 代表 string，上面是11），06 长度，后面是数据
+										  另外int类型并不是占了 64位，这里的 06是两位，共 8 字节，
+										  最高位代表数据是否已经完整，剩下的七位是数据。如果数据不完整，需要再占8位。这样 -64 到 63 之间的数据只占了1byte
+										  
+16 f2 14 								  16 是 00010110，0001 代表 field tag 比上一个加一，0110 数据类型 后面的 f214 是数据，f2 最高位是1，数据没完，需要往下一位读。
+19 28
+    0b 64 .....
+    07 68 ....
+00
+</code></pre>
+
+<p>ProtocolBuffer 和 Thrift 的 CompactProtocol 类似，需要 33 bytes</p>
+
+<pre><code>0a 06 4d 61 72 74 69 6e       			  0a 是 tag(00001) 和 type(010), 06 是长度。 后面是数据
+10 b9 0a 								  10 是tag (00010) 和 type（000）,后面是长度+数据
+1a 0b ........							  1a 是 tag 和 type，后面是长度+数据
+1a 07 ........							  1a 是 tag 和 type，后面是长度+数据
+</code></pre>
+
+<p>和 CompactProtocol 稍微有些不一样，tag+type 为两位，另外 list 类型直接存两个。</p>
+
+<p>需要注意的是，前面我们的例子中，数据要么是 要么是 required or optional，实际上这对于数据的存储没有任何影响，都是一样的存储，只是在最后解析的时候影响，例如你设置的是 required ，但是没有解析出来，会失败。</p>
+
+<h4 id="4-field-tags-and-schema-evolution">(4) Field tags and schema evolution</h4>
+
+<p>前面讲过数据需要改变，那 pb 和 thrift 如何应对schema 的变化，做到向前向后兼容呢？
+其实我们从上面的数据可以看出，最重要就是 field tag 了，只要 field tag 唯一，哪怕是增加了数据，减少了数据，最终的结果其实还是一样的。你可以改变变量名字，但是不能改变 tag。
+首先是向后兼容，只要你新加的 field tag 不被设置为 required，就不会报错，另外删除数据也是，不能删除 required 的数据。
+另外是向前兼容，如果是旧的代码读取新的数据，如果遇到不认识的 field tag ，会直接忽略。</p>
+
+<h4 id="5-datatypes-and-schema-evolution">(5) Datatypes and schema evolution</h4>
+
+<p>数据类型发生变化，一方面可能是数据精度收到影响，另一方面，我们可以看出 pb 是可以讲啊 list 类型变成 optional 的，但是 thrift 不行，因为 thrift 提供了 list 类型，但是这样可以用来写嵌套数据。</p>
+
+<h4 id="6-avro">(6) avro</h4>
+
+<p>avro 也是一个序列胡框架，他和 pb、thrift 不同点在于没有 tagNumber，这其实很适合动态生成schema，我们不介绍了。</p>
+
+<h4 id="7-dynamically-generated-schemas">(7) Dynamically generated schemas</h4>
+
+<p>如果我们的数据增加了一列，并且减少了一列，对于 avro 来说，只需要重新生成一个 schema 即可，而如果使用 pb、thrift，需要手动进行配置tag和field 的映射，</p>
+
+<h4 id="8-code-generation-and-dynamically-typed-languages">(8) Code generation and dynamically typed languages</h4>
+
+<p>代码生成，例如 pb 可以生成 java 和 python 的代码。</p>
+
+<h4 id="9-the-merits-of-schemas">(9) The Merits of Schemas</h4>
+
+<h3 id="二-modes-of-dataflow">二、 Modes of Dataflow</h3>
+
+<p>我们需要在进程之间发送数据，</p>
+
+<h4 id="1-dataflow-through-databases">1.Dataflow Through Databases</h4>
+
+<h4 id="2-dataflow-through-services-rest-and-rpc">2.Dataflow Through Services: REST and RPC</h4>
+
+<h4 id="3-message-passing-dataflow">3.  Message-Passing Dataflow</h4>
+
+<h1 id="第二部分-分布式">第二部分、分布式</h1>
+
+<p>使用分布式的原因很多，例如 Scalability，high available，latency。数据分布式有很多种方式，首先是副本、分区，也就是 Replication 和 Partition。</p>
+
+<h2 id="一-replication">一、Replication</h2>
+
+<p>Replication 就是将你的数据放在多个节点，这样有很多好处。首先是数据从地理上可以隔用户更近，保持高可用，增加吞吐量。</p>
+
+<p>本章我们假设数据都是完整的进行副本存放，后面再讲分区。数据的副本解决难点就是数据变化的一致性，如果数据一致不变，那就太简单了。
+对于变化，有三种设计：single-leader, multi-leader, and leaderless</p>
+
+<h3 id="1-leaders-and-followers">1. Leaders and Followers</h3>
+
+<p>每个节点上面的副本叫做 replica ，当有 multi replica 的时候，一个问题出现了，怎么保证数据写到了每一个副本。数据库的每一次写都必须保证被每个副本处理，否则就会出现不一致。
+最常用的解决方案就是 leader-based-replication，也叫 active-passive、master-slave。</p>
+
+<p>在主从结构中，写只能发送给 leader，leader 写的时候会发送数据给 follower，而读操作可以读任何一个节点。</p>
+
+<h4 id="1-synchronous-versus-asynchronous-replication">(1) Synchronous Versus Asynchronous Replication</h4>
+
+<p>replicated 系统重要特点就是 同步写还是异步写，一般关系型数据库可以配置，其他的都是硬编码写死的。</p>
+
+<p>客户端发送数据给leader，然后leader转发给follower，最后通知client。如果 leader 收到 follower 的确认消息再回复client，这就是同步。
+如果leader发送给了 follower后就直接回复client，就是异步。一般情况，系统都只有一个follower是同步，其余的都是异步。这叫 semi-synchronous。</p>
+
+<p>为了效率经常设置为 Asynchronous，这样如何 leader 失败了而且不恢复，那还没有被副本保存的数据就丢失了，这样的好处就是可以提供持续服务，尽管follower很慢。</p>
+
+<p>Weakening durability 可能是一个比较糟糕的 trade-off，但是 Asynchronous 还是很常用，尤其是地理上分布式的集群。</p>
+
+<p>当然也有很多其他的方案在研究中，例如 Azure 使用了 chain replication。</p>
+
+<h4 id="2-setting-up-new-followers">(2) Setting Up New Followers</h4>
+
+<p>系统有时候需要添加新的节点，如何保证新节点和leader的数据一致呢？直接复制数据过来肯定是不行的，leader 一直处在 flux 中，一般步骤有四步：
+1. leader 在某个确定一致性的时间点拍一个 snapshot 而不用锁住系统，大部分数据库都提供了这个功能，有的能通过第三方工具提供这个功能。
+2. follower 将数据复制过去。
+3. follower 将从这个时间点以后的数据复制过去，这需要拍 snapshot 时候的日志位置，这个点的名字叫 Log sequence number 或者 binlog coordinates。
+4. 当 follower 将所有的change都同步后，我们称之为 catch up，就可以和其他follower一样，处理 leader 发生的变化了。</p>
+
+<p>真正的步骤其实是有很多不同，有时候可以自动配置，有时候需要手动配置。</p>
+
+<h4 id="3-handling-node-outages">(3) Handling Node Outages</h4>
+
+<p>有时候节点会挂掉，可能是我们不知道的原因，也可能是为了安装系统模块而重启，这时候应该怎么保证集群的高可用</p>
+
+<ol>
+<li>follower 挂掉</li>
+</ol>
+
+<p>follower 挂点然后重启的步骤是很简单的，类似前面的添加新节点，启动以后，根据日志能找到最后一个处理的事务，然后从leader请求这个时间点以后的更改，然后进行更改，完成后就 catch up。</p>
+
+<ol>
+<li>leader failover</li>
+</ol>
+
+<p>leader 挂掉后可能麻烦一点，必须马上选择一名新的leader，这个过程被称为 failover</p>
+
+<p>failover的具体步骤有4：
+1. 确定leader失败了，失败的原因很多，磁盘、电源等等，目前用的最多的是 timeout 方法，节点相互 bounce message，如果突然在某个时间点收不到，就是失败了。
+2. 选择新的 leader，需要在大多数的follwer 进行选举，最好是选一个数据最新的。所有的节点同意这个节点成为 consensus。
+3. 告知系统使用新的leader，client 发送数据到新的 leader，旧的 leader 回复后也要认同新的 leader。</p>
+
+<p>failover 总是会有些不期而遇的问题：
+1. 如果是 asynchronous replica ，可能遇到一些数据没有同步过来，导致数据少了，如果这时候 older leader起来了，就会发生错误，这时候一般选择 discard 这部分数据。
+2. 如果系统和别的系统进行结合，discard 是很危险的，github 发生了一次 mysql leader挂掉，然后discard 了一部分，删掉了部分自增的primary key，可是这部分pk已经保存到 redis了，导致了错误
+3. 有时候两个节点都认为自己是 leader，这个叫做 split brain，这时候需要去掉一个，有可能两个都被去掉了。
+4. timeout 的具体值多少合适？如果太长了，可能导致发现的晚。如果太短了可能误判，尤其是系统压力大的时候，还重新换一次会造成更大的压力。</p>
+
+<p>这些问题解决起来还是很棘手的，所以有很多算法，我们后续会介绍。</p>
+
+<h4 id="4-implementation-of-replication-logs">(4) Implementation of Replication Logs</h4>
+
+<p>上面各种恢复，添加，都涉及到日志，日志记录了数据的更改，实际上我们学习Hadoop 的时候，也知道里面有日志，现在我们来研究一下，日志怎么实现。</p>
+
+<ol>
+<li>Statement-based replication</li>
+</ol>
+
+<p>基于 statement 的 replication，这是最简单的方法，数据库记录每一次更新，也就是说，你的 UPDATE、INSERT、DELETE都会记录到日志中，然后发送给follower。
+这样的问题是：
+对于 current_timestamp、random 这样的方法返回值不一样，基于判断的例如 update &hellip; where &hellip; 必须按照顺序，一些触发器、存储过程等 side effects。</p>
+
+<p>对于这些问题，当然也有特定的解决方案，例如先计算一些可能导致不一致的函数。</p>
+
+<ol>
+<li>WAL-log</li>
+</ol>
+
+<p>前面讲过 B-Tree 和 LSM-Tree，都是基于WAL-log，是一种只能 append 的二进制日志，leader 不仅将 wal-log 保存到磁盘，而且发送到 followers。</p>
+
+<p>WAL 的 disadvantage 是太底层，wal 包含了磁盘那个位置的 block 需要修改哪些 bytes，这样耦合性比较高，如果format 改变了，基本上很难让 leader和follower 使用不同版本。</p>
+
+<p>这个问题看起来更像是实现的问题，如果 replication 的协议支持follower 使用新的版本，就能完成 zore-downtime 的 upgrade。
+首先更新 follower的版本，然后让leader failover，选择一个 follower 为 leader。如果replication 的协议不支持版本不一直，这就叫做 wal-shipping，会造成 upgrade-downtime。</p>
+
+<ol>
+<li>Logical (row-based) log replication</li>
+</ol>
+
+<p>这种方式就是 replication log 和具体的 storage device 解耦，使用不同格式。 relational database 的 logical log 一般都是一系列表示行的recorders。一个改变很多行的 statement 会
+产生很多行这样的日志，后面有一个transaction 完成的标识符。这种方式是解耦的，所以可以容忍不同的版本，甚至不同的存储引擎。这也让外部的系统容易获得数据，
+例如数仓、二级索引，外部缓存，这个技术叫做 change data capture。</p>
+
+<ol>
+<li>trigger based replication</li>
+</ol>
+
+<p>前面讲的都是数据库系统的，有时候我们需要更灵活的，例如你只想一部分数据，或者你想从一个数据库迁移到另一个数据库。这样你就应该将replication 提升到应用程序层面。
+很多数据库提供了工具完成这个事情。许多关系型数据库提供了一项功能：triggers and stored procedures。trigger 能让你注册用户代码，一旦数据发生改变，将会将数据放到另一给表格，外部系统可以访问。</p>
+
+<h4 id="5-problems-with-replication-lag">(5) Problems with Replication Lag</h4>
+
+<h2 id="二-partitioning">二、Partitioning</h2>
+
+<p>分区，also known as Sharding。</p>
+
+<h1 id="第五部分-案例">第五部分、案例</h1>
+
+<p><a href="https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26">https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26</a></p>
+
+<p><a href="http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/">http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/</a></p>
+
+<p><a href="https://engineering.videoblocks.com/web-architecture-101-a3224e126947">https://engineering.videoblocks.com/web-architecture-101-a3224e126947</a></p>
+
+<h1 id="第六部分-资料">第六部分、资料</h1>
+
+<p>es设计架构，良心参考资料：
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db</a>
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571</a>
+<a href="https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d">https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d</a></p>
+
+<p>lsm b+tree 资料
+<a href="https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f">https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f</a></p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">邓子明</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">2018-12-22</span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+    
+    
+<div class="post-reward">
+  <input type="checkbox" name="reward" id="reward" hidden />
+  <label class="reward-button" for="reward">Reward</label>
+  <div class="qr-code">
+    
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/wechat.jpg?raw=true">
+        <span>Wechat</span>
+      </label>
+    
+      <label class="qr-code-image" for="reward">
+        <img class="image" src="https://github.com/dengziming/blogs/blob/master/images/alipay.jpg?raw=true">
+        <span>Alipay</span>
+      </label>
+  </div>
+</div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          
+          <a href="/tags/%E6%9E%B6%E6%9E%84/">架构</a>
+          
+          <a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/">大数据</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/data-intensive-architecture/design-data-intensive-architecture/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">design-data-intensive-architecture</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF/">
+            <span class="next-text nav-default">常见错误及经验</span>
+            <span class="prev-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+    
+
+  
+
+  
+
+  <div id="comments-gitment"></div>
+  <link rel="stylesheet" href="/lib/gitment/gitment-0.0.3.min.css">
+    <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
+  <script type="text/javascript">
+  const gitment = new Gitment({
+    id: '2018-12-22 00:00:00 \x2b0000 UTC',
+    title: 'design-data-intensive-architecture',
+    link: decodeURI(location.href),
+    desc: '第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud',
+    owner: 'dengziming',
+    repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
+    oauth: {
+      client_id: '1eb2e794cac943b9af79',
+      client_secret: 'a4f7d62a2a52b5c43e51c0c476a3b605029ac372'
+    }
+  })
+  gitment.render('comments-gitment')
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://github.com/imsun/gitment">comments powered by gitment.</a></noscript>
+  </article>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="zmdeng@aliyun.com" rel="me" class="iconfont icon-email" title="email"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/dengziming2/" rel="me" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://www.facebook.com/deng.ziming.7" rel="me" class="iconfont icon-facebook" title="facebook"></a>
+      <a href="https://www.linkedin.com/in/%E5%AD%90-%E9%82%93-72a924133/" rel="me" class="iconfont icon-linkedin" title="linkedin"></a>
+      <a href="dengziming1993@gmail.com" rel="me" class="iconfont icon-google" title="google"></a>
+      <a href="http://www.github.com/dengziming" rel="me" class="iconfont icon-github" title="github"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-weibo" title="weibo"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-zhihu" title="zhihu"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-douban" title="douban"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-pocket" title="pocket"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-tumblr" title="tumblr"></a>
+      <a href="http://localhost:1313" rel="me" class="iconfont icon-instagram" title="instagram"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-gitlab" title="gitlab"></a>
+      <a href="http://en.xianmin.org/hugo-theme-jane/" rel="me" class="iconfont icon-goodreads" title="goodreads"></a>
+  <a href="https://dengziming.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy; 
+    
+      2016 - 
+    2019
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">邓子明</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+<script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+  <script type="text/javascript" src="/lib/fancybox/jquery.fancybox-3.1.20.min.js"></script>
+<script type="text/javascript" src="/dist/jane.min.js?v=2.7.0"></script>
+  <script type="text/javascript">
+    window.MathJax = {
+      showProcessingMessages: false,
+      messageStyle: 'none'
+    };
+  </script>
+  <script async src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'></script>
+
+
+
+
+
+</body>
+</html>

@@ -166,6 +166,62 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/">cassandra使用</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2019-02-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/"> 开发经验 </a>
+          
+        </div>
+      <span class="more-meta"> 83 words </span>
+      <span class="more-meta"> 1 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      常用命令 查看压缩转态： bin/nodetool compactionstats bin/nodetool disableautocompaction 可以禁用 compact，bin/nodetool enableautocompaction 启用 参数配置 使用时候注意参数设置 alter table titan_20190104.edgestore with compaction = {&lsquo;class&rsquo;: &lsquo;org.apache.cassandra.db.compaction.LeveledCompactionStrategy&rsquo;, &lsquo;sstable_size_in_mb&rsquo;: 512}; alter table titan_20190104.edgestore with
+    </div>
+    <div class="read-more">
+      <a href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/replication/">分布式存储-replication</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-12-31 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
+          
+        </div>
+      <span class="more-meta"> 7060 words </span>
+      <span class="more-meta"> 15 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、Replication Replication 就是将你的数据放在多个节点，这样有很多好处。数据从地理上可以隔用户更近，保持高可用，增加吞吐量。 本章我们假设数据
+    </div>
+    <div class="read-more">
+      <a href="/post/data-intensive-architecture/replication/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/design-data-intensive-architecture/">design-data-intensive-architecture</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-12-22 </span>
@@ -174,8 +230,8 @@
             <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
           
         </div>
-      <span class="more-meta"> 6446 words </span>
-      <span class="more-meta"> 13 min read </span>
+      <span class="more-meta"> 10886 words </span>
+      <span class="more-meta"> 22 min read </span>
     </div>
   </header>
   
@@ -186,6 +242,34 @@
     </div>
     <div class="read-more">
       <a href="/post/data-intensive-architecture/design-data-intensive-architecture/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/partition/">design-data-intensive-architecture</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-12-22 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
+          
+        </div>
+      <span class="more-meta"> 6478 words </span>
+      <span class="more-meta"> 13 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud
+    </div>
+    <div class="read-more">
+      <a href="/post/data-intensive-architecture/partition/" class="read-more-link">Read more</a>
     </div>
     
   </div>
@@ -500,90 +584,6 @@
 </article>
 
     
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B05-%E5%9C%A8%E5%AF%B9%E8%B1%A1%E4%B9%8B%E9%97%B4%E6%90%AC%E7%A7%BB%E7%89%B9%E6%80%A7/">重构笔记5-在对象之间搬移特性</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-11-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%87%8D%E6%9E%84/"> 重构 </a>
-          
-        </div>
-      <span class="more-meta"> 771 words </span>
-      <span class="more-meta"> 2 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      上一次重构尝试好失败，不过学习还是要继续的，而且上次没学习的情况下搬移代码，易出错。这次我们学的是在对象之间搬移。学好了再尝试一下。 这一部分
-    </div>
-    <div class="read-more">
-      <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B05-%E5%9C%A8%E5%AF%B9%E8%B1%A1%E4%B9%8B%E9%97%B4%E6%90%AC%E7%A7%BB%E7%89%B9%E6%80%A7/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B06-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E6%95%B0%E6%8D%AE/">重构笔记6-重新组织数据</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-11-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%87%8D%E6%9E%84/"> 重构 </a>
-          
-        </div>
-      <span class="more-meta"> 1334 words </span>
-      <span class="more-meta"> 3 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      这一次重新组织数据，我还没看之前，感觉并不是主动进行重构，二是为了后续重构提供便利。 自封装字段（Self Encapsulate Field） 其实很多人觉得这个有点
-    </div>
-    <div class="read-more">
-      <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B06-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E6%95%B0%E6%8D%AE/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B07-%E7%AE%80%E5%8C%96%E6%9D%A1%E4%BB%B6%E8%A1%A8%E8%BE%BE%E5%BC%8F/">重构笔记7-简化条件表达式</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-11-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%87%8D%E6%9E%84/"> 重构 </a>
-          
-        </div>
-      <span class="more-meta"> 222 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      简化条件表达式一方面是简化代码，另外也是提高可读性。 9.1 Decompose Conditional（分解条件表达式） Consolidate Conditional Expression（合并条件表达式） Consolidate
-    </div>
-    <div class="read-more">
-      <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B07-%E7%AE%80%E5%8C%96%E6%9D%A1%E4%BB%B6%E8%A1%A8%E8%BE%BE%E5%BC%8F/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
   </section>
 
   
@@ -677,7 +677,7 @@
     &copy; 
     
       2016 - 
-    2018
+    2019
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>
