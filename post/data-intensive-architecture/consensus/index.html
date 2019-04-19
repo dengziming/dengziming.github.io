@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>分布式存储-partition - 数据分析师之旅</title>
+  <title>分布式存储-Consensus - 数据分析师之旅</title>
   <link rel="alternate" hreflang="zh-cn" href="https://dengziming.github.io/" />
 
 <meta name="renderer" content="webkit" />
@@ -19,7 +19,7 @@
 
 
 <meta name="author" content="邓子明" />
-  <meta name="description" content="二、Partitioning 分区，also known as Sharding、region、tablet、vBucket partition 的主要目的是 scalabilit" />
+  <meta name="description" content="七、Consensus 之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。 1. Consistency Guarantees 分布式系统" />
 
   <meta name="keywords" content="大数据, AI, 机器学习" />
 
@@ -31,7 +31,7 @@
 <meta name="generator" content="Hugo 0.26" />
 
 
-<link rel="canonical" href="https://dengziming.github.io/post/data-intensive-architecture/partition/" />
+<link rel="canonical" href="https://dengziming.github.io/post/data-intensive-architecture/consensus/" />
 
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -49,19 +49,15 @@
 
 
 
-<meta property="og:title" content="分布式存储-partition" />
-<meta property="og:description" content="二、Partitioning 分区，also known as Sharding、region、tablet、vBucket partition 的主要目的是 scalabilit" />
+<meta property="og:title" content="分布式存储-Consensus" />
+<meta property="og:description" content="七、Consensus 之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。 1. Consistency Guarantees 分布式系统" />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://dengziming.github.io/post/data-intensive-architecture/partition/" />
+<meta property="og:url" content="https://dengziming.github.io/post/data-intensive-architecture/consensus/" />
 
 
 
-<meta property="article:published_time" content="2018-12-22T00:00:00&#43;00:00"/>
-<meta property="article:modified_time" content="2018-12-22T00:00:00&#43;00:00"/>
-
-
-
-
+<meta property="article:published_time" content="2019-04-15T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2019-04-15T00:00:00&#43;00:00"/>
 
 
 
@@ -69,18 +65,22 @@
 
 
 
-<meta itemprop="name" content="分布式存储-partition">
-<meta itemprop="description" content="二、Partitioning 分区，also known as Sharding、region、tablet、vBucket partition 的主要目的是 scalabilit">
 
 
-<meta itemprop="dateModified" content="2018-12-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="97">
+
+
+<meta itemprop="name" content="分布式存储-Consensus">
+<meta itemprop="description" content="七、Consensus 之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。 1. Consistency Guarantees 分布式系统">
+
+
+<meta itemprop="dateModified" content="2019-04-15T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="1083">
 
 
 
 <meta itemprop="keywords" content="架构,大数据," />
-<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="分布式存储-partition"/>
-<meta name="twitter:description" content="二、Partitioning 分区，also known as Sharding、region、tablet、vBucket partition 的主要目的是 scalabilit"/>
+<meta name="twitter:card" content="summary"/><meta name="twitter:title" content="分布式存储-Consensus"/>
+<meta name="twitter:description" content="七、Consensus 之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。 1. Consistency Guarantees 分布式系统"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -170,17 +170,17 @@
           <article class="post bg-white">
     
     <header class="post-header">
-      <h1 class="post-title">分布式存储-partition</h1>
+      <h1 class="post-title">分布式存储-Consensus</h1>
 
       <div class="post-meta">
-        <span class="post-time"> 2018-12-22 </span>
+        <span class="post-time"> 2019-04-15 </span>
         <div class="post-category">
             
               <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
             
           </div>
-        <span class="more-meta"> 97 words </span>
-        <span class="more-meta"> 1 min read </span>
+        <span class="more-meta"> 1083 words </span>
+        <span class="more-meta"> 3 min read </span>
       </div>
     </header>
 
@@ -192,7 +192,21 @@
   <div class="post-toc-content">
     <nav id="TableOfContents">
 <ul>
-<li><a href="#二-partitioning">二、Partitioning</a></li>
+<li><a href="#七-consensus">七、Consensus</a>
+<ul>
+<li><a href="#1-consistency-guarantees">1. Consistency Guarantees</a></li>
+<li><a href="#2-linearizability">2. Linearizability</a>
+<ul>
+<li><a href="#1-what-makes-a-system-linearizable">(1) What Makes a System Linearizable?</a></li>
+<li><a href="#2-relying-on-linearizability">(2) Relying on Linearizability</a></li>
+<li><a href="#3-implementing-linearizable-systems">(3) Implementing Linearizable Systems</a>
+<ul>
+<li><a href="#linearizability-and-quorums">Linearizability and quorums</a></li>
+<li><a href="#the-cost-of-linearizability">The Cost of Linearizability</a></li>
+<li><a href="#the-cap-theorem">The CAP theorem</a></li>
+</ul></li>
+</ul></li>
+</ul></li>
 </ul>
 </nav>
   </div>
@@ -202,11 +216,69 @@
     <div class="post-content">
       
 
-<h1 id="二-partitioning">二、Partitioning</h1>
+<h1 id="七-consensus">七、Consensus</h1>
 
-<p>分区，also known as Sharding、region、tablet、vBucket</p>
+<p>之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。</p>
 
-<p>partition 的主要目的是 scalability，其实相对于 其他分布式理论，partition 是最简单的，没有很多复杂的一致性问题。</p>
+<h2 id="1-consistency-guarantees">1. Consistency Guarantees</h2>
+
+<p>分布式系统会有一个比较模糊的概念，eventual consistency,这是一个 weak guarantee，还会学习一些 stronger consistency，
+然后我们又回到之前谈论过的 order，最后讨论分布式事务。</p>
+
+<h2 id="2-linearizability">2. Linearizability</h2>
+
+<p>在 eventually consistent 中，我们保证数据最终一致，这很 confusion，能不能保证任何时候访问都是一样的，也就是数据好像只有一个 replica 一样？
+这就是 linearizability（也叫“atomic consistency [7], strong consistency, immediate consistency, external consistency [8]”）</p>
+
+<p>在 linearizable 中，client 写成功以后，其他的 clients 都必须马上能看到这个数据，保证数据都是最新的、不过时的数据，
+换句话说 linearizable 就是 recency guarantee，我们可以看一些 not linearizable 的 例子：</p>
+
+<p>两个人通过手机视频看世界杯，但是由于访问了不同的 replica，存在 replica-lag，导致数据不一致，
+其中至少有一个看到的是 stale value，也就是 violation of linearizability。</p>
+
+<h3 id="1-what-makes-a-system-linearizable">(1) What Makes a System Linearizable?</h3>
+
+<p>上面已经说了，Linearizable 其实就是说多个 replica 表现的像分一个 replica 一样。
+在 distributed systems 的书面语中，数据被称为 register，可以是一个 redis 的一个 key，mysql 的一行数据。
+register 我们定义两种基本类型的 operation：
+1. read(x) ⇒ v means the client requested to read the value of register x, and the database returned the value v.
+2. write(x, v) ⇒ r means the client requested to set the register x to value v, and the database returned response r (which could be ok or error).”</p>
+
+<p>有这些还不能完全定义 linearizability：如果读写并发，可能读到 new value 或者 old value，会出现值 back and forth 的情况。
+这显然不能满足需求，所以我们需要加更多 constraint，我们要求如果 A 某个时刻读到了 new value，B再次读不能出现 old value。
+这样我们就可以在定义一种类型的 operation：
+3. cas(x, vold, vnew) ⇒ r means the client requested an atomic compare-and-set operation (see “Compare-and-set”). If the current value of the register x equals vold, it should be atomically set to vnew. If x ≠ vold then the operation should leave the register unchanged and return an error. r is the database’s response (ok or error).</p>
+
+<p>linearizability 需要 所有的 operations 都 “move forward in time”，也就是前面的 recency guarantee，
+一旦 new value 读或者写了，后续的都是 new value。</p>
+
+<p>一些有趣的要点：
+1.</p>
+
+<h3 id="2-relying-on-linearizability">(2) Relying on Linearizability</h3>
+
+<p>通过 Linearizability 能实现很多功能，</p>
+
+<h3 id="3-implementing-linearizable-systems">(3) Implementing Linearizable Systems</h3>
+
+<p>实现 Linearizable 最简单的方式就是真的只保存一份数据，但是我们肯定希望是分布式的。常见几种方式：</p>
+
+<ol>
+<li>Single-leader replication (potentially linearizable) 一个 leader 能基本保证，但是设计上或者并发的bug可能出现问题。另外单节点 failover 问题。</li>
+<li>Consensus algorithms (linearizable)</li>
+<li>Multi-leader replication (not linearizable)</li>
+<li>Leaderless replication (probably not linearizable)</li>
+</ol>
+
+<h4 id="linearizability-and-quorums">Linearizability and quorums</h4>
+
+<p>很多网络延迟导致 quorums 是没法保证 Linearizability 的。</p>
+
+<h4 id="the-cost-of-linearizability">The Cost of Linearizability</h4>
+
+<h4 id="the-cap-theorem">The CAP theorem</h4>
+
+<p>CAP 理论的 C 指的就是这个 Linearizability，如果要想线性一致，就没法满足可用性。</p>
 
     </div>
 
@@ -219,7 +291,7 @@
   </p>
   <p class="copyright-item">
     <span class="item-title">LastMod</span>
-    <span class="item-content">2018-12-22</span>
+    <span class="item-content">2019-04-15</span>
   </p>
   
   <p class="copyright-item">
@@ -260,14 +332,14 @@
       
       <nav class="post-nav">
         
-          <a class="prev" href="/post/data-intensive-architecture/design-data-intensive-architecture/">
+          <a class="prev" href="/post/kafka/kafka-producer/">
             <i class="iconfont icon-left"></i>
-            <span class="prev-text nav-default">design-data-intensive-architecture</span>
+            <span class="prev-text nav-default">kafka-producer</span>
             <span class="prev-text nav-mobile">Prev</span>
           </a>
         
-          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF/">
-            <span class="next-text nav-default">常见错误及经验</span>
+          <a class="next" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/">
+            <span class="next-text nav-default">cassandra使用</span>
             <span class="prev-text nav-mobile">Next</span>
             <i class="iconfont icon-right"></i>
           </a>
@@ -284,10 +356,10 @@
     <script src="/lib/gitment/gitment-0.0.3.min.js"></script>
   <script type="text/javascript">
   const gitment = new Gitment({
-    id: '2018-12-22 00:00:00 \x2b0000 UTC',
-    title: '分布式存储-partition',
+    id: '2019-04-15 00:00:00 \x2b0000 UTC',
+    title: '分布式存储-Consensus',
     link: decodeURI(location.href),
-    desc: '二、Partitioning 分区，also known as Sharding、region、tablet、vBucket partition 的主要目的是 scalabilit',
+    desc: '七、Consensus 之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。 1. Consistency Guarantees 分布式系统',
     owner: 'dengziming',
     repo: 'https:\/\/github.com\/dengziming\/comment.oi.git',
     oauth: {

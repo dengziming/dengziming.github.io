@@ -57,7 +57,7 @@
 
 
 
-<meta property="og:updated_time" content="2018-07-09T00:00:00&#43;00:00"/>
+<meta property="og:updated_time" content="2018-07-27T00:00:00&#43;00:00"/>
 
 
 
@@ -163,6 +163,90 @@
   <section id="posts" class="posts">
     
     
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/tinkerpop/tinkerpop%E7%9A%84step/">tinkerpop 的 step</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-27 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 1034 words </span>
+      <span class="more-meta"> 3 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      一、简单调试 api地址： http://tinkerpop.apache.org/javadocs/current/full/ 第一步： JanusGraph graph = JanusGraphFactory.open(&quot;janusgraph-dist/src/assembly/cfilter/conf/janusgraph-berkeleyje-es.properties&quot;); GraphTraversalSource g = graph.traversal(); g.V().has(&quot;name&quot;, &quot;saturn&quot;).path(); List&lt;Path&gt; paths = path.toList(); 一步一步看整个调用过程： 进入: fill:179, Traversal (org.apache.tinkerpop.gremlin.process.traversal) fill 方法的代码： final Step&lt;?, E&gt; endStep = this.asAdmin().getEndStep(); while (true) { final Traverser&lt;E&gt; traverser = endStep.next();
+    </div>
+    <div class="read-more">
+      <a href="/post/tinkerpop/tinkerpop%E7%9A%84step/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%907-%E5%85%B3%E7%B3%BB%E5%AD%98%E5%82%A8/">janusgraph源码分析7-关系存储</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-09 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> janusgraph源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 5289 words </span>
+      <span class="more-meta"> 11 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      基础类 InternalRelation 和 InternalRelationType 有关类型体系很复杂，可以使用 IDEA 的显示继承体系功能，查看类图。类图比较大，不太好看。大概描述一下： 主要是 JanusGraphElement 作为顶级类，接下来还有一
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%907-%E5%85%B3%E7%B3%BB%E5%AD%98%E5%82%A8/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%909-%E8%B4%A1%E7%8C%AE%E5%AF%BC%E6%95%B0%E6%8D%AE%E6%BA%90%E7%A0%81/">janusgraph源码分析8-底层交互</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-07-09 </span>
+      <div class="post-category">
+          
+            <a href="/categories/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> janusgraph源码分析 </a>
+          
+        </div>
+      <span class="more-meta"> 4200 words </span>
+      <span class="more-meta"> 9 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      反向分析 cassandra 写数据 API cassandra 的结构类似 bigtable ，数据实际上是多层嵌套的 map，第一个 key 是 rowkey，第二层key 是 columnFamily，第三层key
+    </div>
+    <div class="read-more">
+      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%909-%E8%B4%A1%E7%8C%AE%E5%AF%BC%E6%95%B0%E6%8D%AE%E6%BA%90%E7%A0%81/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
     
       <article class="post bg-white">
   <header class="post-header">
@@ -494,90 +578,6 @@
     </div>
     <div class="read-more">
       <a href="/post/titan/janusgraph%E4%BD%BF%E7%94%A8%E9%97%AE%E9%A2%98/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/">janusgraph源码分析1-下载编译启动</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-26 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 1757 words </span>
-      <span class="more-meta"> 4 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了 https://github.com/JanusGr
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%901-%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%90%AF%E5%8A%A8/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%9010-gremin/">janusgraph源码分析1-下载编译启动</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-26 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 66 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph 了 https://github.com/JanusGr
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%9010-gremin/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/">janusgraph源码分析2-实例debug</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-04-26 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"> 源码分析 </a>
-          
-        </div>
-      <span class="more-meta"> 2043 words </span>
-      <span class="more-meta"> 5 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      # 研究了好久的 neo4j源码，现在公司要换 janusgraph，只要半途而废开始研究 janusgraph了 https://github.co
-    </div>
-    <div class="read-more">
-      <a href="/post/titan/janusgraph%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%902-%E5%AE%9E%E4%BE%8Bdebug/" class="read-more-link">Read more</a>
     </div>
     
   </div>

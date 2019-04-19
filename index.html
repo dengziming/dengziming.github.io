@@ -166,6 +166,62 @@
     
       <article class="post bg-white">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/kafka/kafka-producer/">kafka-producer</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2019-04-18 </span>
+      <div class="post-category">
+          
+            <a href="/categories/kafka%E6%BA%90%E7%A0%81/"> kafka源码 </a>
+          
+        </div>
+      <span class="more-meta"> 828 words </span>
+      <span class="more-meta"> 2 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      构造函数 private KafkaProducer(ProducerConfig config, Serializer&lt;K&gt; keySerializer, Serializer&lt;V&gt; valueSerializer) { try { //省略一段 this.metrics = new Metrics(metricConfig, reporters, time); // 构造各个组件 this.partitioner = config.getConfiguredInstance(ProducerConfig.PARTITIONER_CLASS_CONFIG, Partitioner.class); long retryBackoffMs = config.getLong(ProducerConfig.RETRY_BACKOFF_MS_CONFIG); this.metadata = new Metadata(retryBackoffMs, config.getLong(ProducerConfig.METADATA_MAX_AGE_CONFIG)); this.maxRequestSize = config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG); this.totalMemorySize = config.getLong(ProducerConfig.BUFFER_MEMORY_CONFIG); this.compressionType = CompressionType.forName(config.getString(ProducerConfig.COMPRESSION_TYPE_CONFIG)); this.accumulator = new RecordAccumulator(config.getInt(ProducerConfig.BATCH_SIZE_CONFIG), this.totalMemorySize, this.compressionType, config.getLong(ProducerConfig.LINGER_MS_CONFIG), retryBackoffMs, metrics, time); List&lt;InetSocketAddress&gt; addresses = ClientUtils.parseAndValidateAddresses(config.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)); this.metadata.update(Cluster.bootstrap(addresses),
+    </div>
+    <div class="read-more">
+      <a href="/post/kafka/kafka-producer/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/consensus/">分布式存储-Consensus</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2019-04-15 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
+          
+        </div>
+      <span class="more-meta"> 1083 words </span>
+      <span class="more-meta"> 3 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      七、Consensus 之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。 1. Consistency Guarantees 分布式系统
+    </div>
+    <div class="read-more">
+      <a href="/post/data-intensive-architecture/consensus/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/">cassandra使用</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2019-02-22 </span>
@@ -186,6 +242,34 @@
     </div>
     <div class="read-more">
       <a href="/post/%E5%BC%80%E5%8F%91%E7%BB%8F%E9%AA%8C/cassandra/" class="read-more-link">Read more</a>
+    </div>
+    
+  </div>
+</article>
+
+    
+      <article class="post bg-white">
+  <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/transactions/">分布式存储-Transactions</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2018-12-31 </span>
+      <div class="post-category">
+          
+            <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
+          
+        </div>
+      <span class="more-meta"> 5999 words </span>
+      <span class="more-meta"> 12 min read </span>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    
+    <div class="post-summary">
+      三、Transactions 在一个数据系统中，很多东西可能出错，有可能是网络问题，硬件问题，系统 bug。为了可靠，我们必须让系统可靠，事务就
+    </div>
+    <div class="read-more">
+      <a href="/post/data-intensive-architecture/transactions/" class="read-more-link">Read more</a>
     </div>
     
   </div>
@@ -230,8 +314,8 @@
             <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
           
         </div>
-      <span class="more-meta"> 10886 words </span>
-      <span class="more-meta"> 22 min read </span>
+      <span class="more-meta"> 16923 words </span>
+      <span class="more-meta"> 34 min read </span>
     </div>
   </header>
   
@@ -250,7 +334,7 @@
     
       <article class="post bg-white">
   <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/partition/">design-data-intensive-architecture</a></h1>
+    <h1 class="post-title"><a class="post-link" href="/post/data-intensive-architecture/partition/">分布式存储-partition</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2018-12-22 </span>
       <div class="post-category">
@@ -258,15 +342,15 @@
             <a href="/categories/%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E6%9E%B6%E6%9E%84/"> 设计高并发架构 </a>
           
         </div>
-      <span class="more-meta"> 6478 words </span>
-      <span class="more-meta"> 13 min read </span>
+      <span class="more-meta"> 97 words </span>
+      <span class="more-meta"> 1 min read </span>
     </div>
   </header>
   
   <div class="post-content">
     
     <div class="post-summary">
-      第一部分、前言 ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud
+      二、Partitioning 分区，also known as Sharding、region、tablet、vBucket partition 的主要目的是 scalabilit
     </div>
     <div class="read-more">
       <a href="/post/data-intensive-architecture/partition/" class="read-more-link">Read more</a>
@@ -494,90 +578,6 @@
     </div>
     <div class="read-more">
       <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B01-%E7%AE%80%E5%8D%95%E5%AE%9E%E4%BE%8B%E9%87%8D%E6%9E%84/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B02-%E5%8E%9F%E5%88%99%E6%B5%8B%E8%AF%95/">重构笔记2-原则、测试</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-11-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%87%8D%E6%9E%84/"> 重构 </a>
-          
-        </div>
-      <span class="more-meta"> 135 words </span>
-      <span class="more-meta"> 1 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      原则 重构原则，这属于定义性内容，这里不多写。 测试 文中的 JUnit 比较老，现在的 JUnit 技术很新很复杂很强大，后续会专门抽出一节内容介绍并且实践JUnit。
-    </div>
-    <div class="read-more">
-      <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B02-%E5%8E%9F%E5%88%99%E6%B5%8B%E8%AF%95/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B03-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E5%87%BD%E6%95%B0/">重构笔记3-重新组织函数</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-11-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%87%8D%E6%9E%84/"> 重构 </a>
-          
-        </div>
-      <span class="more-meta"> 1494 words </span>
-      <span class="more-meta"> 3 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      其实重新组织函数的方法，我们在没有学过重构的情况下，也是经常使用的。只不过我们没有统一规范，每次使用都要分析使用情况，都比较费劲。 例如有时候
-    </div>
-    <div class="read-more">
-      <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B03-%E9%87%8D%E6%96%B0%E7%BB%84%E7%BB%87%E5%87%BD%E6%95%B0/" class="read-more-link">Read more</a>
-    </div>
-    
-  </div>
-</article>
-
-    
-      <article class="post bg-white">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B04-%E4%B8%80%E6%AC%A1%E9%87%8D%E6%9E%84%E5%B0%9D%E8%AF%95/">重构笔记4-一次重构尝试</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2018-11-22 </span>
-      <div class="post-category">
-          
-            <a href="/categories/%E9%87%8D%E6%9E%84/"> 重构 </a>
-          
-        </div>
-      <span class="more-meta"> 794 words </span>
-      <span class="more-meta"> 2 min read </span>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    
-    <div class="post-summary">
-      搞了这么久，我觉得有必要对我的项目重构一下。已经学了那么多，再加上我写的代码那么烂，重构肯定是很容易上手。 本文没什么干货，纯属自己的一点记录
-    </div>
-    <div class="read-more">
-      <a href="/post/%E9%87%8D%E6%9E%84/%E9%87%8D%E6%9E%84%E7%AC%94%E8%AE%B04-%E4%B8%80%E6%AC%A1%E9%87%8D%E6%9E%84%E5%B0%9D%E8%AF%95/" class="read-more-link">Read more</a>
     </div>
     
   </div>

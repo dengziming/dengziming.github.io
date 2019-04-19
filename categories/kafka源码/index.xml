@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Kafka源码 on 数据分析师之旅</title>
+    <link>https://dengziming.github.io/categories/kafka%E6%BA%90%E7%A0%81/</link>
+    <description>Recent content in Kafka源码 on 数据分析师之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 18 Apr 2019 00:00:00 +0000</lastBuildDate>
+    
+        <atom:link href="https://dengziming.github.io/categories/kafka%E6%BA%90%E7%A0%81/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>kafka-producer</title>
+      <link>https://dengziming.github.io/post/kafka/kafka-producer/</link>
+      <pubDate>Thu, 18 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/kafka/kafka-producer/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;构造函数&#34;&gt;构造函数&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;private KafkaProducer(ProducerConfig config, Serializer&amp;lt;K&amp;gt; keySerializer, Serializer&amp;lt;V&amp;gt; valueSerializer) {
+    try {
+        //省略一段
+        
+        this.metrics = new Metrics(metricConfig, reporters, time);
+        // 构造各个组件
+        this.partitioner = config.getConfiguredInstance(ProducerConfig.PARTITIONER_CLASS_CONFIG, Partitioner.class);
+        long retryBackoffMs = config.getLong(ProducerConfig.RETRY_BACKOFF_MS_CONFIG);
+        
+        this.metadata = new Metadata(retryBackoffMs, config.getLong(ProducerConfig.METADATA_MAX_AGE_CONFIG));
+        this.maxRequestSize = config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG);
+        this.totalMemorySize = config.getLong(ProducerConfig.BUFFER_MEMORY_CONFIG);
+        
+        this.compressionType = CompressionType.forName(config.getString(ProducerConfig.COMPRESSION_TYPE_CONFIG));
+        
+        
+        this.accumulator = new RecordAccumulator(config.getInt(ProducerConfig.BATCH_SIZE_CONFIG),
+                this.totalMemorySize,
+                this.compressionType,
+                config.getLong(ProducerConfig.LINGER_MS_CONFIG),
+                retryBackoffMs,
+                metrics,
+                time);
+        List&amp;lt;InetSocketAddress&amp;gt; addresses = ClientUtils.parseAndValidateAddresses(config.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+        this.metadata.update(Cluster.bootstrap(addresses), time.milliseconds());
+        ChannelBuilder channelBuilder = ClientUtils.createChannelBuilder(config.values());
+        
+        NetworkClient client = new NetworkClient(
+                new Selector(config.getLong(ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG), this.metrics, time, &amp;quot;producer&amp;quot;, channelBuilder),
+                this.metadata,
+                clientId,
+                config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION),
+                config.getLong(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG),
+                config.getInt(ProducerConfig.SEND_BUFFER_CONFIG),
+                config.getInt(ProducerConfig.RECEIVE_BUFFER_CONFIG),
+                this.requestTimeoutMs, time);
+        this.sender = new Sender(client,
+                this.metadata,
+                this.accumulator,
+                config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION) == 1,
+                config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG),
+                (short) parseAcks(config.getString(ProducerConfig.ACKS_CONFIG)),
+                config.getInt(ProducerConfig.RETRIES_CONFIG),
+                this.metrics,
+                new SystemTime(),
+                clientId,
+                this.requestTimeoutMs);
+        String ioThreadName = &amp;quot;kafka-producer-network-thread&amp;quot; + (clientId.length() &amp;gt; 0 ? &amp;quot; | &amp;quot; + clientId : &amp;quot;&amp;quot;);
+        
+        // 创建启动现场
+        this.ioThread = new KafkaThread(ioThreadName, this.sender, true);
+        this.ioThread.start();
+
+        this.errors = this.metrics.sensor(&amp;quot;errors&amp;quot;);
+        // ....
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;send-方法&#34;&gt;send 方法&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;@Override
+public Future&amp;lt;RecordMetadata&amp;gt; send(ProducerRecord&amp;lt;K, V&amp;gt; record, Callback callback) {
+    // intercept the record, which can be potentially modified; this method does not throw exceptions
+    ProducerRecord&amp;lt;K, V&amp;gt; interceptedRecord = this.interceptors == null ? record : this.interceptors.onSend(record);
+    return doSend(interceptedRecord, callback);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;doSend 方法&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;private Future&amp;lt;RecordMetadata&amp;gt; doSend(ProducerRecord&amp;lt;K, V&amp;gt; record, Callback callback) {
+    TopicPartition tp = null;
+    try {
+        // first make sure the metadata for the topic is available
+        long waitedOnMetadataMs = waitOnMetadata(record.topic(), this.maxBlockTimeMs);
+        long remainingWaitMs = Math.max(0, this.maxBlockTimeMs - waitedOnMetadataMs);
+        byte[] serializedKey;
+        try {
+            serializedKey = keySerializer.serialize(record.topic(), record.key());
+        } catch (ClassCastException cce) {
+            throw new SerializationException(&amp;quot;Can&#39;t convert key of class &amp;quot; + record.key().getClass().getName() +
+                    &amp;quot; to class &amp;quot; + producerConfig.getClass(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG).getName() +
+                    &amp;quot; specified in key.serializer&amp;quot;);
+        }
+        byte[] serializedValue;
+        try {
+            serializedValue = valueSerializer.serialize(record.topic(), record.value());
+        } catch (ClassCastException cce) {
+            throw new SerializationException(&amp;quot;Can&#39;t convert value of class &amp;quot; + record.value().getClass().getName() +
+                    &amp;quot; to class &amp;quot; + producerConfig.getClass(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG).getName() +
+                    &amp;quot; specified in value.serializer&amp;quot;);
+        }
+        int partition = partition(record, serializedKey, serializedValue, metadata.fetch());
+        int serializedSize = Records.LOG_OVERHEAD + Record.recordSize(serializedKey, serializedValue);
+        ensureValidRecordSize(serializedSize);
+        tp = new TopicPartition(record.topic(), partition);
+        long timestamp = record.timestamp() == null ? time.milliseconds() : record.timestamp();
+        log.trace(&amp;quot;Sending record {} with callback {} to topic {} partition {}&amp;quot;, record, callback, record.topic(), partition);
+        // producer callback will make sure to call both &#39;callback&#39; and interceptor callback
+        Callback interceptCallback = this.interceptors == null ? callback : new InterceptorCallback&amp;lt;&amp;gt;(callback, this.interceptors, tp);
+        RecordAccumulator.RecordAppendResult result = accumulator.append(tp, timestamp, serializedKey, serializedValue, interceptCallback, remainingWaitMs);
+        if (result.batchIsFull || result.newBatchCreated) {
+            log.trace(&amp;quot;Waking up the sender since topic {} partition {} is either full or getting a new batch&amp;quot;, record.topic(), partition);
+            this.sender.wakeup();
+        }
+        return result.future;
+        // handling exceptions and record the errors;
+        // for API exceptions return them in the future,
+        // for other exceptions throw directly
+    } catch (Exception e) {
+        // ....
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;关键过程如下：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;调用ProducerInterceptors.onSend()方法，通过ProducerInterceptor对消息进行拦截或修改。&lt;/li&gt;
+&lt;li&gt;调用waitOnMetadata()方法获取Kafka集群的信息，底层会唤醒Send线程更新Metadata中保存的Kafka集群元数据。&lt;/li&gt;
+&lt;li&gt;调用Serializer.serialize()方法序列化消息的key和value。&lt;/li&gt;
+&lt;li&gt;调用partition()为消息选择合适的分区。&lt;/li&gt;
+&lt;li&gt;调用RecordAccumulator.append()方法，将消息追加到RecordAccumulator中。&lt;/li&gt;
+&lt;li&gt;唤醒Sender线程，由Sender线程将RecordAccumulator中缓存的消息发送出去。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;producerinterceptors-producerinterceptor&#34;&gt;ProducerInterceptors＆ProducerInterceptor&lt;/h3&gt;
+
+&lt;p&gt;面向切面编程的方法，重写 onSend onAcknowledgement onSendError 方法，添加逻辑。&lt;/p&gt;
+
+&lt;p&gt;ProducerInterceptors 则是类似组合模式。&lt;/p&gt;
+
+&lt;h3 id=&#34;metadata&#34;&gt;Metadata&lt;/h3&gt;
+</description>
+      
+    </item>
+    
+  </channel>
+</rss>

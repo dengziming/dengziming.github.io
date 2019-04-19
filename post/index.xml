@@ -6,10 +6,234 @@
     <description>Recent content in Posts on 数据分析师之旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Fri, 22 Feb 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 18 Apr 2019 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="https://dengziming.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kafka-producer</title>
+      <link>https://dengziming.github.io/post/kafka/kafka-producer/</link>
+      <pubDate>Thu, 18 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/kafka/kafka-producer/</guid>
+      
+        <description>
+
+&lt;h2 id=&#34;构造函数&#34;&gt;构造函数&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;private KafkaProducer(ProducerConfig config, Serializer&amp;lt;K&amp;gt; keySerializer, Serializer&amp;lt;V&amp;gt; valueSerializer) {
+    try {
+        //省略一段
+        
+        this.metrics = new Metrics(metricConfig, reporters, time);
+        // 构造各个组件
+        this.partitioner = config.getConfiguredInstance(ProducerConfig.PARTITIONER_CLASS_CONFIG, Partitioner.class);
+        long retryBackoffMs = config.getLong(ProducerConfig.RETRY_BACKOFF_MS_CONFIG);
+        
+        this.metadata = new Metadata(retryBackoffMs, config.getLong(ProducerConfig.METADATA_MAX_AGE_CONFIG));
+        this.maxRequestSize = config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG);
+        this.totalMemorySize = config.getLong(ProducerConfig.BUFFER_MEMORY_CONFIG);
+        
+        this.compressionType = CompressionType.forName(config.getString(ProducerConfig.COMPRESSION_TYPE_CONFIG));
+        
+        
+        this.accumulator = new RecordAccumulator(config.getInt(ProducerConfig.BATCH_SIZE_CONFIG),
+                this.totalMemorySize,
+                this.compressionType,
+                config.getLong(ProducerConfig.LINGER_MS_CONFIG),
+                retryBackoffMs,
+                metrics,
+                time);
+        List&amp;lt;InetSocketAddress&amp;gt; addresses = ClientUtils.parseAndValidateAddresses(config.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
+        this.metadata.update(Cluster.bootstrap(addresses), time.milliseconds());
+        ChannelBuilder channelBuilder = ClientUtils.createChannelBuilder(config.values());
+        
+        NetworkClient client = new NetworkClient(
+                new Selector(config.getLong(ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG), this.metrics, time, &amp;quot;producer&amp;quot;, channelBuilder),
+                this.metadata,
+                clientId,
+                config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION),
+                config.getLong(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG),
+                config.getInt(ProducerConfig.SEND_BUFFER_CONFIG),
+                config.getInt(ProducerConfig.RECEIVE_BUFFER_CONFIG),
+                this.requestTimeoutMs, time);
+        this.sender = new Sender(client,
+                this.metadata,
+                this.accumulator,
+                config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION) == 1,
+                config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG),
+                (short) parseAcks(config.getString(ProducerConfig.ACKS_CONFIG)),
+                config.getInt(ProducerConfig.RETRIES_CONFIG),
+                this.metrics,
+                new SystemTime(),
+                clientId,
+                this.requestTimeoutMs);
+        String ioThreadName = &amp;quot;kafka-producer-network-thread&amp;quot; + (clientId.length() &amp;gt; 0 ? &amp;quot; | &amp;quot; + clientId : &amp;quot;&amp;quot;);
+        
+        // 创建启动现场
+        this.ioThread = new KafkaThread(ioThreadName, this.sender, true);
+        this.ioThread.start();
+
+        this.errors = this.metrics.sensor(&amp;quot;errors&amp;quot;);
+        // ....
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;send-方法&#34;&gt;send 方法&lt;/h2&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;@Override
+public Future&amp;lt;RecordMetadata&amp;gt; send(ProducerRecord&amp;lt;K, V&amp;gt; record, Callback callback) {
+    // intercept the record, which can be potentially modified; this method does not throw exceptions
+    ProducerRecord&amp;lt;K, V&amp;gt; interceptedRecord = this.interceptors == null ? record : this.interceptors.onSend(record);
+    return doSend(interceptedRecord, callback);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;doSend 方法&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;private Future&amp;lt;RecordMetadata&amp;gt; doSend(ProducerRecord&amp;lt;K, V&amp;gt; record, Callback callback) {
+    TopicPartition tp = null;
+    try {
+        // first make sure the metadata for the topic is available
+        long waitedOnMetadataMs = waitOnMetadata(record.topic(), this.maxBlockTimeMs);
+        long remainingWaitMs = Math.max(0, this.maxBlockTimeMs - waitedOnMetadataMs);
+        byte[] serializedKey;
+        try {
+            serializedKey = keySerializer.serialize(record.topic(), record.key());
+        } catch (ClassCastException cce) {
+            throw new SerializationException(&amp;quot;Can&#39;t convert key of class &amp;quot; + record.key().getClass().getName() +
+                    &amp;quot; to class &amp;quot; + producerConfig.getClass(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG).getName() +
+                    &amp;quot; specified in key.serializer&amp;quot;);
+        }
+        byte[] serializedValue;
+        try {
+            serializedValue = valueSerializer.serialize(record.topic(), record.value());
+        } catch (ClassCastException cce) {
+            throw new SerializationException(&amp;quot;Can&#39;t convert value of class &amp;quot; + record.value().getClass().getName() +
+                    &amp;quot; to class &amp;quot; + producerConfig.getClass(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG).getName() +
+                    &amp;quot; specified in value.serializer&amp;quot;);
+        }
+        int partition = partition(record, serializedKey, serializedValue, metadata.fetch());
+        int serializedSize = Records.LOG_OVERHEAD + Record.recordSize(serializedKey, serializedValue);
+        ensureValidRecordSize(serializedSize);
+        tp = new TopicPartition(record.topic(), partition);
+        long timestamp = record.timestamp() == null ? time.milliseconds() : record.timestamp();
+        log.trace(&amp;quot;Sending record {} with callback {} to topic {} partition {}&amp;quot;, record, callback, record.topic(), partition);
+        // producer callback will make sure to call both &#39;callback&#39; and interceptor callback
+        Callback interceptCallback = this.interceptors == null ? callback : new InterceptorCallback&amp;lt;&amp;gt;(callback, this.interceptors, tp);
+        RecordAccumulator.RecordAppendResult result = accumulator.append(tp, timestamp, serializedKey, serializedValue, interceptCallback, remainingWaitMs);
+        if (result.batchIsFull || result.newBatchCreated) {
+            log.trace(&amp;quot;Waking up the sender since topic {} partition {} is either full or getting a new batch&amp;quot;, record.topic(), partition);
+            this.sender.wakeup();
+        }
+        return result.future;
+        // handling exceptions and record the errors;
+        // for API exceptions return them in the future,
+        // for other exceptions throw directly
+    } catch (Exception e) {
+        // ....
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;关键过程如下：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;调用ProducerInterceptors.onSend()方法，通过ProducerInterceptor对消息进行拦截或修改。&lt;/li&gt;
+&lt;li&gt;调用waitOnMetadata()方法获取Kafka集群的信息，底层会唤醒Send线程更新Metadata中保存的Kafka集群元数据。&lt;/li&gt;
+&lt;li&gt;调用Serializer.serialize()方法序列化消息的key和value。&lt;/li&gt;
+&lt;li&gt;调用partition()为消息选择合适的分区。&lt;/li&gt;
+&lt;li&gt;调用RecordAccumulator.append()方法，将消息追加到RecordAccumulator中。&lt;/li&gt;
+&lt;li&gt;唤醒Sender线程，由Sender线程将RecordAccumulator中缓存的消息发送出去。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;producerinterceptors-producerinterceptor&#34;&gt;ProducerInterceptors＆ProducerInterceptor&lt;/h3&gt;
+
+&lt;p&gt;面向切面编程的方法，重写 onSend onAcknowledgement onSendError 方法，添加逻辑。&lt;/p&gt;
+
+&lt;p&gt;ProducerInterceptors 则是类似组合模式。&lt;/p&gt;
+
+&lt;h3 id=&#34;metadata&#34;&gt;Metadata&lt;/h3&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>分布式存储-Consensus</title>
+      <link>https://dengziming.github.io/post/data-intensive-architecture/consensus/</link>
+      <pubDate>Mon, 15 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/data-intensive-architecture/consensus/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;七-consensus&#34;&gt;七、Consensus&lt;/h1&gt;
+
+&lt;p&gt;之前介绍了 replica、partition、transaction。本次我们开始分布式系统相关讨论。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-consistency-guarantees&#34;&gt;1. Consistency Guarantees&lt;/h2&gt;
+
+&lt;p&gt;分布式系统会有一个比较模糊的概念，eventual consistency,这是一个 weak guarantee，还会学习一些 stronger consistency，
+然后我们又回到之前谈论过的 order，最后讨论分布式事务。&lt;/p&gt;
+
+&lt;h2 id=&#34;2-linearizability&#34;&gt;2. Linearizability&lt;/h2&gt;
+
+&lt;p&gt;在 eventually consistent 中，我们保证数据最终一致，这很 confusion，能不能保证任何时候访问都是一样的，也就是数据好像只有一个 replica 一样？
+这就是 linearizability（也叫“atomic consistency [7], strong consistency, immediate consistency, external consistency [8]”）&lt;/p&gt;
+
+&lt;p&gt;在 linearizable 中，client 写成功以后，其他的 clients 都必须马上能看到这个数据，保证数据都是最新的、不过时的数据，
+换句话说 linearizable 就是 recency guarantee，我们可以看一些 not linearizable 的 例子：&lt;/p&gt;
+
+&lt;p&gt;两个人通过手机视频看世界杯，但是由于访问了不同的 replica，存在 replica-lag，导致数据不一致，
+其中至少有一个看到的是 stale value，也就是 violation of linearizability。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-what-makes-a-system-linearizable&#34;&gt;(1) What Makes a System Linearizable?&lt;/h3&gt;
+
+&lt;p&gt;上面已经说了，Linearizable 其实就是说多个 replica 表现的像分一个 replica 一样。
+在 distributed systems 的书面语中，数据被称为 register，可以是一个 redis 的一个 key，mysql 的一行数据。
+register 我们定义两种基本类型的 operation：
+1. read(x) ⇒ v means the client requested to read the value of register x, and the database returned the value v.
+2. write(x, v) ⇒ r means the client requested to set the register x to value v, and the database returned response r (which could be ok or error).”&lt;/p&gt;
+
+&lt;p&gt;有这些还不能完全定义 linearizability：如果读写并发，可能读到 new value 或者 old value，会出现值 back and forth 的情况。
+这显然不能满足需求，所以我们需要加更多 constraint，我们要求如果 A 某个时刻读到了 new value，B再次读不能出现 old value。
+这样我们就可以在定义一种类型的 operation：
+3. cas(x, vold, vnew) ⇒ r means the client requested an atomic compare-and-set operation (see “Compare-and-set”). If the current value of the register x equals vold, it should be atomically set to vnew. If x ≠ vold then the operation should leave the register unchanged and return an error. r is the database’s response (ok or error).&lt;/p&gt;
+
+&lt;p&gt;linearizability 需要 所有的 operations 都 “move forward in time”，也就是前面的 recency guarantee，
+一旦 new value 读或者写了，后续的都是 new value。&lt;/p&gt;
+
+&lt;p&gt;一些有趣的要点：
+1.&lt;/p&gt;
+
+&lt;h3 id=&#34;2-relying-on-linearizability&#34;&gt;(2) Relying on Linearizability&lt;/h3&gt;
+
+&lt;p&gt;通过 Linearizability 能实现很多功能，&lt;/p&gt;
+
+&lt;h3 id=&#34;3-implementing-linearizable-systems&#34;&gt;(3) Implementing Linearizable Systems&lt;/h3&gt;
+
+&lt;p&gt;实现 Linearizable 最简单的方式就是真的只保存一份数据，但是我们肯定希望是分布式的。常见几种方式：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Single-leader replication (potentially linearizable) 一个 leader 能基本保证，但是设计上或者并发的bug可能出现问题。另外单节点 failover 问题。&lt;/li&gt;
+&lt;li&gt;Consensus algorithms (linearizable)&lt;/li&gt;
+&lt;li&gt;Multi-leader replication (not linearizable)&lt;/li&gt;
+&lt;li&gt;Leaderless replication (probably not linearizable)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&#34;linearizability-and-quorums&#34;&gt;Linearizability and quorums&lt;/h4&gt;
+
+&lt;p&gt;很多网络延迟导致 quorums 是没法保证 Linearizability 的。&lt;/p&gt;
+
+&lt;h4 id=&#34;the-cost-of-linearizability&#34;&gt;The Cost of Linearizability&lt;/h4&gt;
+
+&lt;h4 id=&#34;the-cap-theorem&#34;&gt;The CAP theorem&lt;/h4&gt;
+
+&lt;p&gt;CAP 理论的 C 指的就是这个 Linearizability，如果要想线性一致，就没法满足可用性。&lt;/p&gt;
+</description>
+      
+    </item>
     
     <item>
       <title>cassandra使用</title>
@@ -35,6 +259,368 @@
 &lt;p&gt;alter table titan_20190104.edgestore with compaction = {&amp;lsquo;class&amp;rsquo;: &amp;lsquo;org.apache.cassandra.db.compaction.LeveledCompactionStrategy&amp;rsquo;, &amp;lsquo;sstable_size_in_mb&amp;rsquo;: 512};
 alter table titan_20190104.edgestore with compression = {&amp;lsquo;chunk_length_in_kb&amp;rsquo;: &amp;lsquo;1024&amp;rsquo;, &amp;lsquo;class&amp;rsquo;: &amp;lsquo;org.apache.cassandra.io.compress.LZ4Compressor&amp;rsquo;};
 alter table titan_20190104.edgestore with gc_grace_seconds = 259200;&lt;/p&gt;
+</description>
+      
+    </item>
+    
+    <item>
+      <title>分布式存储-Transactions</title>
+      <link>https://dengziming.github.io/post/data-intensive-architecture/transactions/</link>
+      <pubDate>Mon, 31 Dec 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://dengziming.github.io/post/data-intensive-architecture/transactions/</guid>
+      
+        <description>
+
+&lt;h1 id=&#34;三-transactions&#34;&gt;三、Transactions&lt;/h1&gt;
+
+&lt;p&gt;在一个数据系统中，很多东西可能出错，有可能是网络问题，硬件问题，系统 bug。为了可靠，我们必须让系统可靠，事务就是一个选择。
+事务是我们设计应用的时候遵循的的一套规定，但实际上他并不是理所当然的，二是要通过设计底层算法来满足的，这次我们就看看这些算法。
+这一节我们主要将重点放在单机的事务，下一节将会讨论分布式事务。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-the-slippery-concept-of-a-transaction&#34;&gt;1. The Slippery Concept of a Transaction&lt;/h2&gt;
+
+&lt;p&gt;现在几乎所有的 relational databases，以及一些 NoSql 都支持 transaction，但是 transaction 的定义到底是什么？
+实际上一些 NoSql 摆脱了事务的约束，因为事务有时候严重影响了扩展性。都是一些  trade-offs&lt;/p&gt;
+
+&lt;h2 id=&#34;2-the-meaning-of-acid&#34;&gt;2. The Meaning of ACID&lt;/h2&gt;
+
+&lt;p&gt;不同数据库的 ACID 实现方式是不同的，例如 isolation 的定义有很多，除了 ACID 还有一种约束叫做 BASE，就更加模糊了，一个一个看吧。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-atomicity&#34;&gt;(1) Atomicity&lt;/h3&gt;
+
+&lt;p&gt;原子性其实有很多种定义，一般代表一个事物不可分，例如同时如果是多线程，另一个线程不可能看到转账中间的状态。&lt;/p&gt;
+
+&lt;p&gt;但是在事务中，并不是这个意思，上面的问题是 隔离性讨论范畴，Atomic 是说，例如一个转账的事务，分为两步，不可能只完成一步而另一步失败。&lt;/p&gt;
+
+&lt;p&gt;没有原子性保证，如果一个事物中途失败，我们没法知道哪些改变了哪些没改变。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-consistency&#34;&gt;(2) Consistency&lt;/h3&gt;
+
+&lt;p&gt;Consistency 是一个被严重重载的词，前面的 replica 中它是说主备不一致；CAP 中指的是 线性一致性，这里指的是一种 good state。&lt;/p&gt;
+
+&lt;p&gt;这个定义很模糊，因为他很难描述清楚。一是转账的时候，事务前后两个人的总金额要一样，
+注册用户名的时候保证用户名不重复，不能违背外键约束，这都是一致性的问题。
+AID 都是 properties of databases，数据库可能依赖 AID 来实现 Consistency，所以严格来说 Consistency 并不属于 ACID&lt;/p&gt;
+
+&lt;h3 id=&#34;3-isolation&#34;&gt;(3) Isolation&lt;/h3&gt;
+
+&lt;p&gt;大部分数据都是多线程操作的，如果多个线程访问了同一条数据，就会出现类似前面讨论的 concurrency-write 问题，但是这里还有 read 的问题。
+有的经典课本将它改为 serializability，意思是每个线程都可以假设只有他一个线程在操作数据库，数据库保证并发执行的结果和顺序执行的结果是一样的。
+实际上真正的数据库很少会让操作只在一个线程里面，这样性能太低。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-durability&#34;&gt;(4) Durability&lt;/h3&gt;
+
+&lt;p&gt;这个就是说事务一旦提交就持久化了，例如已经存入了 nonvolatile storage，例如 hard drive or SSD，结合 write-ahead log 等方式实现。
+在 replicated databases 中，可能意味着已经复制到了好几个副本之中。
+perfect durability 是不可能存在的，如果你的机房被恐怖分子炸掉了，硬盘都没了。&lt;/p&gt;
+
+&lt;p&gt;自从分布式理论有了以后， REPLICATION AND DURABILITY 就出现了一些变化，相关的可以查看资料。&lt;/p&gt;
+
+&lt;h2 id=&#34;single-object-and-multi-object-operations&#34;&gt;Single-Object and Multi-Object Operations&lt;/h2&gt;
+
+&lt;p&gt;上面我们知道了，atomicity 和 isolation 描述了在客户端执行多个操作时候 ，数据库的做法。
+前者表示如果事务进行到一半失败了必须删掉所有修改的数据，后者表示各个线程互不干扰。接下来看一个例子。&lt;/p&gt;
+
+&lt;p&gt;一个邮件系统需要显示未读邮件数量，如果每次用户登录都执行 count 操作会比较耗时，所以添加了一个变量 counter 表示未读邮件。&lt;/p&gt;
+
+&lt;p&gt;这时候每次收到一个邮件就 counter++ ，读了一份邮件就 counter &amp;ndash;。
+atomicity 能够保证 不会出现异常（例如已经没用邮件但是 counter &amp;gt;0）,不会出现 消息标记为已读但是 counter&amp;ndash; 执行失败。
+如果标记已读的时候，突然收到一份邮件，这时候 counter 的 ++ 和 &amp;ndash; 是并发的，Isolation 保证不会出现异常。&lt;/p&gt;
+
+&lt;p&gt;Multi-object transactions 需要决定哪个读和写操作是同一个 事务。
+对于 relational，就是同一个 tcp 连接的一个 start 和 commit 之间的操作属于同一个事务。
+但是对于 Nosql，并没有相应的方法，尽管提供了对于的API，但是实际上不一定能保证事务。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-single-object-writes&#34;&gt;(1) Single-object writes&lt;/h3&gt;
+
+&lt;p&gt;如果一个事务修改了一个 json 文件，但是由于网络问题，修改了一半。或者多个事务同时修改了一个字段，这时候也和上面一样需要进行单个对象事务控制。&lt;/p&gt;
+
+&lt;p&gt;一些数据库提供了 更复杂的 atomic 操作，例如 increment 可以避免 read-modify-write，类似的有 compare-and-set ，思想类似了乐观锁。
+这样的操作实际上和 ACID 类似，compare-and-set 实际上也是 lightweight transactions，或者是市场化的 ACID。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-the-need-for-multi-object-transactions&#34;&gt;(2) The need for multi-object transactions&lt;/h3&gt;
+
+&lt;p&gt;许多 NoSql 放弃了 multi-object transactions， 因为需要在不同的 partitions 上面实现事务。
+我们真的需要 multi-object transactions 么？我们的应用能否只通过 single-object operations 实现。考虑以下情形：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;外键约束 关系型数据库可能有外键，我们执行一个操作的时候，需要考虑满足这些约束&lt;/li&gt;
+&lt;li&gt;document databases 很难 join，所以会有 denormalization，对应的修改必须是同时修改。&lt;/li&gt;
+&lt;li&gt;考虑 secondary indexes，值修改了索引也要进行修改。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这些情形可以不用事务，但是容错就会相当复杂。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-handling-errors-and-aborts&#34;&gt;(3) Handling errors and aborts&lt;/h3&gt;
+
+&lt;p&gt;ACID 的主要目的是如果发生了错误，我可以完全丢弃掉这些改变，但是也有例外。
+leaderless replication 在你的数据出现错误以后并不会进行修改。
+如果发生了错误就直接 abort 然后重试也不是很好的选择：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;如果事务已经 succeeded，但是网络问题导致没有返回成功消息，你可能会标记为失败，然后重试会执行两次？&lt;/li&gt;
+&lt;li&gt;如果集群 load 过高你这时候再次重试反而会是问题严重。&lt;/li&gt;
+&lt;li&gt;有时候重试再多次也是失败的&lt;/li&gt;
+&lt;li&gt;如果事物内部有一些操作，例如发邮件？你总不能每次重试就发一次邮件吧。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;2-weak-isolation-levels&#34;&gt;2. Weak Isolation Levels&lt;/h2&gt;
+
+&lt;p&gt;上面说过 serializable 并不是最好的隔离方式，还有一些其他的方式。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-read-committed&#34;&gt;(1) Read Committed&lt;/h3&gt;
+
+&lt;p&gt;Read Committed 有两个保证，1 是读数据的时候只能看到提交成功的数据，2 是写数据的时候只会覆盖写成功的数据。也就是没有脏读和脏写。&lt;/p&gt;
+
+&lt;h4 id=&#34;no-dirty-reads&#34;&gt;No dirty reads&lt;/h4&gt;
+
+&lt;p&gt;如果你读了别的事务还没提交的数据就是脏读，如果覆盖了别的事务还没提交的数据就是脏写。
+举个例子，如果你的账户余额为0，查看余额的时候，有人刚好在给你转账，
+先给你加了 500，然后他的账户余额不够事务失败了，然后又 rollback，结果你刷新发现又变成了0。你看到 500 是脏数据，所以是脏读。
+同理如果你给自己存钱的时候覆盖了这个 500，就是脏写。&lt;/p&gt;
+
+&lt;p&gt;Read Committed 隔离级别数据库需要保证不会出现脏读，也就是看到的数据是已经 commit 的。&lt;/p&gt;
+
+&lt;h4 id=&#34;no-dirty-writes&#34;&gt;No dirty writes&lt;/h4&gt;
+
+&lt;p&gt;同样需要保证不会出现脏写，一般需要加锁，等待前一个事务 commit 或者 abort&lt;/p&gt;
+
+&lt;h4 id=&#34;implementing-read-committed&#34;&gt;Implementing read committed&lt;/h4&gt;
+
+&lt;p&gt;简单粗暴的方式就是加锁，这也是大部分数据库 保证 没有 No dirty writes 的方式，但是脏读也加锁就会降低性能。
+所以脏读一般是通过保存两份数据，一个是未提交的数据，一个是已经提交的数据。读的时候返回已经提交的数据。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-snapshot-isolation-and-repeatable-read&#34;&gt;(2) Snapshot Isolation and Repeatable Read&lt;/h3&gt;
+
+&lt;p&gt;貌似 上面已经很完美了，但是看看下面的例子：
+还是两个人转账，A 把 500 块转给 B，首先把 A 设置为 0，然后 B 设置为 500。
+此时B 查看了两个用户的账户，在还没开始的时候查看了A的，结束的时候查看了B的，发现两个人都是 0.&lt;/p&gt;
+
+&lt;p&gt;上面的问题和之前的反了过来。脏读是读了修改到一半的数据，不可重复读是修改了读到一半的数据。
+这貌似不是一个大问题，只要等一会儿再读，就发现是正确的。但是注意以下情况：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Backups 如果我再备份数据，类似这里的读。&lt;/li&gt;
+&lt;li&gt;Analytic queries&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Snapshot isolation 就是解决这个问题的方法。实现 快照隔离需要用 MVCC 算法。
+之前每条数据都有两个版本，未提交的和提交的，现在改成多个，也就是每一条保存多个版本的数据，算法如下：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;每个事务都有一个 txid。&lt;/li&gt;
+&lt;li&gt;每一行数据有一个 created_by 段包含了 tx_id。&lt;/li&gt;
+&lt;li&gt;每一行数据有一个 deleted_by 字段默认空值，如果数据删除了，实际上不会删的，二是 deleted_by 会有一个 txid 标志它被删掉。&lt;/li&gt;
+&lt;li&gt;如果确定没有实物能访问到被删掉的数据，就真的删了被删掉的数据。&lt;/li&gt;
+&lt;li&gt;update 等于 delete + create&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;读数据时候的 Visibility rules 如下：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;每个 transaction 开始的时候会将所有正在执行的 transactions 列出，这些事务的修改无论成功与否都 ignore。&lt;/li&gt;
+&lt;li&gt;所有 abort 的事务做的修改 都 ignore。&lt;/li&gt;
+&lt;li&gt;比它大的 txid 做出的修改都 ignore。&lt;/li&gt;
+&lt;li&gt;其他的修改都是 可见的。&lt;/li&gt;
+&lt;li&gt;这里的修改指的是 create 和 delete&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;换个方式，只有下面的情况才是 visible：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;transaction 开始的时候，已经 commit 的数据&lt;/li&gt;
+&lt;li&gt;别的事物虽然已经删了数据，但是还没有提交的。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;3-indexes-and-snapshot-isolation&#34;&gt;(3) Indexes and snapshot isolation&lt;/h3&gt;
+
+&lt;p&gt;在 multi-version 的 databases 里面 index 如何工作? 可以和数据一样，有多个索引，但也可以在有多个版本的时候避免索引更新。
+还有的结构是 appendOnly 的结构。。。。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-repeatable-read-and-naming-confusion&#34;&gt;(4) Repeatable read and naming confusion&lt;/h3&gt;
+
+&lt;p&gt;Repeatable read 其实一开始是没有的，也是慢慢被发现的，所以它的名字有很多，实现方式也不一样，提供的一致性保证也不一定一样。&lt;/p&gt;
+
+&lt;h2 id=&#34;3-preventing-lost-updates&#34;&gt;3. Preventing Lost Updates&lt;/h2&gt;
+
+&lt;p&gt;前面只讨论了 dirty writes，类似我们讨论的并发写，还有一些问题我们没有讨论。最有名的就是  Lost Updates，例如并发给某个数据 +1.
+一般可能出现的情况：
+1. 查询数据并增加，例如：转账的时候同时转账。
+2. 同时编辑某个 wiki 文档的一个部分。
+3. 修改一个 json 字符串&lt;/p&gt;
+
+&lt;h3 id=&#34;1-atomic-write-operations&#34;&gt;(1) Atomic write operations&lt;/h3&gt;
+
+&lt;p&gt;大部分 relational db 都支持 atomic 写，即 &lt;code&gt;UPDATE counters SET value = value + 1 WHERE key = &#39;foo&#39;;&lt;/code&gt; 而不需要 read-modify-write。&lt;/p&gt;
+
+&lt;p&gt;一般情况下都是通过 exclusive lock 方式实现，这种方式也被称为  cursor stability，另一种就是强制要求所有的操作在一个线程里。&lt;/p&gt;
+
+&lt;p&gt;但是有些 orm 框架让你很容易写出 unsafe 的并发更新bug而且很难查出来。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-explicit-locking&#34;&gt;(2) Explicit locking&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;SELECT * FROM figures
+  WHERE name = &#39;robot&#39; AND game_id = 222
+  FOR UPDATE;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这样直接锁住记录&lt;/p&gt;
+
+&lt;h3 id=&#34;3-automatically-detecting-lost-updates&#34;&gt;(3) Automatically detecting lost updates&lt;/h3&gt;
+
+&lt;p&gt;加锁的方式是让操作序列化执行，同样可以让每个并发执行，如果发生了错误就 abort 重试。
+Lost update detection 是一种很高级的特性。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-compare-and-set&#34;&gt;(4) Compare-and-set&lt;/h3&gt;
+
+&lt;p&gt;这种方式就是写之前先读，如果数据没有变化再写。
+但是如果写之前读的是还没提交的数据，可能还是有问题的。&lt;/p&gt;
+
+&lt;h3 id=&#34;5-conflict-resolution-and-replication&#34;&gt;(5) Conflict resolution and replication&lt;/h3&gt;
+
+&lt;p&gt;如果有多个副本，写数据都是并发，同步数据是异步的，这时候 locks 和 compare-and-set 的方式以及没法保证数据一致性了。&lt;/p&gt;
+
+&lt;h2 id=&#34;4-write-skew-and-phantoms&#34;&gt;4. Write Skew and Phantoms&lt;/h2&gt;
+
+&lt;p&gt;除了上面的问题，可能还有新的问题。看下嘛的例子：
+我们有个医生门诊应用，每个医生可以请假，但是至少保证有一个医生没有请假。医生请假的时候会查询目前在岗的医生，发现有人就可以请假。
+但是如果有一个时间所有的医生都同时查看，发现大家都在，然后大家都一起请假，就违背了约束。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-characterizing-write-skew&#34;&gt;(1) Characterizing write skew&lt;/h3&gt;
+
+&lt;p&gt;这种问题叫做 write skew，既不是脏写也不是 lost update。对应的读问题叫做 phantoms read。
+因为两个事务更新的是两个数据（每个医生设置自己的状态为请假），这里的冲突不太明显，但是确实违背了约束。&lt;/p&gt;
+
+&lt;p&gt;write skew 可以看出广义的 lost update，write skew 是多个事务读了同一个数据然后更新了其中的部分数据。
+如果更新的是同一条数据就会得到 dirty write 或者 lost update。&lt;/p&gt;
+
+&lt;p&gt;lost update 我们有很多种方案可以解决，但是貌似这里就不行了：
+1. Atomic single-object 没法解决，因为 这里有多个 obj
+2. automatic detection 很难，因为这种问题需要 Serializable 的隔离级别
+3. 通过添加唯一位数、主键约束都不一定可以，例如这里有多个医生的在岗状态，如果加约束需要每次都扫描全表。&lt;/p&gt;
+
+&lt;p&gt;还有很多 write skew 的问题，
+会议室预约系统如何保证一个会议室在同一时间不会被两个人预定？
+Multiplayer game 怎么保证两个用户不会出现在同一个点，
+用户名唯一性约束等&lt;/p&gt;
+
+&lt;h3 id=&#34;2-phantoms-causing-write-skew&#34;&gt;(2) Phantoms causing write skew&lt;/h3&gt;
+
+&lt;p&gt;上面的问题有一个共同点：
+1. 查询是否满足多个条件
+2. 根据上面的结果做出更新
+3. 第二步的更新导致第一步的条件不成立&lt;/p&gt;
+
+&lt;p&gt;注意一定是有更改，如果是只读的， snapshot isolation 就能保证不会出现异常。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-materializing-conflicts&#34;&gt;(3) Materializing conflicts&lt;/h3&gt;
+
+&lt;p&gt;貌似有的问题是我们没法加锁，例如第一个 不知道给哪个医生加锁？但是如果能够物化冲突，找到加锁的地方就能够解决了。&lt;/p&gt;
+
+&lt;p&gt;会议室预定的，我们可以给每个会议室每个时间段创建一条记录，然后加锁。问题在于有的我们很难物化，例如用户名唯一性，
+不可能给每个用户名都创建一个索引。大多数还是使用 Serializability 的隔离级别&lt;/p&gt;
+
+&lt;h2 id=&#34;4-serializability&#34;&gt;4. Serializability&lt;/h2&gt;
+
+&lt;p&gt;这是目前 strongest isolation level，让数据库表现的类似所有的事务都 execute in parallel。&lt;/p&gt;
+
+&lt;p&gt;如何实现  implementing 并且它的效率如何是需要考虑的问题。目前三种实现：顺序执行、2PL、SSI&lt;/p&gt;
+
+&lt;h3 id=&#34;1-actual-serial-execution&#34;&gt;(1) Actual Serial Execution&lt;/h3&gt;
+
+&lt;h4 id=&#34;encapsulating-transactions-in-stored-procedures&#34;&gt;Encapsulating transactions in stored procedures&lt;/h4&gt;
+
+&lt;h3 id=&#34;2-two-phase-locking-2pl&#34;&gt;(2) Two-Phase Locking (2PL)&lt;/h3&gt;
+
+&lt;p&gt;很久一段时间，实现 serial 只有一种方法，那就是 2PL，注意这里的 2pl 和 后面的 2pc 不一样。&lt;/p&gt;
+
+&lt;p&gt;我们知道锁的作用就是更新时候保证一个是在另一个完成后进行的。2PL类似，很多个线程都可以同时读一条数据，
+但是如果想要更改数据，就需要使用 exclusive access ：
+1. A 如果读了数据 然后 B 想更改这条数据，B 需要等待 A 事务 commit 或者 abort
+2. A 如果修改了数据 然后 B 想读这条数据，B 需要等待 A 事务 commit 或者 abort&lt;/p&gt;
+
+&lt;p&gt;2PL 和 前面的锁不一样的地方在于，writers 不仅会锁住其他的 writers，还会锁住其他的 readers，反过来也一样。
+这就是和 snapshot isolation 不一样的地方，所以他能够防止前面所有的错误。&lt;/p&gt;
+
+&lt;h4 id=&#34;implementation-of-two-phase-locking&#34;&gt;Implementation of two-phase locking&lt;/h4&gt;
+
+&lt;p&gt;实现 2PL 的方式就是给每个记录加锁，锁可以是 shared 或者 exclusive。使用方式如下：
+1. 如果线程 A 想读 一个记录，需要获得 shared mode 的锁。所谓 shared mode 就是多个 shared mode 的线程可以共用锁
+2. 如果线程 A 想写 一个记录，需要获得 exclusive mode 的锁。所谓 exclusive mode，就是只能一个人获得锁
+3. 如果一个事务先 读然后写，需要将对应的 shared mode 的锁 升级为 exclusive mode 的锁。
+4. 一个事务获得了锁，就需要一个 hold 住，知道结束（commit或者 abort）.&lt;/p&gt;
+
+&lt;p&gt;这就是 two-phase 的由来，phase1 就是 acquired lock(execute transaction), phase2 就是 release locks(end of the transaction)
+由于使用了很多 locks，很容易出现 A 等待 B释放锁，同时 B 等待 A，这就是 死锁，数据库一般可以自动发现死锁。&lt;/p&gt;
+
+&lt;h4 id=&#34;performance-of-two-phase-locking&#34;&gt;Performance of two-phase locking&lt;/h4&gt;
+
+&lt;p&gt;一直依赖不用 2PC 的原因就是性能太差了，一方面获得锁释放锁有性能开销，更重要的还是并发度太低。
+而且一旦出现事务等待，不知道要等待多久。另外死锁出现的概率大了很多。&lt;/p&gt;
+
+&lt;h4 id=&#34;predicate-locks&#34;&gt;Predicate locks&lt;/h4&gt;
+
+&lt;p&gt;上面的预定会议室程序，如果一个用户预定了一个某个时间段的某个地点，另一个用户此时还可以预约，只要不是相同的时间和地点。&lt;/p&gt;
+
+&lt;p&gt;这时候我们可以使用 Predicate locks，和 2PL 类似，但是不一样的是 2PL 对查询的某一条数据加锁，
+Predicate locks 是加在所有的符合某个条件的所有数据。&lt;/p&gt;
+
+&lt;p&gt;这里的关键在于 Predicate locks 不仅可以加在目前存在的记录上面，还可以加在未来会写进来的数据上。
+如果 2PL 包含了 Predicate locks，就可以防止任何形式的 phantom，也就成了 Serializable。&lt;/p&gt;
+
+&lt;h4 id=&#34;index-range-locks&#34;&gt;Index-range locks&lt;/h4&gt;
+
+&lt;p&gt;Predicate locks 并不好用，如果有太多 lock，判断每个lock 很耗时，所以很多 2PL 使用的是 index-range locking。&lt;/p&gt;
+
+&lt;p&gt;例如我们要锁住 某个会议室在 明天下午三点 ，这判断起来很麻烦，我们可以直接将这个会议室锁起来！或者把所有的会议室 下午三点都锁起来。
+由于 room_id 或者 time 可能有索引，所以判断起来会比较快。&lt;/p&gt;
+
+&lt;p&gt;index-range locks 并没有 Predicate locks 精确，但是可以降低查询量，也是一个好的折中。
+如果没有索引，就锁住整个表格，这样就会降低性能，但是也是一个折中。&lt;/p&gt;
+
+&lt;h3 id=&#34;serializable-snapshot-isolation-ssi&#34;&gt;Serializable Snapshot Isolation (SSI)&lt;/h3&gt;
+
+&lt;p&gt;前面我们发现，提供的隔离性越好，性能就越差？貌似性能和隔离性一定是 odds？不一定，有个 SSI 算法比较新，提供了很好的性能。&lt;/p&gt;
+
+&lt;h4 id=&#34;pessimistic-versus-optimistic-concurrency-control&#34;&gt;Pessimistic versus optimistic concurrency control&lt;/h4&gt;
+
+&lt;p&gt;2PL 是 pessimistic 悲观锁，如果可能会出错那么就等待安全了再操作，类似 mutual exclusion。
+Serial execution ，就是极端的 pessimistic。&lt;/p&gt;
+
+&lt;p&gt;serializable snapshot isolation 是一种 optimistic concurrency control technique.
+先假定不会出错，然后 commit 的时候判断有没有出错。&lt;/p&gt;
+
+&lt;h3 id=&#34;decisions-based-on-an-outdated-premise&#34;&gt;Decisions based on an outdated premise&lt;/h3&gt;
+
+&lt;p&gt;我们前面出现的 write skew 的时候，都有一个通用的模式：
+一个 transaction 读一些数据，检查结果并且做一些动作，但是提交数据的时候，这些数据可能已经被另一个事务更改。&lt;/p&gt;
+
+&lt;p&gt;transaction 会基于 premise 做出一些 action，等后面准备 commit 的时候，这个 premise 已经不正确了。
+换句话说，读的数据和写的数据之间有一个 causal dependency。如何发现 outdated premise，主要有两种：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Detecting reads of a stale MVCC object version (uncommitted write occurred before the read)&lt;/li&gt;
+&lt;li&gt;Detecting writes that affect prior reads (the write occurs after the read)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&#34;detecting-stale-mvcc-reads&#34;&gt;Detecting stale MVCC reads&lt;/h4&gt;
+
+&lt;p&gt;在 snapshot isolation 中使用了 multi-version 的数据，每个事务不会读到当前还没有提交的数据，
+所以其他的线程可能修改了这个数据，为了防着这种情况发生，db 需要记录由于 MVCC visibility rules 而忽略的数据，
+当这个事务 commit 的时候，检查这些数据是否提交，如果提交了就 abort。&lt;/p&gt;
+
+&lt;p&gt;为何要等待 commit 的时候判断而不是直接放弃？因为 当前事务可能是只读，或者另一个事务会失败，或者另一个事务会持续很久。&lt;/p&gt;
+
+&lt;h4 id=&#34;detecting-writes-that-affect-prior-reads&#34;&gt;Detecting writes that affect prior reads&lt;/h4&gt;
+
+&lt;p&gt;当一个 transaction 写数据的时候，他需要查看最近读了这个数据的事务，通知这些事务他们的他们的数据已经过时了。&lt;/p&gt;
+
+&lt;h4 id=&#34;performance-of-serializable-snapshot-isolation&#34;&gt;Performance of serializable snapshot isolation&lt;/h4&gt;
+
+&lt;p&gt;和 2PL 相比，SSI 不用阻塞线程。读写之间是不会阻塞，导致延迟低。&lt;/p&gt;
+
+&lt;p&gt;aborts rate 对性能影响很大。但是 SSI 对 长事务 的敏感程度 肯定比 2PL 和 real serial 低。&lt;/p&gt;
 </description>
       
     </item>
@@ -1047,9 +1633,359 @@ n个抽屉，里面有 w 个抽屉放了一样的纸条，打开r个抽屉，想
 
 &lt;p&gt;另外有大神说过，分布式只有两个问题， exactly-once 和 order。其中 exactly-once 后续会讨论，order 就是我们这里讨论最多的。&lt;/p&gt;
 
-&lt;h2 id=&#34;二-partitioning&#34;&gt;二、Partitioning&lt;/h2&gt;
+&lt;h1 id=&#34;二-partitioning&#34;&gt;二、Partitioning&lt;/h1&gt;
 
-&lt;p&gt;分区，also known as Sharding。&lt;/p&gt;
+&lt;p&gt;分区，also known as Sharding。相对其他的理论，这部分很简单了。主要就是跨分区的事务稍微复杂点。&lt;/p&gt;
+
+&lt;h1 id=&#34;三-transactions&#34;&gt;三、Transactions&lt;/h1&gt;
+
+&lt;p&gt;在一个数据系统中，很多东西可能出错，有可能是网络问题，硬件问题，系统 bug。为了可靠，我们必须让系统可靠，事务就是一个选择。
+事务是我们设计应用的时候遵循的的一套规定，但实际上他并不是理所当然的，二是要通过设计底层算法来满足的，这次我们就看看这些算法。
+这一节我们主要将重点放在单机的事务，下一节将会讨论分布式事务。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-the-slippery-concept-of-a-transaction&#34;&gt;1. The Slippery Concept of a Transaction&lt;/h2&gt;
+
+&lt;p&gt;现在几乎所有的 relational databases，以及一些 NoSql 都支持 transaction，但是 transaction 的定义到底是什么？
+实际上一些 NoSql 摆脱了事务的约束，因为事务有时候严重影响了扩展性。都是一些  trade-offs&lt;/p&gt;
+
+&lt;h2 id=&#34;2-the-meaning-of-acid&#34;&gt;2. The Meaning of ACID&lt;/h2&gt;
+
+&lt;p&gt;不同数据库的 ACID 实现方式是不同的，例如 isolation 的定义有很多，除了 ACID 还有一种约束叫做 BASE，就更加模糊了，一个一个看吧。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-atomicity&#34;&gt;(1) Atomicity&lt;/h3&gt;
+
+&lt;p&gt;原子性其实有很多种定义，一般代表一个事物不可分，例如同时如果是多线程，另一个线程不可能看到转账中间的状态。&lt;/p&gt;
+
+&lt;p&gt;但是在事务中，并不是这个意思，上面的问题是 隔离性讨论范畴，Atomic 是说，例如一个转账的事务，分为两步，不可能只完成一步而另一步失败。&lt;/p&gt;
+
+&lt;p&gt;没有原子性保证，如果一个事物中途失败，我们没法知道哪些改变了哪些没改变。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-consistency&#34;&gt;(2) Consistency&lt;/h3&gt;
+
+&lt;p&gt;Consistency 是一个被严重重载的词，前面的 replica 中它是说主备不一致；CAP 中指的是 线性一致性，这里指的是一种 good state。&lt;/p&gt;
+
+&lt;p&gt;这个定义很模糊，因为他很难描述清楚。一是转账的时候，事务前后两个人的总金额要一样，
+注册用户名的时候保证用户名不重复，不能违背外键约束，这都是一致性的问题。
+AID 都是 properties of databases，数据库可能依赖 AID 来实现 Consistency，所以严格来说 Consistency 并不属于 ACID&lt;/p&gt;
+
+&lt;h3 id=&#34;3-isolation&#34;&gt;(3) Isolation&lt;/h3&gt;
+
+&lt;p&gt;大部分数据都是多线程操作的，如果多个线程访问了同一条数据，就会出现类似前面讨论的 concurrency-write 问题，但是这里还有 read 的问题。
+有的经典课本将它改为 serializability，意思是每个线程都可以假设只有他一个线程在操作数据库，数据库保证并发执行的结果和顺序执行的结果是一样的。
+实际上真正的数据库很少会让操作只在一个线程里面，这样性能太低。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-durability&#34;&gt;(4) Durability&lt;/h3&gt;
+
+&lt;p&gt;这个就是说事务一旦提交就持久化了，例如已经存入了 nonvolatile storage，例如 hard drive or SSD，结合 write-ahead log 等方式实现。
+在 replicated databases 中，可能意味着已经复制到了好几个副本之中。
+perfect durability 是不可能存在的，如果你的机房被恐怖分子炸掉了，硬盘都没了。&lt;/p&gt;
+
+&lt;p&gt;自从分布式理论有了以后， REPLICATION AND DURABILITY 就出现了一些变化，相关的可以查看资料。&lt;/p&gt;
+
+&lt;h2 id=&#34;single-object-and-multi-object-operations&#34;&gt;Single-Object and Multi-Object Operations&lt;/h2&gt;
+
+&lt;p&gt;上面我们知道了，atomicity 和 isolation 描述了在客户端执行多个操作时候 ，数据库的做法。
+前者表示如果事务进行到一半失败了必须删掉所有修改的数据，后者表示各个线程互不干扰。接下来看一个例子。&lt;/p&gt;
+
+&lt;p&gt;一个邮件系统需要显示未读邮件数量，如果每次用户登录都执行 count 操作会比较耗时，所以添加了一个变量 counter 表示未读邮件。&lt;/p&gt;
+
+&lt;p&gt;这时候每次收到一个邮件就 counter++ ，读了一份邮件就 counter &amp;ndash;。
+atomicity 能够保证 不会出现异常（例如已经没用邮件但是 counter &amp;gt;0）,不会出现 消息标记为已读但是 counter&amp;ndash; 执行失败。
+如果标记已读的时候，突然收到一份邮件，这时候 counter 的 ++ 和 &amp;ndash; 是并发的，Isolation 保证不会出现异常。&lt;/p&gt;
+
+&lt;p&gt;Multi-object transactions 需要决定哪个读和写操作是同一个 事务。
+对于 relational，就是同一个 tcp 连接的一个 start 和 commit 之间的操作属于同一个事务。
+但是对于 Nosql，并没有相应的方法，尽管提供了对于的API，但是实际上不一定能保证事务。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-single-object-writes&#34;&gt;(1) Single-object writes&lt;/h3&gt;
+
+&lt;p&gt;如果一个事务修改了一个 json 文件，但是由于网络问题，修改了一半。或者多个事务同时修改了一个字段，这时候也和上面一样需要进行单个对象事务控制。&lt;/p&gt;
+
+&lt;p&gt;一些数据库提供了 更复杂的 atomic 操作，例如 increment 可以避免 read-modify-write，类似的有 compare-and-set ，思想类似了乐观锁。
+这样的操作实际上和 ACID 类似，compare-and-set 实际上也是 lightweight transactions，或者是市场化的 ACID。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-the-need-for-multi-object-transactions&#34;&gt;(2) The need for multi-object transactions&lt;/h3&gt;
+
+&lt;p&gt;许多 NoSql 放弃了 multi-object transactions， 因为需要在不同的 partitions 上面实现事务。
+我们真的需要 multi-object transactions 么？我们的应用能否只通过 single-object operations 实现。考虑以下情形：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;外键约束 关系型数据库可能有外键，我们执行一个操作的时候，需要考虑满足这些约束&lt;/li&gt;
+&lt;li&gt;document databases 很难 join，所以会有 denormalization，对应的修改必须是同时修改。&lt;/li&gt;
+&lt;li&gt;考虑 secondary indexes，值修改了索引也要进行修改。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这些情形可以不用事务，但是容错就会相当复杂。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-handling-errors-and-aborts&#34;&gt;(3) Handling errors and aborts&lt;/h3&gt;
+
+&lt;p&gt;ACID 的主要目的是如果发生了错误，我可以完全丢弃掉这些改变，但是也有例外。
+leaderless replication 在你的数据出现错误以后并不会进行修改。
+如果发生了错误就直接 abort 然后重试也不是很好的选择：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;如果事务已经 succeeded，但是网络问题导致没有返回成功消息，你可能会标记为失败，然后重试会执行两次？&lt;/li&gt;
+&lt;li&gt;如果集群 load 过高你这时候再次重试反而会是问题严重。&lt;/li&gt;
+&lt;li&gt;有时候重试再多次也是失败的&lt;/li&gt;
+&lt;li&gt;如果事物内部有一些操作，例如发邮件？你总不能每次重试就发一次邮件吧。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;2-weak-isolation-levels&#34;&gt;2. Weak Isolation Levels&lt;/h2&gt;
+
+&lt;p&gt;上面说过 serializable 并不是最好的隔离方式，还有一些其他的方式。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-read-committed&#34;&gt;(1) Read Committed&lt;/h3&gt;
+
+&lt;p&gt;Read Committed 有两个保证，1 是读数据的时候只能看到提交成功的数据，2 是写数据的时候只会覆盖写成功的数据。也就是没有脏读和脏写。&lt;/p&gt;
+
+&lt;h4 id=&#34;no-dirty-reads&#34;&gt;No dirty reads&lt;/h4&gt;
+
+&lt;p&gt;如果你读了别的事务还没提交的数据就是脏读，如果覆盖了别的事务还没提交的数据就是脏写。
+举个例子，如果你的账户余额为0，查看余额的时候，有人刚好在给你转账，
+先给你加了 500，然后他的账户余额不够事务失败了，然后又 rollback，结果你刷新发现又变成了0。你看到 500 是脏数据，所以是脏读。
+同理如果你给自己存钱的时候覆盖了这个 500，就是脏写。&lt;/p&gt;
+
+&lt;p&gt;Read Committed 隔离级别数据库需要保证不会出现脏读，也就是看到的数据是已经 commit 的。&lt;/p&gt;
+
+&lt;h4 id=&#34;no-dirty-writes&#34;&gt;No dirty writes&lt;/h4&gt;
+
+&lt;p&gt;同样需要保证不会出现脏写，一般需要加锁，等待前一个事务 commit 或者 abort&lt;/p&gt;
+
+&lt;h4 id=&#34;implementing-read-committed&#34;&gt;Implementing read committed&lt;/h4&gt;
+
+&lt;p&gt;简单粗暴的方式就是加锁，这也是大部分数据库 保证 没有 No dirty writes 的方式，但是脏读也加锁就会降低性能。
+所以脏读一般是通过保存两份数据，一个是未提交的数据，一个是已经提交的数据。读的时候返回已经提交的数据。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-snapshot-isolation-and-repeatable-read&#34;&gt;(2) Snapshot Isolation and Repeatable Read&lt;/h3&gt;
+
+&lt;p&gt;貌似 上面已经很完美了，但是看看下面的例子：
+还是两个人转账，A 把 500 块转给 B，首先把 A 设置为 0，然后 B 设置为 500。
+此时B 查看了两个用户的账户，在还没开始的时候查看了A的，结束的时候查看了B的，发现两个人都是 0.&lt;/p&gt;
+
+&lt;p&gt;上面的问题和之前的反了过来。脏读是读了修改到一半的数据，不可重复读是修改了读到一半的数据。
+这貌似不是一个大问题，只要等一会儿再读，就发现是正确的。但是注意以下情况：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Backups 如果我再备份数据，类似这里的读。&lt;/li&gt;
+&lt;li&gt;Analytic queries&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Snapshot isolation 就是解决这个问题的方法。实现 快照隔离需要用 MVCC 算法。
+之前每条数据都有两个版本，未提交的和提交的，现在改成多个，也就是每一条保存多个版本的数据，算法如下：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;每个事务都有一个 txid。&lt;/li&gt;
+&lt;li&gt;每一行数据有一个 created_by 段包含了 tx_id。&lt;/li&gt;
+&lt;li&gt;每一行数据有一个 deleted_by 字段默认空值，如果数据删除了，实际上不会删的，二是 deleted_by 会有一个 txid 标志它被删掉。&lt;/li&gt;
+&lt;li&gt;如果确定没有实物能访问到被删掉的数据，就真的删了被删掉的数据。&lt;/li&gt;
+&lt;li&gt;update 等于 delete + create&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;读数据时候的 Visibility rules 如下：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;每个 transaction 开始的时候会将所有正在执行的 transactions 列出，这些事务的修改无论成功与否都 ignore。&lt;/li&gt;
+&lt;li&gt;所有 abort 的事务做的修改 都 ignore。&lt;/li&gt;
+&lt;li&gt;比它大的 txid 做出的修改都 ignore。&lt;/li&gt;
+&lt;li&gt;其他的修改都是 可见的。&lt;/li&gt;
+&lt;li&gt;这里的修改指的是 create 和 delete&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;换个方式，只有下面的情况才是 visible：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;transaction 开始的时候，已经 commit 的数据&lt;/li&gt;
+&lt;li&gt;别的事物虽然已经删了数据，但是还没有提交的。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;3-indexes-and-snapshot-isolation&#34;&gt;(3) Indexes and snapshot isolation&lt;/h3&gt;
+
+&lt;p&gt;在 multi-version 的 databases 里面 index 如何工作? 可以和数据一样，有多个索引，但也可以在有多个版本的时候避免索引更新。
+还有的结构是 appendOnly 的结构。。。。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-repeatable-read-and-naming-confusion&#34;&gt;(4) Repeatable read and naming confusion&lt;/h3&gt;
+
+&lt;p&gt;Repeatable read 其实一开始是没有的，也是慢慢被发现的，所以它的名字有很多，实现方式也不一样，提供的一致性保证也不一定一样。&lt;/p&gt;
+
+&lt;h2 id=&#34;3-preventing-lost-updates&#34;&gt;3. Preventing Lost Updates&lt;/h2&gt;
+
+&lt;p&gt;前面只讨论了 dirty writes，类似我们讨论的并发写，还有一些问题我们没有讨论。最有名的就是  Lost Updates，例如并发给某个数据 +1.
+一般可能出现的情况：
+1. 查询数据并增加，例如：转账的时候同时转账。
+2. 同时编辑某个 wiki 文档的一个部分。
+3. 修改一个 json 字符串&lt;/p&gt;
+
+&lt;h3 id=&#34;1-atomic-write-operations&#34;&gt;(1) Atomic write operations&lt;/h3&gt;
+
+&lt;p&gt;大部分 relational db 都支持 atomic 写，即 &lt;code&gt;UPDATE counters SET value = value + 1 WHERE key = &#39;foo&#39;;&lt;/code&gt; 而不需要 read-modify-write。&lt;/p&gt;
+
+&lt;p&gt;一般情况下都是通过 exclusive lock 方式实现，这种方式也被称为  cursor stability，另一种就是强制要求所有的操作在一个线程里。&lt;/p&gt;
+
+&lt;p&gt;但是有些 orm 框架让你很容易写出 unsafe 的并发更新bug而且很难查出来。&lt;/p&gt;
+
+&lt;h3 id=&#34;2-explicit-locking&#34;&gt;(2) Explicit locking&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;SELECT * FROM figures
+  WHERE name = &#39;robot&#39; AND game_id = 222
+  FOR UPDATE;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这样直接锁住记录&lt;/p&gt;
+
+&lt;h3 id=&#34;3-automatically-detecting-lost-updates&#34;&gt;(3) Automatically detecting lost updates&lt;/h3&gt;
+
+&lt;p&gt;加锁的方式是让操作序列化执行，同样可以让每个并发执行，如果发生了错误就 abort 重试。
+Lost update detection 是一种很高级的特性。&lt;/p&gt;
+
+&lt;h3 id=&#34;4-compare-and-set&#34;&gt;(4) Compare-and-set&lt;/h3&gt;
+
+&lt;p&gt;这种方式就是写之前先读，如果数据没有变化再写。
+但是如果写之前读的是还没提交的数据，可能还是有问题的。&lt;/p&gt;
+
+&lt;h3 id=&#34;5-conflict-resolution-and-replication&#34;&gt;(5) Conflict resolution and replication&lt;/h3&gt;
+
+&lt;p&gt;如果有多个副本，写数据都是并发，同步数据是异步的，这时候 locks 和 compare-and-set 的方式以及没法保证数据一致性了。&lt;/p&gt;
+
+&lt;h2 id=&#34;4-write-skew-and-phantoms&#34;&gt;4. Write Skew and Phantoms&lt;/h2&gt;
+
+&lt;p&gt;除了上面的问题，可能还有新的问题。看下嘛的例子：
+我们有个医生门诊应用，每个医生可以请假，但是至少保证有一个医生没有请假。医生请假的时候会查询目前在岗的医生，发现有人就可以请假。
+但是如果有一个时间所有的医生都同时查看，发现大家都在，然后大家都一起请假，就违背了约束。&lt;/p&gt;
+
+&lt;h3 id=&#34;1-characterizing-write-skew&#34;&gt;(1) Characterizing write skew&lt;/h3&gt;
+
+&lt;p&gt;这种问题叫做 write skew，既不是脏写也不是 lost update。对应的读问题叫做 phantoms read。
+因为两个事务更新的是两个数据（每个医生设置自己的状态为请假），这里的冲突不太明显，但是确实违背了约束。&lt;/p&gt;
+
+&lt;p&gt;write skew 可以看出广义的 lost update，write skew 是多个事务读了同一个数据然后更新了其中的部分数据。
+如果更新的是同一条数据就会得到 dirty write 或者 lost update。&lt;/p&gt;
+
+&lt;p&gt;lost update 我们有很多种方案可以解决，但是貌似这里就不行了：
+1. Atomic single-object 没法解决，因为 这里有多个 obj
+2. automatic detection 很难，因为这种问题需要 Serializable 的隔离级别
+3. 通过添加唯一位数、主键约束都不一定可以，例如这里有多个医生的在岗状态，如果加约束需要每次都扫描全表。&lt;/p&gt;
+
+&lt;p&gt;还有很多 write skew 的问题，
+会议室预约系统如何保证一个会议室在同一时间不会被两个人预定？
+Multiplayer game 怎么保证两个用户不会出现在同一个点，
+用户名唯一性约束等&lt;/p&gt;
+
+&lt;h3 id=&#34;2-phantoms-causing-write-skew&#34;&gt;(2) Phantoms causing write skew&lt;/h3&gt;
+
+&lt;p&gt;上面的问题有一个共同点：
+1. 查询是否满足多个条件
+2. 根据上面的结果做出更新
+3. 第二步的更新导致第一步的条件不成立&lt;/p&gt;
+
+&lt;p&gt;注意一定是有更改，如果是只读的， snapshot isolation 就能保证不会出现异常。&lt;/p&gt;
+
+&lt;h3 id=&#34;3-materializing-conflicts&#34;&gt;(3) Materializing conflicts&lt;/h3&gt;
+
+&lt;p&gt;貌似有的问题是我们没法加锁，例如第一个 不知道给哪个医生加锁？但是如果能够物化冲突，找到加锁的地方就能够解决了。&lt;/p&gt;
+
+&lt;p&gt;会议室预定的，我们可以给每个会议室每个时间段创建一条记录，然后加锁。问题在于有的我们很难物化，例如用户名唯一性，
+不可能给每个用户名都创建一个索引。大多数还是使用 Serializability 的隔离级别&lt;/p&gt;
+
+&lt;h2 id=&#34;4-serializability&#34;&gt;4. Serializability&lt;/h2&gt;
+
+&lt;p&gt;这是目前 strongest isolation level，让数据库表现的类似所有的事务都 execute in parallel。&lt;/p&gt;
+
+&lt;p&gt;如何实现  implementing 并且它的效率如何是需要考虑的问题。目前三种实现：顺序执行、2PL、SSI&lt;/p&gt;
+
+&lt;h3 id=&#34;1-actual-serial-execution&#34;&gt;(1) Actual Serial Execution&lt;/h3&gt;
+
+&lt;h4 id=&#34;encapsulating-transactions-in-stored-procedures&#34;&gt;Encapsulating transactions in stored procedures&lt;/h4&gt;
+
+&lt;h3 id=&#34;2-two-phase-locking-2pl&#34;&gt;(2) Two-Phase Locking (2PL)&lt;/h3&gt;
+
+&lt;p&gt;很久一段时间，实现 serial 只有一种方法，那就是 2PL，注意这里的 2pl 和 后面的 2pc 不一样。&lt;/p&gt;
+
+&lt;p&gt;我们知道锁的作用就是更新时候保证一个是在另一个完成后进行的。2PL类似，很多个线程都可以同时读一条数据，
+但是如果想要更改数据，就需要使用 exclusive access ：
+1. A 如果读了数据 然后 B 想更改这条数据，B 需要等待 A 事务 commit 或者 abort
+2. A 如果修改了数据 然后 B 想读这条数据，B 需要等待 A 事务 commit 或者 abort&lt;/p&gt;
+
+&lt;p&gt;2PL 和 前面的锁不一样的地方在于，writers 不仅会锁住其他的 writers，还会锁住其他的 readers，反过来也一样。
+这就是和 snapshot isolation 不一样的地方，所以他能够防止前面所有的错误。&lt;/p&gt;
+
+&lt;h4 id=&#34;implementation-of-two-phase-locking&#34;&gt;Implementation of two-phase locking&lt;/h4&gt;
+
+&lt;p&gt;实现 2PL 的方式就是给每个记录加锁，锁可以是 shared 或者 exclusive。使用方式如下：
+1. 如果线程 A 想读 一个记录，需要获得 shared mode 的锁。所谓 shared mode 就是多个 shared mode 的线程可以共用锁
+2. 如果线程 A 想写 一个记录，需要获得 exclusive mode 的锁。所谓 exclusive mode，就是只能一个人获得锁
+3. 如果一个事务先 读然后写，需要将对应的 shared mode 的锁 升级为 exclusive mode 的锁。
+4. 一个事务获得了锁，就需要一个 hold 住，知道结束（commit或者 abort）.&lt;/p&gt;
+
+&lt;p&gt;这就是 two-phase 的由来，phase1 就是 acquired lock(execute transaction), phase2 就是 release locks(end of the transaction)
+由于使用了很多 locks，很容易出现 A 等待 B释放锁，同时 B 等待 A，这就是 死锁，数据库一般可以自动发现死锁。&lt;/p&gt;
+
+&lt;h4 id=&#34;performance-of-two-phase-locking&#34;&gt;Performance of two-phase locking&lt;/h4&gt;
+
+&lt;p&gt;一直依赖不用 2PC 的原因就是性能太差了，一方面获得锁释放锁有性能开销，更重要的还是并发度太低。
+而且一旦出现事务等待，不知道要等待多久。另外死锁出现的概率大了很多。&lt;/p&gt;
+
+&lt;h4 id=&#34;predicate-locks&#34;&gt;Predicate locks&lt;/h4&gt;
+
+&lt;p&gt;上面的预定会议室程序，如果一个用户预定了一个某个时间段的某个地点，另一个用户此时还可以预约，只要不是相同的时间和地点。&lt;/p&gt;
+
+&lt;p&gt;这时候我们可以使用 Predicate locks，和 2PL 类似，但是不一样的是 2PL 对查询的某一条数据加锁，
+Predicate locks 是加在所有的符合某个条件的所有数据。&lt;/p&gt;
+
+&lt;p&gt;这里的关键在于 Predicate locks 不仅可以加在目前存在的记录上面，还可以加在未来会写进来的数据上。
+如果 2PL 包含了 Predicate locks，就可以防止任何形式的 phantom，也就成了 Serializable。&lt;/p&gt;
+
+&lt;h4 id=&#34;index-range-locks&#34;&gt;Index-range locks&lt;/h4&gt;
+
+&lt;p&gt;Predicate locks 并不好用，如果有太多 lock，判断每个lock 很耗时，所以很多 2PL 使用的是 index-range locking。&lt;/p&gt;
+
+&lt;p&gt;例如我们要锁住 某个会议室在 明天下午三点 ，这判断起来很麻烦，我们可以直接将这个会议室锁起来！或者把所有的会议室 下午三点都锁起来。
+由于 room_id 或者 time 可能有索引，所以判断起来会比较快。&lt;/p&gt;
+
+&lt;p&gt;index-range locks 并没有 Predicate locks 精确，但是可以降低查询量，也是一个好的折中。
+如果没有索引，就锁住整个表格，这样就会降低性能，但是也是一个折中。&lt;/p&gt;
+
+&lt;h3 id=&#34;serializable-snapshot-isolation-ssi&#34;&gt;Serializable Snapshot Isolation (SSI)&lt;/h3&gt;
+
+&lt;p&gt;前面我们发现，提供的隔离性越好，性能就越差？貌似性能和隔离性一定是 odds？不一定，有个 SSI 算法比较新，提供了很好的性能。&lt;/p&gt;
+
+&lt;h4 id=&#34;pessimistic-versus-optimistic-concurrency-control&#34;&gt;Pessimistic versus optimistic concurrency control&lt;/h4&gt;
+
+&lt;p&gt;2PL 是 pessimistic 悲观锁，如果可能会出错那么就等待安全了再操作，类似 mutual exclusion。
+Serial execution ，就是极端的 pessimistic。&lt;/p&gt;
+
+&lt;p&gt;serializable snapshot isolation 是一种 optimistic concurrency control technique.
+先假定不会出错，然后 commit 的时候判断有没有出错。&lt;/p&gt;
+
+&lt;h3 id=&#34;decisions-based-on-an-outdated-premise&#34;&gt;Decisions based on an outdated premise&lt;/h3&gt;
+
+&lt;p&gt;我们前面出现的 write skew 的时候，都有一个通用的模式：
+一个 transaction 读一些数据，检查结果并且做一些动作，但是提交数据的时候，这些数据可能已经被另一个事务更改。&lt;/p&gt;
+
+&lt;p&gt;transaction 会基于 premise 做出一些 action，等后面准备 commit 的时候，这个 premise 已经不正确了。
+换句话说，读的数据和写的数据之间有一个 causal dependency。如何发现 outdated premise，主要有两种：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Detecting reads of a stale MVCC object version (uncommitted write occurred before the read)&lt;/li&gt;
+&lt;li&gt;Detecting writes that affect prior reads (the write occurs after the read)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&#34;detecting-stale-mvcc-reads&#34;&gt;Detecting stale MVCC reads&lt;/h4&gt;
+
+&lt;p&gt;在 snapshot isolation 中使用了 multi-version 的数据，每个事务不会读到当前还没有提交的数据，
+所以其他的线程可能修改了这个数据，为了防着这种情况发生，db 需要记录由于 MVCC visibility rules 而忽略的数据，
+当这个事务 commit 的时候，检查这些数据是否提交，如果提交了就 abort。&lt;/p&gt;
+
+&lt;p&gt;为何要等待 commit 的时候判断而不是直接放弃？因为 当前事务可能是只读，或者另一个事务会失败，或者另一个事务会持续很久。&lt;/p&gt;
+
+&lt;h4 id=&#34;detecting-writes-that-affect-prior-reads&#34;&gt;Detecting writes that affect prior reads&lt;/h4&gt;
+
+&lt;p&gt;当一个 transaction 写数据的时候，他需要查看最近读了这个数据的事务，通知这些事务他们的他们的数据已经过时了。&lt;/p&gt;
+
+&lt;h4 id=&#34;performance-of-serializable-snapshot-isolation&#34;&gt;Performance of serializable snapshot isolation&lt;/h4&gt;
+
+&lt;p&gt;和 2PL 相比，SSI 不用阻塞线程。读写之间是不会阻塞，导致延迟低。&lt;/p&gt;
+
+&lt;p&gt;aborts rate 对性能影响很大。但是 SSI 对 长事务 的敏感程度 肯定比 2PL 和 real serial 低。&lt;/p&gt;
 
 &lt;h1 id=&#34;第五部分-案例&#34;&gt;第五部分、案例&lt;/h1&gt;
 
@@ -1073,7 +2009,7 @@ n个抽屉，里面有 w 个抽屉放了一样的纸条，打开r个抽屉，想
     </item>
     
     <item>
-      <title>design-data-intensive-architecture</title>
+      <title>分布式存储-partition</title>
       <link>https://dengziming.github.io/post/data-intensive-architecture/partition/</link>
       <pubDate>Sat, 22 Dec 2018 00:00:00 +0000</pubDate>
       
@@ -1081,398 +2017,11 @@ n个抽屉，里面有 w 个抽屉放了一样的纸条，打开r个抽屉，想
       
         <description>
 
-&lt;h1 id=&#34;第一部分-前言&#34;&gt;第一部分、前言&lt;/h1&gt;
+&lt;h1 id=&#34;二-partitioning&#34;&gt;二、Partitioning&lt;/h1&gt;
 
-&lt;p&gt;ACID，bigdata，NoSql ，bigTable ，CAP，2PC，3PC，quorum，raft，paxos，cloud，real-time，高并发架构将会逐渐成为基础。&lt;/p&gt;
+&lt;p&gt;分区，also known as Sharding、region、tablet、vBucket&lt;/p&gt;
 
-&lt;p&gt;主要内容：
-（一）基础&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;“reliability, scalability, and maintainability”&lt;/li&gt;
-&lt;li&gt;数据模型&lt;/li&gt;
-&lt;li&gt;存储引擎&lt;/li&gt;
-&lt;li&gt;数据结构&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;（二）分布式&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;replication&lt;/li&gt;
-&lt;li&gt;partitioning/sharding&lt;/li&gt;
-&lt;li&gt;transaction&lt;/li&gt;
-&lt;li&gt;distributed system&lt;/li&gt;
-&lt;li&gt;consistency and consensus&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;（三）交互&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;batch process&lt;/li&gt;
-&lt;li&gt;realtime&lt;/li&gt;
-&lt;li&gt;put everything together&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;（四）案例及资料&lt;/p&gt;
-
-&lt;h1 id=&#34;第二部分-数据系统的基础&#34;&gt;第二部分、数据系统的基础&lt;/h1&gt;
-
-&lt;h2 id=&#34;一-reliable-scalable-和-maintainable-的含义&#34;&gt;一、Reliable,Scalable 和 Maintainable 的含义&lt;/h2&gt;
-
-&lt;p&gt;数据系统分为 data-intensive 和 compute-intensive，一般的大数据应用会采用的技术：
-1. 存储，方便后续的查询 &amp;ndash; databases
-2. 缓存，加速访问 &amp;ndash; caches
-3. 允许用户通过关键字搜索、按照过滤  &amp;ndash; indexes
-4. 给另一个进程发送消息，异步处理  &amp;ndash; streaming process
-5. 周期性处理全量数据  &amp;ndash; batch process&lt;/p&gt;
-
-&lt;p&gt;这一切都是需要数据系统，我们并不会从头开始搭建存储、计算系统，因为有很多现成的技术可以应用。数据库、消息队列功能都很相似，但是实现完全不同，导致不同的性能，所以我们用处不同，我们为什么要将他们结合到一起呢？&lt;/p&gt;
-
-&lt;p&gt;其实许多工具功能比较重复，redis 其实也可以当消息队列，kafka 也可以做数据持久化。这些工具的界限越来越模糊。第二是我们得系统一般比较复杂，一个工具完成不了，我们必须组件一个数据系统。组件的过程
-有很多需要考虑的事情，其中最重要的三点：
-Reliable： 系统必须一致能够提供服务，即便是发生了一些不可预知的错误
-Scalable： 系统升级、功能扩展、访问量增加，导致我们需要能够很方便扩展我们的系统
-Maintainable： 随着时间推移，可能有很多其他人接受项目，必须方便别人进行维护&lt;/p&gt;
-
-&lt;p&gt;有关这三点的介绍，我们逐渐展开：&lt;/p&gt;
-
-&lt;h3 id=&#34;1-reliable&#34;&gt;1. Reliable&lt;/h3&gt;
-
-&lt;h3 id=&#34;2-scalable&#34;&gt;2. Scalable&lt;/h3&gt;
-
-&lt;h3 id=&#34;3-maintainable&#34;&gt;3. Maintainable&lt;/h3&gt;
-
-&lt;h2 id=&#34;二-数据模型和查询语言&#34;&gt;二、数据模型和查询语言&lt;/h2&gt;
-
-&lt;p&gt;数据模型是最重要的一部分，&lt;/p&gt;
-
-&lt;h3 id=&#34;1-关系型与文档型&#34;&gt;1.关系型与文档型&lt;/h3&gt;
-
-&lt;h3 id=&#34;2-nosql&#34;&gt;2.NoSQL&lt;/h3&gt;
-
-&lt;h3 id=&#34;3-object-relational-mismatch&#34;&gt;3. Object-Relational Mismatch&lt;/h3&gt;
-
-&lt;h3 id=&#34;4-many-to-one-and-many-to-many-relationships&#34;&gt;4. Many-to-One and Many-to-Many Relationships&lt;/h3&gt;
-
-&lt;h3 id=&#34;5-query-languages-for-data&#34;&gt;5. Query Languages for Data&lt;/h3&gt;
-
-&lt;h3 id=&#34;6-graph-like-data-models&#34;&gt;6.Graph-Like Data Models&lt;/h3&gt;
-
-&lt;h2 id=&#34;三-storage-and-retrieval&#34;&gt;三、Storage and Retrieval&lt;/h2&gt;
-
-&lt;h3 id=&#34;1-hash-indexes&#34;&gt;1. Hash Indexes&lt;/h3&gt;
-
-&lt;h3 id=&#34;2-sstables-and-lsm-trees&#34;&gt;2. SSTables and LSM-Trees&lt;/h3&gt;
-
-&lt;h3 id=&#34;3-b-trees&#34;&gt;3. B-Trees&lt;/h3&gt;
-
-&lt;h3 id=&#34;4-multi-column-indexes&#34;&gt;4. Multi-column indexes&lt;/h3&gt;
-
-&lt;h3 id=&#34;5-full-text-search-and-fuzzy-indexes&#34;&gt;5. Full-text search and fuzzy indexes&lt;/h3&gt;
-
-&lt;h3 id=&#34;6-keeping-everything-in-memory&#34;&gt;6.Keeping everything in memory&lt;/h3&gt;
-
-&lt;h3 id=&#34;7-olap-vs-oltp&#34;&gt;7. OLAP vs OLTP&lt;/h3&gt;
-
-&lt;h3 id=&#34;8-数据仓库&#34;&gt;8. 数据仓库&lt;/h3&gt;
-
-&lt;h3 id=&#34;9-stars-and-snowflakes-schemas-for-analytics&#34;&gt;9. Stars and Snowflakes: Schemas for Analytics&lt;/h3&gt;
-
-&lt;h3 id=&#34;10-column-oriented-storage&#34;&gt;10. Column-Oriented Storage&lt;/h3&gt;
-
-&lt;h3 id=&#34;11-column-compression&#34;&gt;11. Column Compression&lt;/h3&gt;
-
-&lt;h3 id=&#34;12-sort-order-in-column-storage&#34;&gt;12. Sort Order in Column Storage&lt;/h3&gt;
-
-&lt;h3 id=&#34;13-writing-to-column-oriented-storage&#34;&gt;13. Writing to Column-Oriented Storage&lt;/h3&gt;
-
-&lt;p&gt;前面写的有关列存储的优化在数据仓库中很重要，排序、位图索引、压缩都能加速查询，但是会让写数据更加麻烦。&lt;/p&gt;
-
-&lt;p&gt;以 BTree 为理论的写方法，在这里完全没有用，如果你要在数据中插入一条数据，你需要重写所有的数据。&lt;/p&gt;
-
-&lt;p&gt;但是还好的是，如果是 LSM-tree 的方式，首先写进内存排序，然后写磁盘。查询的时候，也是两部分结果进行合并，Vertica 数据仓库就是这么做的。&lt;/p&gt;
-
-&lt;h3 id=&#34;14-aggregation-data-cubes-and-materialized-views&#34;&gt;14. Aggregation: Data Cubes and Materialized Views&lt;/h3&gt;
-
-&lt;p&gt;并不是所有的数据仓库都是使用列存储，很多其他存储方式也会用到，但是列存储确实能够很大程度加快访问，所以越来越流行。&lt;/p&gt;
-
-&lt;p&gt;另一种值得一提的数据仓库技术就是 materialized aggregates。前面所说的，查询经常会遇到一些聚合， 例如 count，sum，如果一个查询被很多查询共用，可以将结果缓存。
-其中一种方法就是 materialized view，类似查询视图，只不过这个视图的结果已经计算好保存起来了。如果数据改变了，你的 materialized view 也要改变。&lt;/p&gt;
-
-&lt;p&gt;一种常见的案例就是 data cube 后者 OLAP cube，就是根据不同纬度就行聚合后的结果。举个列子，如果表格有 日期、商品种类、销售额三列，我们可以计算销售额在 日期、商品种类 两个维度下的聚合只，得到一个二维表格。
-二维表格的两个维度分别为日期和商品种类，表格的值就是销售额，然后如果要计算每个维度下的 sum，只需要将对应维度所有值 sum 到一起。&lt;/p&gt;
-
-&lt;p&gt;实际上，表格都不止两个维度，假如有五个维度，情况就很复杂了。但是原则不变，每个 cell 保存五个维度组合下的聚合值。&lt;/p&gt;
-
-&lt;p&gt;通过 cube 可以加速某些查询，但是如果要计算订单额度大于 100 的比例，那就没法计算了，因为额度很难作为一个维度。所以一般只作为一个加快部分查询的工具。&lt;/p&gt;
-
-&lt;h2 id=&#34;四-encoding-and-evolution&#34;&gt;四、Encoding and Evolution&lt;/h2&gt;
-
-&lt;p&gt;服务总是要变的，服务变了，服务之间的代码也要变。服务端可以做滚动升级，也就是部分服务器先升级，保证没错的话，其他的继续升级。
-而客户端也就是用户端，代码变化必须做到向前向后兼容，也就是说，高版本要能够处理低版本的数据，这很简单；低版本的代码，必须能从高版本的架构读数据，这是比较难的。
-接下来我们将会看一些数据结构，JSON, XML, Protocol Buffers, Thrift, and Avro ，主要看他们在这些data storage and for communication系统中如何使用：
-in web services, Representational State Transfer (REST), and remote procedure calls (RPC), as well as message-passing systems such as actors and message queues&lt;/p&gt;
-
-&lt;h3 id=&#34;1-formats-for-encoding-data&#34;&gt;1. Formats for Encoding Data&lt;/h3&gt;
-
-&lt;p&gt;一般的应用都会处理两种数据。内存主要是通过对象、数组、树、hash表等，而需要保存、传输时候，需要进行序列化，由于指针引用序列化后是没用的，所以序列化后的结构和内存结构完全不用。
-从设计模式角度考虑，我们需要进行一个适配，两边都要适配的话，实际上就是做一个转换。内存到 byte sequence 的过程称为 encoding（或者 serialization、marshalling），反过来讲decoding（deserialization、parsing、unmarshalling）&lt;/p&gt;
-
-&lt;p&gt;** 专业术语冲突
-serialization 在数据库的事务中也会用到，但是完全是另外一码子事情，后续会进行介绍。这里使用的时候我们以 encoding 为主，虽然平时 serialization 用的更多。&lt;/p&gt;
-
-&lt;p&gt;这里我们将会以一条数据为例,对它进行编码：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;{
-    &amp;quot;userName&amp;quot;: &amp;quot;Martin&amp;quot;,
-    &amp;quot;favoriteNumber&amp;quot;: 1337,
-    &amp;quot;interests&amp;quot;: [&amp;quot;daydreaming&amp;quot;, &amp;quot;hacking&amp;quot;]
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;1-language-specific-formats&#34;&gt;(1) Language-Specific Formats&lt;/h4&gt;
-
-&lt;p&gt;java.io.Serializable 属于java 自带的序列化机制，很多编程语言都自带了。当然也有很多第三方的，比如 Kryo for Java。这些很方便，因为你只需要直接读然后调用java对应的方法即可。但是问题也很多。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;通用性问题，不多说。&lt;/li&gt;
-&lt;li&gt;数据会有类型，例如java 序列化必须只能解析为特定的类。所以会定义很多类，这样可能导致一些人得到你的类信息，然后远程植入代码。&lt;/li&gt;
-&lt;li&gt;版本问题。&lt;/li&gt;
-&lt;li&gt;效率问题。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h4 id=&#34;2-json-xml-and-binary-variants&#34;&gt;(2) JSON, XML, and Binary Variants&lt;/h4&gt;
-
-&lt;p&gt;JSON, XML 一般都很熟悉，优缺点都很明显，二进制的编码在某些内网的应用中很常见，还能节约空间。例如 MassagePack 就是二进制的 json。&lt;/p&gt;
-
-&lt;h4 id=&#34;3-thrift-and-protocol-buffers&#34;&gt;(3) Thrift and Protocol Buffers&lt;/h4&gt;
-
-&lt;p&gt;Thrift and Protocol Buffers 很多人都知道，作为两种序列化的框架，当然还提供了别的功能，例如 RPC 通信接口。都需要定义一个schema：&lt;/p&gt;
-
-&lt;p&gt;Thrift 的定义格式：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;struct Person {
-  1: required string       userName,
-  2: optional i64          favoriteNumber,
-  3: optional list&amp;lt;string&amp;gt; interests
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;pb 的定义格式：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;message Person {
-    required string user_name       = 1;
-    optional int64  favorite_number = 2;
-    repeated string interests       = 3;
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后他们都有代码生成的工具，可以针对各种语言生成相应的代码，用来 encode 和 decode 数据。thrift 的格式有两种 BinaryProtocol and CompactProtocol。&lt;/p&gt;
-
-&lt;p&gt;BinaryProtocol 表示上面的数据格式需要 59 bytes ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;0b 00 01 00 00 00 06 4d 61 72 74 69 6e     0b 是 type代表 String，紧接着 00 01 代表 field tag 为1，然后 00 00 00 06 代表长度为6，剩下的六bytes 代表数据。
-0a 00 02 00 00 00 00 00 00 05 39           和刚才一样， 0a 代表int64 ，
-0f 00 03 0b 00 00 00 02                    0f 代表list，00 03代表 field tag 为3，0b 代表 item type 为 string，00 00 00 02 代表长度为2，
-	00 00 00 0b 64 61 79 ....              长度和数据
-	00 00 00 07 68 ..... 				   长度和数据
-00											结束标志
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;CompactProtocol 和 BinaryProtocol 的结构类似，但是进行了一些压缩，需要 33 bytes&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;18 06 4d ....  							  18 是 00011000 field type and tag number 合在一起，0001 是 tag，
-										  1000 是 type 是string （为什么8 代表 string，上面是11），06 长度，后面是数据
-										  另外int类型并不是占了 64位，这里的 06是两位，共 8 字节，
-										  最高位代表数据是否已经完整，剩下的七位是数据。如果数据不完整，需要再占8位。这样 -64 到 63 之间的数据只占了1byte
-										  
-16 f2 14 								  16 是 00010110，0001 代表 field tag 比上一个加一，0110 数据类型 后面的 f214 是数据，f2 最高位是1，数据没完，需要往下一位读。
-19 28
-    0b 64 .....
-    07 68 ....
-00
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;ProtocolBuffer 和 Thrift 的 CompactProtocol 类似，需要 33 bytes&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;0a 06 4d 61 72 74 69 6e       			  0a 是 tag(00001) 和 type(010), 06 是长度。 后面是数据
-10 b9 0a 								  10 是tag (00010) 和 type（000）,后面是长度+数据
-1a 0b ........							  1a 是 tag 和 type，后面是长度+数据
-1a 07 ........							  1a 是 tag 和 type，后面是长度+数据
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;和 CompactProtocol 稍微有些不一样，tag+type 为两位，另外 list 类型直接存两个。&lt;/p&gt;
-
-&lt;p&gt;需要注意的是，前面我们的例子中，数据要么是 要么是 required or optional，实际上这对于数据的存储没有任何影响，都是一样的存储，只是在最后解析的时候影响，例如你设置的是 required ，但是没有解析出来，会失败。&lt;/p&gt;
-
-&lt;h4 id=&#34;4-field-tags-and-schema-evolution&#34;&gt;(4) Field tags and schema evolution&lt;/h4&gt;
-
-&lt;p&gt;前面讲过数据需要改变，那 pb 和 thrift 如何应对schema 的变化，做到向前向后兼容呢？
-其实我们从上面的数据可以看出，最重要就是 field tag 了，只要 field tag 唯一，哪怕是增加了数据，减少了数据，最终的结果其实还是一样的。你可以改变变量名字，但是不能改变 tag。
-首先是向后兼容，只要你新加的 field tag 不被设置为 required，就不会报错，另外删除数据也是，不能删除 required 的数据。
-另外是向前兼容，如果是旧的代码读取新的数据，如果遇到不认识的 field tag ，会直接忽略。&lt;/p&gt;
-
-&lt;h4 id=&#34;5-datatypes-and-schema-evolution&#34;&gt;(5) Datatypes and schema evolution&lt;/h4&gt;
-
-&lt;p&gt;数据类型发生变化，一方面可能是数据精度收到影响，另一方面，我们可以看出 pb 是可以讲啊 list 类型变成 optional 的，但是 thrift 不行，因为 thrift 提供了 list 类型，但是这样可以用来写嵌套数据。&lt;/p&gt;
-
-&lt;h4 id=&#34;6-avro&#34;&gt;(6) avro&lt;/h4&gt;
-
-&lt;p&gt;avro 也是一个序列胡框架，他和 pb、thrift 不同点在于没有 tagNumber，这其实很适合动态生成schema，我们不介绍了。&lt;/p&gt;
-
-&lt;h4 id=&#34;7-dynamically-generated-schemas&#34;&gt;(7) Dynamically generated schemas&lt;/h4&gt;
-
-&lt;p&gt;如果我们的数据增加了一列，并且减少了一列，对于 avro 来说，只需要重新生成一个 schema 即可，而如果使用 pb、thrift，需要手动进行配置tag和field 的映射，&lt;/p&gt;
-
-&lt;h4 id=&#34;8-code-generation-and-dynamically-typed-languages&#34;&gt;(8) Code generation and dynamically typed languages&lt;/h4&gt;
-
-&lt;p&gt;代码生成，例如 pb 可以生成 java 和 python 的代码。&lt;/p&gt;
-
-&lt;h4 id=&#34;9-the-merits-of-schemas&#34;&gt;(9) The Merits of Schemas&lt;/h4&gt;
-
-&lt;h3 id=&#34;二-modes-of-dataflow&#34;&gt;二、 Modes of Dataflow&lt;/h3&gt;
-
-&lt;p&gt;我们需要在进程之间发送数据，&lt;/p&gt;
-
-&lt;h4 id=&#34;1-dataflow-through-databases&#34;&gt;1.Dataflow Through Databases&lt;/h4&gt;
-
-&lt;h4 id=&#34;2-dataflow-through-services-rest-and-rpc&#34;&gt;2.Dataflow Through Services: REST and RPC&lt;/h4&gt;
-
-&lt;h4 id=&#34;3-message-passing-dataflow&#34;&gt;3.  Message-Passing Dataflow&lt;/h4&gt;
-
-&lt;h1 id=&#34;第二部分-分布式&#34;&gt;第二部分、分布式&lt;/h1&gt;
-
-&lt;p&gt;使用分布式的原因很多，例如 Scalability，high available，latency。数据分布式有很多种方式，首先是副本、分区，也就是 Replication 和 Partition。&lt;/p&gt;
-
-&lt;h2 id=&#34;一-replication&#34;&gt;一、Replication&lt;/h2&gt;
-
-&lt;p&gt;Replication 就是将你的数据放在多个节点，这样有很多好处。首先是数据从地理上可以隔用户更近，保持高可用，增加吞吐量。&lt;/p&gt;
-
-&lt;p&gt;本章我们假设数据都是完整的进行副本存放，后面再讲分区。数据的副本解决难点就是数据变化的一致性，如果数据一致不变，那就太简单了。
-对于变化，有三种设计：single-leader, multi-leader, and leaderless&lt;/p&gt;
-
-&lt;h3 id=&#34;1-leaders-and-followers&#34;&gt;1. Leaders and Followers&lt;/h3&gt;
-
-&lt;p&gt;每个节点上面的副本叫做 replica ，当有 multi replica 的时候，一个问题出现了，怎么保证数据写到了每一个副本。数据库的每一次写都必须保证被每个副本处理，否则就会出现不一致。
-最常用的解决方案就是 leader-based-replication，也叫 active-passive、master-slave。&lt;/p&gt;
-
-&lt;p&gt;在主从结构中，写只能发送给 leader，leader 写的时候会发送数据给 follower，而读操作可以读任何一个节点。&lt;/p&gt;
-
-&lt;h4 id=&#34;1-synchronous-versus-asynchronous-replication&#34;&gt;(1) Synchronous Versus Asynchronous Replication&lt;/h4&gt;
-
-&lt;p&gt;replicated 系统重要特点就是 同步写还是异步写，一般关系型数据库可以配置，其他的都是硬编码写死的。&lt;/p&gt;
-
-&lt;p&gt;客户端发送数据给leader，然后leader转发给follower，最后通知client。如果 leader 收到 follower 的确认消息再回复client，这就是同步。
-如果leader发送给了 follower后就直接回复client，就是异步。一般情况，系统都只有一个follower是同步，其余的都是异步。这叫 semi-synchronous。&lt;/p&gt;
-
-&lt;p&gt;为了效率经常设置为 Asynchronous，这样如何 leader 失败了而且不恢复，那还没有被副本保存的数据就丢失了，这样的好处就是可以提供持续服务，尽管follower很慢。&lt;/p&gt;
-
-&lt;p&gt;Weakening durability 可能是一个比较糟糕的 trade-off，但是 Asynchronous 还是很常用，尤其是地理上分布式的集群。&lt;/p&gt;
-
-&lt;p&gt;当然也有很多其他的方案在研究中，例如 Azure 使用了 chain replication。&lt;/p&gt;
-
-&lt;h4 id=&#34;2-setting-up-new-followers&#34;&gt;(2) Setting Up New Followers&lt;/h4&gt;
-
-&lt;p&gt;系统有时候需要添加新的节点，如何保证新节点和leader的数据一致呢？直接复制数据过来肯定是不行的，leader 一直处在 flux 中，一般步骤有四步：
-1. leader 在某个确定一致性的时间点拍一个 snapshot 而不用锁住系统，大部分数据库都提供了这个功能，有的能通过第三方工具提供这个功能。
-2. follower 将数据复制过去。
-3. follower 将从这个时间点以后的数据复制过去，这需要拍 snapshot 时候的日志位置，这个点的名字叫 Log sequence number 或者 binlog coordinates。
-4. 当 follower 将所有的change都同步后，我们称之为 catch up，就可以和其他follower一样，处理 leader 发生的变化了。&lt;/p&gt;
-
-&lt;p&gt;真正的步骤其实是有很多不同，有时候可以自动配置，有时候需要手动配置。&lt;/p&gt;
-
-&lt;h4 id=&#34;3-handling-node-outages&#34;&gt;(3) Handling Node Outages&lt;/h4&gt;
-
-&lt;p&gt;有时候节点会挂掉，可能是我们不知道的原因，也可能是为了安装系统模块而重启，这时候应该怎么保证集群的高可用&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;follower 挂掉&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;follower 挂点然后重启的步骤是很简单的，类似前面的添加新节点，启动以后，根据日志能找到最后一个处理的事务，然后从leader请求这个时间点以后的更改，然后进行更改，完成后就 catch up。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;leader failover&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;leader 挂掉后可能麻烦一点，必须马上选择一名新的leader，这个过程被称为 failover&lt;/p&gt;
-
-&lt;p&gt;failover的具体步骤有4：
-1. 确定leader失败了，失败的原因很多，磁盘、电源等等，目前用的最多的是 timeout 方法，节点相互 bounce message，如果突然在某个时间点收不到，就是失败了。
-2. 选择新的 leader，需要在大多数的follwer 进行选举，最好是选一个数据最新的。所有的节点同意这个节点成为 consensus。
-3. 告知系统使用新的leader，client 发送数据到新的 leader，旧的 leader 回复后也要认同新的 leader。&lt;/p&gt;
-
-&lt;p&gt;failover 总是会有些不期而遇的问题：
-1. 如果是 asynchronous replica ，可能遇到一些数据没有同步过来，导致数据少了，如果这时候 older leader起来了，就会发生错误，这时候一般选择 discard 这部分数据。
-2. 如果系统和别的系统进行结合，discard 是很危险的，github 发生了一次 mysql leader挂掉，然后discard 了一部分，删掉了部分自增的primary key，可是这部分pk已经保存到 redis了，导致了错误
-3. 有时候两个节点都认为自己是 leader，这个叫做 split brain，这时候需要去掉一个，有可能两个都被去掉了。
-4. timeout 的具体值多少合适？如果太长了，可能导致发现的晚。如果太短了可能误判，尤其是系统压力大的时候，还重新换一次会造成更大的压力。&lt;/p&gt;
-
-&lt;p&gt;这些问题解决起来还是很棘手的，所以有很多算法，我们后续会介绍。&lt;/p&gt;
-
-&lt;h4 id=&#34;4-implementation-of-replication-logs&#34;&gt;(4) Implementation of Replication Logs&lt;/h4&gt;
-
-&lt;p&gt;上面各种恢复，添加，都涉及到日志，日志记录了数据的更改，实际上我们学习Hadoop 的时候，也知道里面有日志，现在我们来研究一下，日志怎么实现。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;Statement-based replication&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;基于 statement 的 replication，这是最简单的方法，数据库记录每一次更新，也就是说，你的 UPDATE、INSERT、DELETE都会记录到日志中，然后发送给follower。
-这样的问题是：
-对于 current_timestamp、random 这样的方法返回值不一样，基于判断的例如 update &amp;hellip; where &amp;hellip; 必须按照顺序，一些触发器、存储过程等 side effects。&lt;/p&gt;
-
-&lt;p&gt;对于这些问题，当然也有特定的解决方案，例如先计算一些可能导致不一致的函数。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;WAL-log&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;前面讲过 B-Tree 和 LSM-Tree，都是基于WAL-log，是一种只能 append 的二进制日志，leader 不仅将 wal-log 保存到磁盘，而且发送到 followers。&lt;/p&gt;
-
-&lt;p&gt;WAL 的 disadvantage 是太底层，wal 包含了磁盘那个位置的 block 需要修改哪些 bytes，这样耦合性比较高，如果format 改变了，基本上很难让 leader和follower 使用不同版本。&lt;/p&gt;
-
-&lt;p&gt;这个问题看起来更像是实现的问题，如果 replication 的协议支持follower 使用新的版本，就能完成 zore-downtime 的 upgrade。
-首先更新 follower的版本，然后让leader failover，选择一个 follower 为 leader。如果replication 的协议不支持版本不一直，这就叫做 wal-shipping，会造成 upgrade-downtime。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;Logical (row-based) log replication&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;这种方式就是 replication log 和具体的 storage device 解耦，使用不同格式。 relational database 的 logical log 一般都是一系列表示行的recorders。一个改变很多行的 statement 会
-产生很多行这样的日志，后面有一个transaction 完成的标识符。这种方式是解耦的，所以可以容忍不同的版本，甚至不同的存储引擎。这也让外部的系统容易获得数据，
-例如数仓、二级索引，外部缓存，这个技术叫做 change data capture。&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;trigger based replication&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;前面讲的都是数据库系统的，有时候我们需要更灵活的，例如你只想一部分数据，或者你想从一个数据库迁移到另一个数据库。这样你就应该将replication 提升到应用程序层面。
-很多数据库提供了工具完成这个事情。许多关系型数据库提供了一项功能：triggers and stored procedures。trigger 能让你注册用户代码，一旦数据发生改变，将会将数据放到另一给表格，外部系统可以访问。&lt;/p&gt;
-
-&lt;h4 id=&#34;5-problems-with-replication-lag&#34;&gt;(5) Problems with Replication Lag&lt;/h4&gt;
-
-&lt;h2 id=&#34;二-partitioning&#34;&gt;二、Partitioning&lt;/h2&gt;
-
-&lt;p&gt;分区，also known as Sharding。&lt;/p&gt;
-
-&lt;h1 id=&#34;第五部分-案例&#34;&gt;第五部分、案例&lt;/h1&gt;
-
-&lt;p&gt;&lt;a href=&#34;https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26&#34;&gt;https://medium.freecodecamp.org/how-to-system-design-dda63ed27e26&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&#34;http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/&#34;&gt;http://blog.gainlo.co/index.php/2015/10/22/8-things-you-need-to-know-before-system-design-interviews/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&#34;https://engineering.videoblocks.com/web-architecture-101-a3224e126947&#34;&gt;https://engineering.videoblocks.com/web-architecture-101-a3224e126947&lt;/a&gt;&lt;/p&gt;
-
-&lt;h1 id=&#34;第六部分-资料&#34;&gt;第六部分、资料&lt;/h1&gt;
-
-&lt;p&gt;es设计架构，良心参考资料：
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;lsm b+tree 资料
-&lt;a href=&#34;https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f&#34;&gt;https://medium.com/databasss/on-disk-io-part-3-lsm-trees-8b2da218496f&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;partition 的主要目的是 scalability，其实相对于 其他分布式理论，partition 是最简单的，没有很多复杂的一致性问题。&lt;/p&gt;
 </description>
       
     </item>
@@ -8580,449 +9129,6 @@ Difficulties and trade-offs in calculating search relevance
 Concurrency control
 Why is Elasticsearch near real-time?
 How to ensure consistent writes and reads?&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>es架构-2</title>
-      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</link>
-      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-2/</guid>
-      
-        <description>
-
-&lt;p&gt;es设计架构，良心参考资料：
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-2&#34;&gt;一、Anatomy of an Elasticsearch Cluster -2&lt;/h2&gt;
-
-&lt;p&gt;上一节我们说了：underlying storage model and CRUD operations in Elasticsearch.这一节的内容主要包括：
-Consensus — split-brain problem and importance of quorum
-Concurrency
-Consistency: Ensuring consistent writes and reads
-Translog (Write Ahead Log — WAL)
-Lucene segments&lt;/p&gt;
-
-&lt;h3 id=&#34;1-consensus-split-brain-problem-and-importance-of-quorum&#34;&gt;1. Consensus- Split-brain problem and importance of quorum&lt;/h3&gt;
-
-&lt;p&gt;Consensus 算法包括 Raft、Paxos等，为了解决一致性问题，es的一致性算法有两个部分：&lt;/p&gt;
-
-&lt;p&gt;Ping: The process nodes use to discover each other
-Unicast: The module that contains a list of hostnames to control which nodes to ping&lt;/p&gt;
-
-&lt;p&gt;es是一个P2P的系统，所有节点都和其他节点沟通，有一个主节点，控制和更新集群操作。一个新的集群需要经过选举，一个节点被选为master，其他的加入master。
-As nodes join, they send a join request to the master with a default join_timeout which is 20 times the ping_timeout.
-如果mster节点挂了，cluster重新开始ping，开始新的选举。这种ping过程也帮忙解决脑裂（某个节点突然觉得maste挂了，开始寻找新master）&lt;/p&gt;
-
-&lt;p&gt;为了容错，master会ping 所有的 节点去检查是否 alive然后节点会ping master进行response。
-默认配置下，es可能会有脑裂， 由于 network partition,a node 觉得 master 已经 failed然后自己当上master，导致连个master。
-This may result in data loss and it may not be possible to merge the data correctly.
-This can be avoided by setting the following property to a quorum of master eligible nodes.
-&lt;code&gt;discovery.zen.minimum_master_nodes = int(# of master eligible nodes/2)+1&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;设置这个配置之后，需要有 quorum of active master eligible nodes 参加完成master选举过程，并接受他的master身份。
-This is an extremely important property to ensure cluster stability and can be dynamically updated if the cluster size changes.
-NOTE: For a production cluster, it is recommended to have 3 dedicated master nodes, which do not serve any client requests, out of which 1 is active at any given time.&lt;/p&gt;
-
-&lt;p&gt;这就是 Consensus 的内容&lt;/p&gt;
-
-&lt;h3 id=&#34;2-concurrency&#34;&gt;2. Concurrency&lt;/h3&gt;
-
-&lt;p&gt;对于高并发，es使用 optimistic concurrency control 乐冠锁进行控制，保证新纪录不被就记录覆盖。
-每个document indexed 有一个 version number which is incremented with every change applied to that document。保证每次更新都能按照顺序。
-为了保证数据不丢失，es可以让你自己指定id，如果你指定的id比present的小，更新就失败了。
-How failed requests are handled can be controlled at the application level.
-There are also other locking options available and you can read about them：&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/guide/2.x/concurrency-solutions.html&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h3 id=&#34;3-consistency-ensuring-consistent-writes-and-reads&#34;&gt;3. Consistency — Ensuring consistent writes and reads&lt;/h3&gt;
-
-&lt;p&gt;写一致
-对于怎样算写成功，可以设置 available的 shards 数量
-The available options are quorum, one and all. By default it is set to quorum and that means that a write operation will be permitted only if a majority of the shards are available.&lt;/p&gt;
-
-&lt;p&gt;尽管大多数available，也有可能出错。the replica is said to be faulty and the shard would be rebuilt on a different node.&lt;/p&gt;
-
-&lt;p&gt;读一致：
-new documents are not available for search until after the refresh interval.
-为了保证读到最新的document，replication can be set to sync (default) 。这样只有 primary and replica shards 都写完了才会返回 write request 。
-这样，从任何一个shard查询，都将返回最新的document。
-Even if your application requires replication=async for higher indexing rate, there is a _preference parameter which can be set to primary for search requests.
-这样，查询都走 primary shard ，保证结果都来自最新版本。&lt;/p&gt;
-
-&lt;h3 id=&#34;2-translog&#34;&gt;2. Translog&lt;/h3&gt;
-
-&lt;p&gt;WAL来自关系型数据库的世界，translog保证事件失败时候的数据完整性，通过底层的原则 :在将数据提交到磁盘的实际更改之前，必须记录并提交预期的更改。&lt;/p&gt;
-
-&lt;p&gt;当新 document被index，或者旧的更改，Lucene index会改变，然后改变会被提交到磁盘进行持久化。每次update都进行提交很expensive，更好地办法是一次性提交很多。
-上一节提到的，flush操作默认30min一次或者translog太大，这样的话，有可能丢失30min的数据。为了避免这个问题，es使用translog，update操作都将被写到translog，
-translog is fsync’ed after every index/delete/update operation (or every 5 sec by default) 保证改变被持久化。
-The client receives acknowledgement for writes after the translog is fsync’ed on both primary and replica shards.&lt;/p&gt;
-
-&lt;p&gt;当两次flush之间出现问题，translog将会重新执行，从而恢复丢失的change，
-NOTE: It is recommended to explicitly flush the translog before restarting Elasticsearch instances,
-as the startup will be faster because the translog to be replayed will be empty.
-POST /_all/_flush command can be used to flush all indices in the cluster.&lt;/p&gt;
-
-&lt;p&gt;上面已经说了translog的flush操作，segments文件会被提交到磁盘来保证改变持久化。接下来我们看看什么是lucene的 segment。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-lucene-segments&#34;&gt;3.Lucene Segments&lt;/h3&gt;
-
-&lt;p&gt;Lucene索引由多个段组成，并且段本身是一个全功能倒置索引。
-是不可变的，它允许Lucene在不从头开始重建索引的情况下增量地向索引添加新文档。
-对于每一个搜索请求，索引中的所有段都被搜索，并且每个段消耗CPU周期、文件句柄和内存。这意味着段数越高，搜索性能就越低。
-为了解决这个问题，es将小的段合并成更大的段，将新合并的段提交到磁盘并删除旧的较小的段。
-对于搜索请求，搜索给定的弹性搜索索引碎片中的所有Lucene段，但是，在排名结果中提取所有匹配的文档或文档对于弹性搜索集群是危险的。&lt;/p&gt;
-
-&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
-
-&lt;p&gt;在后续文章中，我们将看到这一点，并回顾下面的主题，其中包括在弹性搜索中进行的一些权衡，以在低延迟下服务相关搜索结果。&lt;/p&gt;
-
-&lt;p&gt;lit brain problem in Elasticsearch and how to avoid it
-Transaction log
-Lucene segments
-Why deep pagination during search is dangerous?
-Difficulties and trade-offs in calculating search relevance
-Concurrency control
-Why is Elasticsearch near real-time?
-How to ensure consistent writes and reads?&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>es架构-3</title>
-      <link>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-3/</link>
-      <pubDate>Sun, 22 Apr 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/es/es%E6%9E%B6%E6%9E%84-3/</guid>
-      
-        <description>
-
-&lt;p&gt;es设计架构，良心参考资料：
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-i-7ac9a13b05db&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-ii-6db4e821b571&lt;/a&gt;
-&lt;a href=&#34;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&#34;&gt;https://blog.insightdatascience.com/anatomy-of-an-elasticsearch-cluster-part-iii-8bb6ac84488d&lt;/a&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;一-anatomy-of-an-elasticsearch-cluster-3&#34;&gt;一、Anatomy of an Elasticsearch Cluster -3&lt;/h2&gt;
-
-&lt;p&gt;上一节我们说了：how Elasticsearch approaches some of the fundamental challenges of a distributed system.这一节的内容主要包括：&lt;/p&gt;
-
-&lt;p&gt;Near real-time search&lt;/p&gt;
-
-&lt;p&gt;Why deep pagination in distributed search can be dangerous?&lt;/p&gt;
-
-&lt;p&gt;Trade-offs in calculating search relevance&lt;/p&gt;
-
-&lt;h3 id=&#34;1-near-real-time-search&#34;&gt;1. Near real-time search&lt;/h3&gt;
-
-&lt;p&gt;尽管改变不会立即可见，但是es确实提供了近实时查询，前面的内容提到，lucene的segment改变提交到磁盘是很消耗性能的。&lt;/p&gt;
-
-&lt;p&gt;为了避免search的同时提交改变到磁盘，es在memory buffer和disk之间提供了一个 filesystem cache，memory buffer 默认1s refreshed 一次，
-一个包含倒排索引的segment也会在 filesystem cache中生成。segment是开放的可以查询。&lt;/p&gt;
-
-&lt;p&gt;filesystem cache有文件句柄而且可以打开，读写，关闭，尽管它在内存中。
-Since, the refresh interval is 1 sec by default,  the changes are not visible right away ，所以是准实时。
-Since, the translog is a persistent record of changes not persisted to the disk, it also helps with the near real-time aspect for CRUD operations.
-在查找相关段之前，在 translog 中搜索任何最近的变化，因此，客户端可以访问近实时的所有变化。&lt;/p&gt;
-
-&lt;p&gt;你可以每次更新后手动刷新index，但是这样会产生很多小segment，不推荐。
-For a search request, all Lucene segments in a given shard of an Elasticsearch index are searched。
-however, fetching all matching documents or documents deep in the resulting pages is dangerous for your Elasticsearch cluster. Let’s see why that is.&lt;/p&gt;
-
-&lt;h3 id=&#34;2-why-deep-pagination-in-distributed-search-can-be-dangerous&#34;&gt;2. Why deep pagination in distributed search can be dangerous?&lt;/h3&gt;
-
-&lt;p&gt;当我们查到的es中有很多匹配到的document，默认返回最相关的10条，分页操作会提供from和size两个参数，然后每个shard上面会产生from+size个结果放进优先队列，最后汇总。&lt;/p&gt;
-
-&lt;p&gt;加入你需要的是10000到100010个结果，每个shard的优先队列会返回10010个结果排序后放进 memory中，这样将会有很大的隐患。
-scroll API （&lt;a href=&#34;https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html）可以让你返回所有的结果。&#34;&gt;https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html）可以让你返回所有的结果。&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;前面说到es使用tf-idf算法，分布式系统计算idf时很麻烦的，需要有aggregate操作。es的做法是返回一个local idf：
-Instead, every shard calculates a local idf to assign a relevance score to the resulting documents and returns the result for only the documents on that shard.
-Similarly, all the shards return the resulting documents with relevant scores calculated using local idf and the coordinating node sorts all the results to return the top ones。
-大多数情况可靠，但是数据倾斜时候就不太可靠了。&lt;/p&gt;
-
-&lt;p&gt;对于上面的问题有两种 trade-off，都不太适合大规模数据。一种是只有一个shard，这样local idf就是 globe idf。另一种是 dfs_query_then_search，先把local idf合并成globe idf，然后在计算。&lt;/p&gt;
-
-&lt;h2 id=&#34;what-next&#34;&gt;What next?&lt;/h2&gt;
-
-&lt;p&gt;In the last few posts, we reviewed some of the fundamental principles of Elasticsearch which are important to understand in order to get started.&lt;/p&gt;
-
-&lt;p&gt;接下来，我们要看看他的源码，或者看看怎么和spark、hadoop结合使用。&lt;/p&gt;
-</description>
-      
-    </item>
-    
-    <item>
-      <title>Java内存区域与内存溢出异常</title>
-      <link>https://dengziming.github.io/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/</link>
-      <pubDate>Fri, 20 Apr 2018 00:00:00 +0000</pubDate>
-      
-      <guid>https://dengziming.github.io/post/java/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E4%B8%8E%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA%E5%BC%82%E5%B8%B8/</guid>
-      
-        <description>
-
-&lt;h2 id=&#34;一-概述&#34;&gt;一、概述&lt;/h2&gt;
-
-&lt;p&gt;我们的代码运行过程中的，虚拟机管理着内存的分配和使用。我们今天先了解内存区域，使我们深入了解JVM的第一步。&lt;/p&gt;
-
-&lt;h2 id=&#34;二-运行时数据区域&#34;&gt;二、运行时数据区域&lt;/h2&gt;
-
-&lt;p&gt;根据java虚拟机规范，虚拟机内存区域结构大概如图，我们详细介绍每个区域：&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;./_image/2018-04-16-22-37-47.jpg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&#34;1-程序计数器&#34;&gt;1.程序计数器&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;我们简单想象有个helloworld程序运行。代码最终是一步一步解释为机器码，所以有一个程序计数器，记录当前的代码执行位置，也就是行号。&lt;/li&gt;
-&lt;li&gt;假如有两个线程执行helloworld，那每个线程执行到第几行都需要各自保存，每个线程都有独立的计数器。&lt;/li&gt;
-&lt;li&gt;如果是循环打印，字节码需要改变程序计数器的值取到下一条指令。&lt;/li&gt;
-&lt;li&gt;如果是java方法，计数器指向的是代码位置，如果是native方法，计数器为空。&lt;/li&gt;
-&lt;li&gt;程序计数器是唯一一个没有 outofmermoryError情况的区域。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;2-java虚拟机栈&#34;&gt;2. java虚拟机栈&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;和程序计数器一样，java虚拟机栈也是线程私有。&lt;/li&gt;
-&lt;li&gt;我们debug代码的时候，debugger会显示某个正在运行的线程，然后自上而下一次为每个方法对应的栈帧，每个栈帧保存局部变量等，每个方法执行结束，就有一个栈帧入栈到出栈：
-&lt;img src=&#34;./_image/2018-04-16-22-48-02.jpg&#34; alt=&#34;&#34; /&gt;&lt;/li&gt;
-&lt;li&gt;局部变量表存储的是各自基本数据类型（8种）和引用。64位的long和double占用两个变量空间，其余的是一个，一般来说，局部变量表的大小是固定的。&lt;/li&gt;
-&lt;li&gt;栈有两种异常，Stack OverflowError 和 outofmermoryError，前者是方法调用栈太多，例如递归，后者是内存不够。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;3-本地方法栈&#34;&gt;3.本地方法栈&lt;/h3&gt;
-
-&lt;p&gt;和栈类似，主要负责本地方法，实现上很自由，有的直接和栈合二为一。也有两种异常。&lt;/p&gt;
-
-&lt;h3 id=&#34;4-java-堆&#34;&gt;4.java 堆&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;内存最大，线程共享，作用就是存放实例（几乎所有的实例，但是技术发展导致没这么绝对）。&lt;/li&gt;
-&lt;li&gt;垃圾回收采用分带收集，所以堆包括了新生代、老年代。还可以细分为：eden、from survivor、to survivor。&lt;/li&gt;
-&lt;li&gt;可能也有线程私有的内存缓冲区，只是为了更好分配和回收。&lt;/li&gt;
-&lt;li&gt;只要逻辑上连续即可，无需物理连续。大小可以调节（-Xmx和-Xms）&lt;/li&gt;
-&lt;li&gt;无法扩展并且没有内存分配示例，会有OutOfmermoryError。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;5-方法区&#34;&gt;5.方法区&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;我们运行了一个helloworld方法，对应的主类和常量、静态变量、编译后的代码都需要放在方法去，逻辑上和堆的一个部分。&lt;/li&gt;
-&lt;li&gt;基本上不需要垃圾回收，所以有人叫他永久带，实际上只是一开始的JVM将它放在了永久代的而已。但是从1.7开始，已经把原本放在永久代的字符串常量池移出, 放在堆中。&lt;/li&gt;
-&lt;li&gt;方法去无法满足内训分配需求，也会有OutOfmermoryError，但是从1.7开始，不在这样。&lt;/li&gt;
-&lt;li&gt;类的元数据, 字符串池, 类的静态变量将会从永久代移除, 放入Java heap或者native memory.其中建议JVM的实现中将类的元数据放入 native memory, 将字符串池和类的静态变量放入java堆中. 这样可以加载多少类的元数据就不在由MaxPermSize控制, 而由系统的实际可用空间来控制.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;6-运行时常量池&#34;&gt;6. 运行时常量池&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;是方法区的一部分，.class 文件中除了有类的版本、字段、方法等信息，还有常量池，用于存放编译器的自变量和符号引用。这部分在加载后会进入方法去的运行时常量池。&lt;/li&gt;
-&lt;li&gt;.class文件的每一部分格式都很严格。但是常量池很宽松。&lt;/li&gt;
-&lt;li&gt;java语言并不要求一定要常量只能在编译时候产生，运行期间也可以将新的常量放入常量池。这种特性用的最多的是String的intern()方法。&lt;/li&gt;
-&lt;li&gt;也会有OutOfmermoryError。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;7-直接内存&#34;&gt;7. 直接内存&lt;/h3&gt;
-
-&lt;p&gt;这部分是由于java的NIO引起的&lt;/p&gt;
-
-&lt;h2 id=&#34;三-hotspot对象探秘&#34;&gt;三、Hotspot对象探秘&lt;/h2&gt;
-
-&lt;h3 id=&#34;1-对象的创建&#34;&gt;1.对象的创建&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;从写代码看，对象的创建（例如克隆，反序列化）只是一个new关键字，然后我们调试可以看到其实还执行了 初始化的&lt;init&gt;方法。&lt;/li&gt;
-&lt;li&gt;从虚拟机角度看，首先是检查对应的引用能否在常量池中定位到一个类的符号引用，并检查是否已经加载解析和初始化过，如果没有，就要开始加载。&lt;/li&gt;
-&lt;li&gt;类的加载我们以后讨论，加载完后需要分配内存。对象大小在加载完成后就已经完全确定了，如果java堆内存是绝对规整的，那么需要维护一个指针指向当前分配到的位置。如果不连续需要维护一个空闲列表。&lt;/li&gt;
-&lt;li&gt;分配内存可能是多线程的，有安全问题。要么加锁，要么给每个内存一个预先分配的小内存，成为本地分配缓存。&lt;/li&gt;
-&lt;li&gt;内存分配完成后需要初始化为0值，然后进行元数据设置，例如是那个类的实例，GC代等。&lt;/li&gt;
-&lt;li&gt;这时候对象创建才刚刚开始，执行 &lt;init&gt;方法。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;2-对象的内存布局&#34;&gt;2.对象的内存布局&lt;/h3&gt;
-
-&lt;ol&gt;
-&lt;li&gt;对象在内存中的存储布局可以分为3部分，对象头，实例数据、对象填充。对象头第一部分存储运行时数据，第二部分是类型指针。运行时数据hash码、分带年龄等。类型指针指向类元数据，数组还要记录数组长度。&lt;/li&gt;
-&lt;li&gt;第二部分为实例数据，就是代码里面定义的数据内容&lt;/li&gt;
-&lt;li&gt;第三部分没什么含义，仅仅是占位符。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h3 id=&#34;3-对象的访问&#34;&gt;3.对象的访问&lt;/h3&gt;
-
-&lt;p&gt;1.对象的访问有两种方式，第一种是句柄。java堆会有一块专门的内存作为句柄池，栈存储的是句柄地址，句柄包含了对象示例数据（堆）和类型数据（方法区）各自的指针。
-2. 第二中方法是指针访问，栈存储的直接是对象地址，堆的对象布局必须考虑如何放置访问类型数据。
-3. 句柄最大的好处是对象改变时不需要改变栈的地址，使用直接内存好处是访问速度快，节省时间。&lt;/p&gt;
-
-&lt;h2 id=&#34;四-实战-outofmermoryerror&#34;&gt;四、实战 OutOfmermoryError&lt;/h2&gt;
-
-&lt;p&gt;除了程序计数器，都会有OutOfMermoryError异常，我们实战一下，在IDEA编写代码，并学习几个参数。&lt;/p&gt;
-
-&lt;h3 id=&#34;1-堆溢出&#34;&gt;1.堆溢出&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
- * Created by dengziming on 17/04/2018.
- * VM ARGS: -Xms20m -Xmx20m -XX:+HeapDumpOnOutOfMemoryError
- */
-public class HeapOOM {
-    static class OOMObject{}
-    public static void main(String[] args) {
-        List&amp;lt;OOMObject&amp;gt; list = new ArrayList&amp;lt;&amp;gt;();
-        while (true){list.add(new OOMObject());}
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;VM ARGS:  -Xms20m -Xmx20m -XX:+HeapDumpOnOutOfMemoryError
-马上报错：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;java.lang.OutOfMemoryError: Java heap space
-Dumping heap to java_pid98722.hprof ...
-Heap dump file created [27798040 bytes in 0.363 secs]
-Exception in thread &amp;quot;main&amp;quot; java.lang.OutOfMemoryError: Java heap space
-	at java.util.Arrays.copyOf(Arrays.java:3210)
-	at java.util.Arrays.copyOf(Arrays.java:3181)
-	at java.util.ArrayList.grow(ArrayList.java:261)
-	at java.util.ArrayList.ensureExplicitCapacity(ArrayList.java:235)
-	at java.util.ArrayList.ensureCapacityInternal(ArrayList.java:227)
-	at java.util.ArrayList.add(ArrayList.java:458)
-	at io.github.dengziming.session2.HeapOOM.main(HeapOOM.java:21)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如何查看对文件和分析，我们后续有内容。简单分析两点：
-1. 如果是内存泄露，通过GC工具查看泄露对象的GC引用链，定位代码位置
-2. 如果内存溢出，可以考虑调大参数。 -Xmx -Xms&lt;/p&gt;
-
-&lt;h3 id=&#34;2-虚拟机栈和本地方法溢出&#34;&gt;2.虚拟机栈和本地方法溢出&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
- * Created by dengziming on 18/04/2018.
- * VM ARGS -Xss128k
- */
-public class JavaVMStackSOF {
-
-    private int stackLenth = 1;
-    public void stackLeak(){
-        stackLenth ++;
-        stackLeak();
-    }
-
-    public static void main(String[] args) {
-        JavaVMStackSOF oom = new JavaVMStackSOF();
-        try{
-            oom.stackLeak();
-        }catch (Exception e){
-            System.out.println(&amp;quot;stackLenth: &amp;quot; + oom.stackLenth);
-            throw e;
-        }
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Exception in thread &amp;ldquo;main&amp;rdquo; java.lang.StackOverflowError
-结果表明，单线程下，无论是栈帧太大还是栈容量太小，内存无法分配的时候，都是Stack Overflow，如果多线程到不太一样。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
- * Created by dengziming on 18/04/2018.
- * VM ARGS: -Xss20M
- */
-public class JavaVMStackOOM {
-    private void dontStop(){
-        while (true){}
-    }
-    public void stackLeakByStack(){
-        while (true){
-            Thread thread = new Thread() {
-                @Override
-                public void run() {
-                    dontStop();
-                }
-            };
-            thread.start();
-        }
-    }
-
-    public static void main(String[] args) {
-        JavaVMStackOOM oom = new JavaVMStackOOM();
-        oom.stackLeakByStack();
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;运行完电脑卡死了，算了。这个内存越大反而容易耗尽资源，因为机器内存是固定的，减少容量可以获得更多的线程数。
-注意：这时候通过减少内存解决内存溢出的方法，没有经验是不知道的。&lt;/p&gt;
-
-&lt;h3 id=&#34;3-方法区和运行时常量池溢出&#34;&gt;3. 方法区和运行时常量池溢出&lt;/h3&gt;
-
-&lt;p&gt;String.intern() 的含义是返回在代表常量池中这个字符串的对象。如果没有，就将这个字符串放进常量池，并返回引用。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;/**
- * Created by dengziming on 18/04/2018.
- * 
- * vm args: -XX:PermSize=10M -XX:MaxPermSize=10M
- */
-public class RuntimeConstantPoolOOM {
-
-    public static void main(String[] args) {
-
-        List&amp;lt;String&amp;gt; list = new ArrayList&amp;lt;&amp;gt;();
-        int i=0;
-        while(true){
-            list.add(String.valueOf(i++).intern());
-        }
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;不好意思这个方法没有达到效果：
-Java HotSpot&amp;trade; 64-Bit Server VM warning: ignoring option PermSize=10M; support was removed in 8.0
-Java HotSpot&amp;trade; 64-Bit Server VM warning: ignoring option MaxPermSize=10M; support was removed in 8.0
-jdk1.7 已经把原本放在永久代的字符串常量池移出, 放在堆中。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;    public static void main(String[] args) {
-
-        while(true){
-            Enhancer enhancer = new Enhancer();
-            enhancer.setSupperClass(OOMObject.class);
-            enhancer.setUserCache(false);
-            enhancer.setCallBack(new MethodInterceptor(){
-                public Object intercept(Object obj , Method method , Object []args , MethodProxy proxy)throw Throwable{
-                    return proxy.invokeSuper(obj , args);
-                }
-            });
-            enhancer.create();
-        }
-    }
-    static class OOMObject{
-
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;这个也是一样。因为类的元数据, 字符串池, 类的静态变量从永久代移除, 放入Java heap或者native memory.其中建议JVM的实现中将类的元数据放入 native memory, 将字符串池和类的静态变量放入java堆中.&lt;/p&gt;
-
-&lt;p&gt;String.intern() 在1.6和1.7有不同的实现。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-java&#34;&gt;public class RuntimeConstantPoolOOM2 {
-
-    public static void main(String[] args) {
-
-        String str1 = new StringBuilder().append(&amp;quot;计算机&amp;quot;).append(&amp;quot;软件&amp;quot;).toString();
-        System.out.println(str1.intern() == str1);
-
-        String str2 = new StringBuilder().append(&amp;quot;ja&amp;quot;).append(&amp;quot;va&amp;quot;).toString();
-        System.out.println(str2.intern() == str2);
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;1.6输出为false和false
-1.7输出为true和false
-原因是：1.6 的 intern返回在永久代的实例，如果是第一次遇到，会先复制到永久代。1.7不会复制到永久代，只是记录首次出现的实例的引用。
-所以1.6的时候两个intern返回的是永久代的引用而不是字符串，1.7的时候 java 这个串已经出现过了。&lt;/p&gt;
 </description>
       
     </item>
